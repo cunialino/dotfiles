@@ -1,0 +1,83 @@
+! ██╗░░██╗██████╗░███████╗███████╗░██████╗░██╗░░░██╗██████╗░░██████╗███████╗███████╗
+! ╚██╗██╔╝██╔══██╗██╔════╝██╔════╝██╔═══██╗██║░░░██║██╔══██╗██╔════╝██╔════╝██╔════╝
+! ░╚███╔╝░██████╔╝█████╗░░███████╗██║░░░██║██║░░░██║██████╔╝██║░░░░░█████╗░░███████╗
+! ░██╔██╗░██╔══██╗██╔══╝░░╚════██║██║░░░██║██║░░░██║██╔══██╗██║░░░░░██╔══╝░░╚════██║
+! ██╔╝░██╗██║░░██║███████╗███████║╚██████╔╝╚██████╔╝██║░░██║╚██████╗███████╗███████║
+! ╚═╝░░╚═╝╚═╝░░╚═╝╚══════╝╚══════╝░╚═════╝░░╚═════╝░╚═╝░░╚═╝░╚═════╝╚══════╝╚══════╝
+!
+! -----------------------------------
+
+Xft.dpi									: 96
+Xft.antialias							: true
+Xft.hinting							: true
+Xft.rightScrollBar 					: rgb
+Xft.autohint							: false
+Xft.hintstyle							: hintslight
+Xft.lcdfilter							: lcddefault
+
+! -
+! - URxvt
+! -
+URxvt.font: xft:Monoid Nerd Font Monono:size=15
+URxvt.iso14755: false
+URxvt.iso14755_52: false
+URxvt*scrollBar: false
+URxvt.cursorBlink : 1
+!.font        : xft : Hack Regular Nerd Font Complete : pixelsize=13
+!URxvt.boldFont    : xft : Hack Regular Nerd Font Complete : pixelsize=13 : weight=bold
+!URxvt.italicFont  : xft : Hack Regular Nerd Font Complete : pixelsize=13 : weight=italic
+
+!URxvt.lineSpace           			: 0
+!URxvt.letterSpace         		: -1
+!URxvt.scrollBar           			: false
+!URxvt.internalBorder      		: 32
+!URxvt.geometry            		: 70x13
+!URxvt.thickness           			: 5
+!URxvt.titleBar            			: true
+!URxvt.intensityStyles     		: false
+!URxvt.scrollTtyKeypress   	: true
+!URxvt.scrollTtyOutput     		: true
+!URxvt.cursorUnderline	  		: true
+!URxvt*allow_bold		  			: true
+!URxvt*iso14755			  			: False
+!
+!! -
+!! - URxvt Extensions
+!! -
+!
+!URxvt.perl-ext-common		: fullscreen,resize-font,matcher,clipboard
+!URxvt.keysym.F11					: perl:fullscreen:switch
+!URxvt.keysym.C-Down			: resize-font:smaller
+!URxvt.keysym.C-Up				: resize-font:bigger
+!URxvt.url-launcher				: firefox
+!URxvt.matcher.button			: 1
+
+
+! -
+! - Color
+! -
+
+#include 								".xrdb/color/gruvbox"
+
+! -
+! - UXTerm
+! -
+
+UXTerm*termName        : xterm-256color
+UXTerm*VT100.geometry  : 70x13
+UXTerm*faceName        : Monoid Nerd Font Monoe
+UXTerm*faceSize        : 10
+UXTerm*dynamicColors   : true
+UXTerm*utf8            : 2
+UXTerm*eightBitInput   : true
+UXTerm*saveLines       : 16384
+UXTerm*scrollKey       : true
+UXTerm*scrollTtyOutput : false
+UXTerm*scrollBar       : false
+UXTerm*rightScrollBar  : false
+UXTerm*jumpScroll      : true
+UXTerm*multiScroll     : true
+UXTerm*toolBar         : false
+UXTerm*boldMode        : false
+UXTerm*colorBDMode     : true
+UXTerm*colorBD         : rgb            : 3f/3f/3f
