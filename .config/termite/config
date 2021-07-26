@@ -1,0 +1,88 @@
+[options]
+scroll_on_output = false
+scroll_on_keystroke = true
+audible_bell = false
+mouse_autohide = false
+allow_bold = true
+dynamic_title = true
+urgent_on_bell = true
+clickable_url = true
+font=sans-serif 14
+scrollback_lines = 10000
+search_wrap = true
+
+# "system", "on" or "off"
+cursor_blink = system
+
+# "block", "underline" or "ibeam"
+cursor_shape = ibeam
+
+# $BROWSER is used by default if set, with xdg-open as a fallback
+#browser = xdg-open
+
+# set size hints for the window
+#size_hints = false
+
+# Hide links that are no longer valid in url select overlay mode
+filter_unmatched_urls = true
+
+# emit escape sequences for extra modified keys
+#modify_other_keys = false
+
+
+# if unset, will reverse foreground and background
+#highlight = #2f2f2f
+
+# colors from color0 to color254 can be set
+
+
+[colors]
+foreground=   #a89984
+background=   #282828
+cursorColor=  #a89984
+color0=       #32302f
+color8=       #928374
+color1=       #cc241d
+color9=       #fb4934
+color2=       #98971a
+color10=      #b8bb26
+color3=       #d79921
+color11=      #fabd2f
+color4=       #458588
+color12=      #83a598
+color5=       #b16286
+color13=      #d3869b
+color6=       #689d6a
+color14=      #8ec07c
+color7=       #a89984
+color15=      #ebdbb2
+color24=  #076678
+color66=  #427b58
+color88=  #9d0006
+color96=  #8f3f71
+color100= #79740e
+color108= #8ec07c
+color109= #83a598
+color130= #af3a03
+color136= #b57614
+color142= #b8bb26
+color167= #fb4934
+color175= #d3869b
+color208= #fe8019
+color214= #fabd2f
+color223= #ebdbb2
+color228= #f2e5bc
+color229= #fbf1c7
+color230= #f9f5d7
+color234= #1d2021
+color235= #282828
+color236= #32302f
+color237= #3c3836
+color239= #504945
+color241= #665c54
+color243= #7c6f64
+color244= #928374
+color245= #928374
+color246= #a89984
+color248= #bdae93
+color250= #d5c4a1
