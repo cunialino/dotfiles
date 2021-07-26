@@ -118,7 +118,7 @@ TERM xterm-termite
 NORMAL 00;38;5;250 # no color code at all
 FILE   00;38;5;223 # regular file: use no color at all
 RESET  00;38;5;172 # reset to "normal" color
-DIR    01;38;5;166 # directory
+DIR    01;38;5;28 # directory
 LINK   target      # symbolic link. (If you set this to 'target' instead of a
                    # numerical value, the color is as for the file pointed to.)
 
@@ -253,23 +253,23 @@ EXEC  01;30;32
 .xspf 01;33
 
 # documents
-.doc   38;5;109
-.docx  38;5;109
-.html  38;5;109
-.js    38;5;109
-.json  38;5;109
-.md    38;5;109
-.neon  38;5;109
-.odp   38;5;109
-.ods   38;5;109
-.odt   38;5;109
-.pdf   38;5;109
-.php   38;5;109
-.phtml 38;5;109
-.ppt   38;5;109
-.pptx  38;5;109
-.tex   38;5;109
-.txt   38;5;109
-.xls   38;5;109
-.xlsx  38;5;109
-.xml   38;5;109
+.doc   38;5;46
+.docx  38;5;46
+.html  38;5;46
+.js    38;5;46
+.json  38;5;46
+.md    38;5;46
+.neon  38;5;46
+.odp   38;5;46
+.ods   38;5;46
+.odt   38;5;46
+.pdf   38;5;46
+.php   38;5;46
+.phtml 38;5;46
+.ppt   38;5;46
+.pptx  38;5;46
+.tex   38;5;46
+.txt   38;5;46
+.xls   38;5;46
+.xlsx  38;5;46
+.xml   38;5;46
