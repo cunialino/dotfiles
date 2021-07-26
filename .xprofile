@@ -2,3 +2,6 @@
 export QT_QPA_PLATFORMTHEME=gtk2
 export PATH=$PATH:/opt/mystuff/
 export R_PROFILE_USER=~/.R/Rprofile
+export SUDO_ASKPASS="/usr/lib/ssh/x11-ssh-askpass"
+export MANPAGER="nvim -c MANPAGER -"
+export VISUAL="nvim"
