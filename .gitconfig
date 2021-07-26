@@ -1,0 +1,14 @@
+[user]
+	email = elia.cunial@gmail.com
+	name = cunialino
+[credential]
+	helper = cache
+[core]
+	excludesfile = /home/elia/.gitignore
+[filter "lfs"]
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+[init]
+	defaultBranch = main
