@@ -1,0 +1,10 @@
+( if
+( or
+( contains ( window_class ) "Termite" )
+( contains ( window_class ) "firefox" )
+( contains ( window_class ) "Zathura" )
+)
+( begin
+( spawn_async (str "transset-df -i " (window_xid) " 0.7" ))
+)
+)
