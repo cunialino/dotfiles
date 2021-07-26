@@ -137,7 +137,7 @@ OTHER_WRITABLE        38;5;208;48;5;243 # dir that is other-writable (o+w) and n
 STICKY                38;5;208;48;5;243 # dir with the sticky bit set (+t) and not other-writable
 
 # This is for files with execute permission:
-EXEC  01;30;32
+EXEC  04;38;5;46
 
 # Crufty and ignorable files
 .bak   38;5;246
