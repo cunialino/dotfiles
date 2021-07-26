@@ -1,0 +1,38 @@
+[{
+        "Termite": "",
+        "default": "1"
+    },
+    {
+        "firefox": "",
+        "Google-chrome": "",
+        "default": "2"
+    },
+    {
+        "matlab": "",
+        "default": ""
+    },
+    {
+        "default": ""
+    },
+    {
+        "Zathura": "",
+        "onlyoffice": "",
+        "default": "5"
+    },
+    {
+        "default": "6"
+    },
+    {
+        "default": "7"
+    },
+    {
+        "default": "8"
+    },
+    {
+        "default": "9"
+    },
+    {
+        "Nvidia-settings": "",
+        "default": "10"
+    }
+]
