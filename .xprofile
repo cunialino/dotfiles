@@ -1,0 +1,4 @@
+#!/bin/sh
+export QT_QPA_PLATFORMTHEME=gtk2
+export PATH=$PATH:/opt/mystuff/
+export R_PROFILE_USER=~/.R/Rprofile
