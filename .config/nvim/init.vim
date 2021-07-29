@@ -8,7 +8,6 @@ call plug#begin('~/.local/share/nvim/plugged')
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'junegunn/fzf.vim'
 
-Plug 'lervag/vimtex'
 
 Plug 'tpope/vim-surround'
 Plug 'tpope/vim-repeat'
@@ -18,25 +17,12 @@ Plug 'godlygeek/tabular'
 Plug 'lambdalisue/vim-manpager'
 Plug 'scrooloose/nerdtree'
 
-Plug 'mattboehm/vim-unstack'
-Plug 'mattboehm/vim-accordion'
 "Plug 'airblade/vim-gitgutter'
 Plug 'rhysd/conflict-marker.vim'
 
 Plug 'ron89/thesaurus_query.vim'
 
 Plug 'preservim/tagbar'
-
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
-Plug 'dense-analysis/ale'
-
-Plug 'SirVer/ultisnips'
-
-Plug 'honza/vim-snippets'
-
-Plug 'jalvesaq/Nvim-R', {'brach': 'stable'}
-
-Plug 'kassio/neoterm'
 
 Plug 'andymass/vim-matchup'
 Plug 'jiangmiao/auto-pairs'
@@ -232,13 +218,8 @@ let g:keysound_theme = 'typewriter'
 source ~/.config/nvim/src/Tagbar.vim
 source ~/.config/nvim/src/mapping.vim
 source ~/.config/nvim/src/NERDTree.vim
-source ~/.config/nvim/src/UTSNIP.vim
-source ~/.config/nvim/src/vimtex.vim
 source ~/.config/nvim/src/fzf.vim
-source ~/.config/nvim/src/nvimr.vim
 source ~/.config/nvim/src/AirLine.vim
-source ~/.config/nvim/src/coc.vim
-source ~/.config/nvim/src/ale.vim
 source ~/.config/nvim/src/thesaurus.vim
 
 "Setting up colors
