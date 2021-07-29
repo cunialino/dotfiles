@@ -8,3 +8,4 @@ xf86-video-intel
 nvidia
 nvidia-utils
 openssh
+pulseaudio

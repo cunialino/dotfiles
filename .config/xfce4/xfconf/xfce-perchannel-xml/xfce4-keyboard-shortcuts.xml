@@ -31,7 +31,7 @@
       </property>
     </property>
     <property name="custom" type="empty">
-      <property name="&lt;Alt&gt;F2" type="empty">
+      <property name="&lt;Alt&gt;F2" type="string" value="xfce4-appfinder --collapsed">
         <property name="startup-notify" type="bool" value="true"/>
       </property>
       <property name="&lt;Alt&gt;Print" type="string" value="xfce4-screenshooter -w"/>
@@ -61,6 +61,9 @@
       <property name="&lt;Super&gt;d" type="string" value="xfce4-appfinder">
         <property name="startup-notify" type="bool" value="true"/>
       </property>
+      <property name="AudioMute" type="string" value="amixer -c 1 sset Master toggle"/>
+      <property name="AudioRaiseVolume" type="string" value="amixer -c 1 sset Master 5%+"/>
+      <property name="AudioLowerVolume" type="string" value="amixer -c 1 sset Master 5%-"/>
     </property>
   </property>
   <property name="xfwm4" type="empty">
