@@ -9,3 +9,4 @@ nvidia
 nvidia-utils
 openssh
 pulseaudio
+xclip
