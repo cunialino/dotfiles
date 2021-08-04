@@ -10,3 +10,5 @@ nvidia-utils
 openssh
 pulseaudio
 xclip
+nvidia-prime
+visual-studio-code-insiders-bin
