@@ -4,20 +4,25 @@ mapclear
 let &t_ZM = "\e[3m"
 
 " vim-plugs
-call plug#begin('~/.local/share/nvim/plugged')
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
-Plug 'junegunn/fzf.vim'
+call plug#begin()
 
-
-Plug 'tpope/vim-surround'
-Plug 'tpope/vim-repeat'
 Plug 'tpope/vim-fugitive'
 
-Plug 'godlygeek/tabular'
-Plug 'lambdalisue/vim-manpager'
+if has("nvim")
+  Plug 'neovim/nvim-lspconfig'
+  Plug 'glepnir/lspsaga.nvim'
+  Plug 'folke/lsp-colors.nvim'
+
+  Plug 'nvim-lua/completion-nvim'
+  Plug 'nvim-treesitter/nvim-treesitter', { 'do': ':TSUpdate' }
+  Plug 'nvim-lua/popup.nvim'
+  Plug 'nvim-lua/plenary.nvim'
+  Plug 'nvim-telescope/telescope.nvim'
+  Plug 'windwp/nvim-autopairs'
+endif
+
 Plug 'scrooloose/nerdtree'
 
-"Plug 'airblade/vim-gitgutter'
 Plug 'rhysd/conflict-marker.vim'
 
 Plug 'ron89/thesaurus_query.vim'
@@ -25,9 +30,7 @@ Plug 'ron89/thesaurus_query.vim'
 Plug 'preservim/tagbar'
 
 Plug 'andymass/vim-matchup'
-Plug 'jiangmiao/auto-pairs'
 
-Plug 'arcticicestudio/nord-vim'
 Plug 'vim-airline/vim-airline'
 
 Plug 'easymotion/vim-easymotion'
@@ -35,8 +38,12 @@ Plug 'easymotion/vim-easymotion'
 Plug 'ryanoasis/vim-devicons'
 Plug 'xuyuanp/nerdtree-git-plugin'
 
+Plug 'tanvirtin/vgit.nvim'
+Plug 'nvim-lua/plenary.nvim'
+
 Plug 'morhetz/gruvbox'
 call plug#end()
+
 
 
 "Code Formatting
@@ -218,9 +225,11 @@ let g:keysound_theme = 'typewriter'
 source ~/.config/nvim/src/Tagbar.vim
 source ~/.config/nvim/src/mapping.vim
 source ~/.config/nvim/src/NERDTree.vim
-source ~/.config/nvim/src/fzf.vim
+"source ~/.config/nvim/src/fzf.vim
 source ~/.config/nvim/src/AirLine.vim
 source ~/.config/nvim/src/thesaurus.vim
+source ~/.config/nvim/src/lspconfig.vim
+source ~/.config/nvim/src/vgit.vim
 
 "Setting up colors
 colorscheme gruvbox

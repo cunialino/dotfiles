@@ -52,3 +52,15 @@ endfunction
 noremap <silent> <leader>mw :call MarkWindowSwap()<CR>
 noremap <silent> <leader>pw :call DoWindowSwap()<CR>
 
+
+nnoremap <silent>K :Lspsaga hover_doc<CR>
+inoremap <silent> <C-k> <Cmd>Lspsaga signature_help<CR>
+nnoremap <silent> gh <Cmd>Lspsaga lsp_finder<CR>
+set completeopt=menuone,noinsert,noselect" Use <Tab> and <S-Tab> to navigate through popup menu
+inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
+inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+
+nnoremap <silent> ;f <cmd>Telescope find_files<cr>
+nnoremap <silent> ;r <cmd>Telescope live_grep<cr>
+nnoremap <silent> \\ <cmd>Telescope buffers<cr>
+nnoremap <silent> ;; <cmd>Telescope help_tags<cr>

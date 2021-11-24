@@ -4,6 +4,8 @@
   <property name="applications" type="empty">
     <property name="known_applications" type="array">
       <value type="string" value="Firefox"/>
+      <value type="string" value="notify-send"/>
+      <value type="string" value="teams"/>
       <value type="string" value="xfce4-power-manager"/>
     </property>
   </property>
