@@ -6,20 +6,37 @@ let &t_ZM = "\e[3m"
 " vim-plugs
 call plug#begin()
 
+
+Plug 'junegunn/fzf.vim'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+
 Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-surround'
+Plug 'tpope/vim-repeat'
+Plug 'rhysd/conflict-marker.vim'
 
-if has("nvim")
-  Plug 'neovim/nvim-lspconfig'
-  Plug 'glepnir/lspsaga.nvim'
-  Plug 'folke/lsp-colors.nvim'
+Plug 'godlygeek/tabular'
+Plug 'lambdalisue/vim-manpager'
 
-  Plug 'nvim-lua/completion-nvim'
-  Plug 'nvim-treesitter/nvim-treesitter', { 'do': ':TSUpdate' }
-  Plug 'nvim-lua/popup.nvim'
-  Plug 'nvim-lua/plenary.nvim'
-  Plug 'nvim-telescope/telescope.nvim'
-  Plug 'windwp/nvim-autopairs'
-endif
+Plug 'neovim/nvim-lspconfig'
+Plug 'glepnir/lspsaga.nvim'
+Plug 'folke/lsp-colors.nvim'
+
+Plug 'nvim-treesitter/nvim-treesitter', { 'do': ':TSUpdate' }
+Plug 'nvim-lua/popup.nvim'
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-telescope/telescope.nvim'
+Plug 'windwp/nvim-autopairs'
+
+
+Plug 'hrsh7th/cmp-nvim-lsp'
+Plug 'hrsh7th/cmp-buffer'
+Plug 'hrsh7th/cmp-path'
+Plug 'hrsh7th/cmp-cmdline'
+Plug 'hrsh7th/nvim-cmp'
+Plug 'SirVer/ultisnips'
+Plug 'quangnguyen30192/cmp-nvim-ultisnips'
+
 
 Plug 'scrooloose/nerdtree'
 
@@ -40,6 +57,8 @@ Plug 'xuyuanp/nerdtree-git-plugin'
 
 Plug 'tanvirtin/vgit.nvim'
 Plug 'nvim-lua/plenary.nvim'
+
+Plug 'dkarter/bullets.vim'
 
 Plug 'morhetz/gruvbox'
 call plug#end()
@@ -88,7 +107,7 @@ autocmd FileType r setlocal omnifunc=
 set list
 filetype indent on
 set laststatus=2
-set wrap
+"set wrap
 set noshowmode
 set listchars=tab:│\ ,nbsp:␣,trail:∙,extends:>,precedes:<
 set fillchars=vert:\│
@@ -110,7 +129,7 @@ set background=dark
 set mouse=a
 set number
 
-set textwidth=78
+"set textwidth=78
 
 set clipboard+=unnamedplus
 
@@ -166,17 +185,6 @@ function! HelpInNewTab ()
 endfunction
 
 
-"let g:transparent = 1
-"function! ToggleTransparent()
-"    if g:transparent == 0
-"        hi Normal ctermbg = NONE
-"        let g:transparent = 1
-"    else
-"        hi Normal ctermbg = black
-"        let g:transparent = 0
-"    endif
-"endfunction
-
 " mappings
 let mapleader=' '
 
@@ -225,11 +233,13 @@ let g:keysound_theme = 'typewriter'
 source ~/.config/nvim/src/Tagbar.vim
 source ~/.config/nvim/src/mapping.vim
 source ~/.config/nvim/src/NERDTree.vim
-"source ~/.config/nvim/src/fzf.vim
+source ~/.config/nvim/src/fzf.vim
 source ~/.config/nvim/src/AirLine.vim
 source ~/.config/nvim/src/thesaurus.vim
 source ~/.config/nvim/src/lspconfig.vim
 source ~/.config/nvim/src/vgit.vim
+source ~/.config/nvim/src/completion.vim
+source ~/.config/nvim/src/UTSNIP.vim
 
 "Setting up colors
 colorscheme gruvbox
@@ -250,3 +260,6 @@ augroup quickfix
     autocmd!
     autocmd FileType qf setlocal wrap
 augroup END
+lua << EOF
+vim.lsp.set_log_level("debug")
+EOF

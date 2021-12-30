@@ -115,3 +115,5 @@ alias spark="export PYTHONPATH=/opt/SPARK/python; jupyter-notebook "
 alias open="xdg-open "
 alias vitex="nvim --listen /tmp/texserver"
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles.git/ --work-tree=$HOME'
+NPM_PACKAGES=/home/elia/.npm-packages
+NODE_PATH="$NPM_PACKAGES/lib/node_modules:$NODE_PATH"
