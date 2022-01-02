@@ -205,16 +205,16 @@ for_window [class="Spotify"] move to workspace number 4
 #Keybindings
 
 bindsym $mod+d exec rofi -modi drun -show drun -opacity 70
-bindsym $mod+l exec i3lock-fancy
+bindsym $mod+l exec i3lock-fancy-rapid 20 1
 bindsym $mod+g exec xdg-open https://google.it
 bindsym $mod+t exec thunar
 
 #Kbd brightness
+# idk wht but it works out of the box as of Jan 2022
 
 #Monitor brightness
-
-bindsym XF86MonBrightnessDown exec xbacklight -5
-bindsym XF86MonBrightnessUp exec xbacklight +5
+bindsym XF86MonBrightnessDown exec brightnessctl -c backlight -d intel_backlight set 10%-
+bindsym XF86MonBrightnessUp exec brightnessctl -c backlight -d intel_backlight set +10%
 
 #Volume
 
@@ -223,7 +223,6 @@ bindsym XF86AudioRaiseVolume exec pamixer -i 5
 bindsym XF86AudioMute exec pamixer -t
 
 #Tasti musica
-
 bindsym XF86AudioPlay exec mpc toggle
 bindsym XF86AudioNext exec mpc next
 bindsym XF86AudioPrev exec mpc prev
@@ -241,11 +240,9 @@ bindsym $mod+c exec comp_mgr.sh -t
 exec setxkbmap -option caps:escape
 exec xrandr --setprovideroutputsource modesetting NVIDIA-0
 exec xrandr --auto
-exec xrdb -merge .Xresources
-exec feh --bg-scale /home/elia/Pictures/wall_dark/arch_linux-wallpaper-1920x1080.jpg
+exec feh --bg-scale /home/elia/Pictures/wallpaper.png
 exec pulseaudio --daemon &
 exec xcompmgr -c &
 exec devilspie -a &
-exec xmodmap -e "remove control=Control_R" -e "add mod3=Control_R"
 exec --no-startup-id redshift
 exec --no-startup-id mopidy

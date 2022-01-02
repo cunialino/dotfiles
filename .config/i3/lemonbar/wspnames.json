@@ -8,15 +8,11 @@
         "default": "2"
     },
     {
-        "matlab": "",
-        "default": ""
-    },
-    {
-        "default": ""
+        "Spotify": "",
+        "default": "4"
     },
     {
         "Zathura": "",
-        "onlyoffice": "",
         "default": "5"
     },
     {
@@ -32,7 +28,6 @@
         "default": "9"
     },
     {
-        "Nvidia-settings": "",
         "default": "10"
     }
 ]

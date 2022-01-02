@@ -2,7 +2,6 @@
 if [ $# -gt 0 ]; then
   $*
 else
-  eval $(/usr/bin/gnome-keyring-daemon --start --components=pkcs11,secrets,ssh)
   xrdb -merge ~/.Xresources
   [ -f ~/.xprofile ] && . ~/.xprofile
   export SSH_AUTH_SOCK

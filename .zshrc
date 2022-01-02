@@ -1,7 +1,7 @@
 POWERLEVEL9K_MODE='nerdfont-complete'
 #POWERLEVEL9K_MODE='awesome-patched'
 # Path to your oh-my-zsh installation.
-export ZSH=/home/elia/.oh-my-zsh
+export ZSH=/home/elia/builds/ohmyzsh
 
 # Set name of the theme to load.
 # Look in ~/.oh-my-zsh/themes/
