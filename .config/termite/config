@@ -7,7 +7,7 @@ allow_bold = true
 dynamic_title = true
 urgent_on_bell = true
 clickable_url = true
-font=sans-serif 14
+font=SauceCodePro Nerd Font 14
 scrollback_lines = 10000
 search_wrap = true
 
