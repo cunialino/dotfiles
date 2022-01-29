@@ -20,3 +20,5 @@ lemonbar
 feh
 xorg-transset
 brightnessctl
+gruvbox-dark-icons-gtk
+gruvbox-dark-gtk
