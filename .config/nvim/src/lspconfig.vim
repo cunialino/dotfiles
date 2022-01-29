@@ -41,7 +41,7 @@ local on_attach = function(client, bufnr)
 
   require'completion'.on_attach(client, bufnr)
 
-  --protocol.SymbolKind = { }
+  protocol.SymbolKind = { }
   protocol.CompletionItemKind = {
     '', -- Text
     '', -- Method
