@@ -239,6 +239,7 @@ source ~/.config/nvim/src/thesaurus.vim
 source ~/.config/nvim/src/lspconfig.vim
 source ~/.config/nvim/src/vgit.vim
 source ~/.config/nvim/src/completion.vim
+source ~/.config/nvim/src/npairs.vim
 source ~/.config/nvim/src/UTSNIP.vim
 
 "Setting up colors
