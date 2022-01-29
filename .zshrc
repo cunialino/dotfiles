@@ -115,3 +115,8 @@ alias spark="export PYTHONPATH=/opt/SPARK/python; jupyter-notebook "
 alias open="xdg-open "
 alias vitex="nvim --listen /tmp/texserver"
 alias config='/usr/bin/git --git-dir=$HOME/.dotfiles.git/ --work-tree=$HOME'
+export GOPATH=$HOME/go
+export GOROOT=/usr/lib/go
+export PATH=$PATH:$GOPATH
+export PATH=$PATH:/usr/local/go/bin
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
