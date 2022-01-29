@@ -85,12 +85,17 @@ end
 
 local saga = require 'lspsaga'
 saga.init_lsp_saga {
-  error_sign = '',
-  warn_sign = '',
-  hint_sign = '',
-  infor_sign = '',
+  error_sign = '',
+  warn_sign = '',
+  hint_sign = '?',
+  infor_sign = '',
   border_style = "round",
 }
+local signs = { Error = "", Warning = " ", Hint = " ", Information = " " }
+for type, icon in pairs(signs) do
+    local hl = "DiagnosticSign" .. type
+    vim.fn.sign_define(hl, {text = icon, texthl = hl, numhl = hl})
+end
 
 local actions = require('telescope.actions')require('telescope').setup{
   defaults = {

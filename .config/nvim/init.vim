@@ -52,7 +52,7 @@ Plug 'vim-airline/vim-airline'
 
 Plug 'easymotion/vim-easymotion'
 
-Plug 'ryanoasis/vim-devicons'
+Plug 'kyazdani42/nvim-web-devicons'
 Plug 'xuyuanp/nerdtree-git-plugin'
 
 Plug 'tanvirtin/vgit.nvim'
