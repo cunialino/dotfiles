@@ -11,7 +11,6 @@ Plug 'junegunn/fzf.vim'
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 
 Plug 'tpope/vim-fugitive'
-Plug 'tpope/vim-surround'
 Plug 'tpope/vim-repeat'
 Plug 'rhysd/conflict-marker.vim'
 
@@ -21,6 +20,8 @@ Plug 'lambdalisue/vim-manpager'
 Plug 'neovim/nvim-lspconfig'
 Plug 'glepnir/lspsaga.nvim'
 Plug 'folke/lsp-colors.nvim'
+
+Plug 'kyazdani42/nvim-tree.lua'
 
 Plug 'nvim-treesitter/nvim-treesitter', { 'do': ':TSUpdate' }
 Plug 'nvim-lua/popup.nvim'
@@ -38,7 +39,7 @@ Plug 'SirVer/ultisnips'
 Plug 'quangnguyen30192/cmp-nvim-ultisnips'
 
 
-Plug 'scrooloose/nerdtree'
+"Plug 'scrooloose/nerdtree'
 
 Plug 'rhysd/conflict-marker.vim'
 
@@ -53,10 +54,12 @@ Plug 'vim-airline/vim-airline'
 Plug 'easymotion/vim-easymotion'
 
 Plug 'kyazdani42/nvim-web-devicons'
-Plug 'xuyuanp/nerdtree-git-plugin'
+"Plug 'xuyuanp/nerdtree-git-plugin'
 
-Plug 'tanvirtin/vgit.nvim'
+
 Plug 'nvim-lua/plenary.nvim'
+Plug 'lewis6991/gitsigns.nvim'
+Plug 'sindrets/diffview.nvim'
 
 Plug 'dkarter/bullets.vim'
 
@@ -232,12 +235,13 @@ let g:keysound_theme = 'typewriter'
 
 source ~/.config/nvim/src/Tagbar.vim
 source ~/.config/nvim/src/mapping.vim
-source ~/.config/nvim/src/NERDTree.vim
+"source ~/.config/nvim/src/NERDTree.vim
+source ~/.config/nvim/src/nvim-tree.vim
 source ~/.config/nvim/src/fzf.vim
 source ~/.config/nvim/src/AirLine.vim
 source ~/.config/nvim/src/thesaurus.vim
 source ~/.config/nvim/src/lspconfig.vim
-source ~/.config/nvim/src/vgit.vim
+source ~/.config/nvim/src/git.vim
 source ~/.config/nvim/src/completion.vim
 source ~/.config/nvim/src/npairs.vim
 source ~/.config/nvim/src/UTSNIP.vim
