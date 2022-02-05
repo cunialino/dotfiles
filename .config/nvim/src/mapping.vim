@@ -3,10 +3,15 @@ tnoremap <Esc> <C-\><C-n>
 
 nnoremap <Leader>o : only<cr>
 nnoremap <Leader>t : call GetTabber()<cr>
+nnoremap <F3>      : call ToggleTransparent()<cr>
 nnoremap <Leader><ESC> : nohlsearch<cr>
+nnoremap <F2>      : NERDTreeToggle<cr>
 nnoremap <C-l> :nohlsearch<cr>:diffupdate<cr>:syntax sync fromstart<cr><c-l>
 
 cmap w!! %!sudo tee > /dev/null %
+
+"nmap <Leader>s <Plug>(easymotion-sn)
+map <F4> :CondaChangeEnv<CR>
 
 " vnoremap
 vnoremap > >gv
@@ -51,11 +56,12 @@ noremap <silent> <leader>pw :call DoWindowSwap()<CR>
 nnoremap <silent>K :Lspsaga hover_doc<CR>
 inoremap <silent> <C-k> <Cmd>Lspsaga signature_help<CR>
 nnoremap <silent> gh <Cmd>Lspsaga lsp_finder<CR>
-set completeopt=menuone,noinsert,noselect " Use <Tab> and <S-Tab> to navigate through popup menu
+set completeopt=menuone,noinsert,noselect" Use <Tab> and <S-Tab> to navigate through popup menu
 inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
 inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
 
 nnoremap <silent> ;f <cmd>Telescope find_files<cr>
 nnoremap <silent> ;r <cmd>Telescope live_grep<cr>
-nnoremap <silent> \\ <cmd>Telescope buffers<cr>
-nnoremap <silent> ;; <cmd>Telescope help_tags<cr>
+nnoremap <silent> ;b <cmd>Telescope buffers<cr>
+nnoremap <silent> ;h <cmd>Telescope help_tags<cr>
+nnoremap <silent> ;s <cmd>Telescope search_history<cr>
