@@ -18,8 +18,10 @@ Plug 'godlygeek/tabular'
 Plug 'lambdalisue/vim-manpager'
 
 Plug 'neovim/nvim-lspconfig'
-Plug 'glepnir/lspsaga.nvim'
+Plug 'tami5/lspsaga.nvim'
 Plug 'folke/lsp-colors.nvim'
+Plug 'RishabhRD/popfix'
+Plug 'RishabhRD/nvim-lsputils'
 
 Plug 'kyazdani42/nvim-tree.lua'
 
@@ -40,31 +42,29 @@ Plug 'honza/vim-snippets'
 Plug 'quangnguyen30192/cmp-nvim-ultisnips'
 
 
-"Plug 'scrooloose/nerdtree'
-
 Plug 'rhysd/conflict-marker.vim'
-
 Plug 'ron89/thesaurus_query.vim'
-
-Plug 'preservim/tagbar'
 
 Plug 'andymass/vim-matchup'
 
-Plug 'vim-airline/vim-airline'
+Plug 'nvim-lualine/lualine.nvim'
 
 Plug 'easymotion/vim-easymotion'
 
 Plug 'kyazdani42/nvim-web-devicons'
-"Plug 'xuyuanp/nerdtree-git-plugin'
 
 
-Plug 'nvim-lua/plenary.nvim'
 Plug 'lewis6991/gitsigns.nvim'
 Plug 'sindrets/diffview.nvim'
+
+Plug 'blackcauldron7/surround.nvim'
+Plug 'glepnir/dashboard-nvim'
 
 Plug 'dkarter/bullets.vim'
 
 Plug 'morhetz/gruvbox'
+Plug 'marko-cerovac/material.nvim'
+
 call plug#end()
 
 
@@ -234,30 +234,24 @@ let g:keysound_theme = 'typewriter'
 
 
 
-source ~/.config/nvim/src/Tagbar.vim
 source ~/.config/nvim/src/mapping.vim
-"source ~/.config/nvim/src/NERDTree.vim
 source ~/.config/nvim/src/nvim-tree.vim
 source ~/.config/nvim/src/fzf.vim
-source ~/.config/nvim/src/AirLine.vim
+source ~/.config/nvim/src/lualine.vim
 source ~/.config/nvim/src/thesaurus.vim
 source ~/.config/nvim/src/lspconfig.vim
 source ~/.config/nvim/src/git.vim
 source ~/.config/nvim/src/completion.vim
 source ~/.config/nvim/src/npairs.vim
 source ~/.config/nvim/src/UTSNIP.vim
+source ~/.config/nvim/src/dashboard.vim
+source ~/.config/nvim/src/lsputils.vim
+
+lua require"surround".setup{}
 
 "Setting up colors
-colorscheme gruvbox
-"hi CursorLine ctermbg=none
-"hi EndOfBuffer ctermbg=none
-"hi NERDTreeFlags ctermfg=1
-"hi NERDTreeClosable ctermfg=1
-"hi NERDTreeOpenable ctermfg=2
-""hi Comment ctermfg = red
-"hi PrimaryBlock ctermfg=03 ctermbg=00
-"hi SecondaryBlock ctermfg=03 ctermbg=00
-"hi Blanks ctermfg=03 ctermbg=00
+let g:material_style = 'darker'
+colorscheme material
 
 "neoterm
 let g:neoterm_default_mod = 'tab'
@@ -266,6 +260,3 @@ augroup quickfix
     autocmd!
     autocmd FileType qf setlocal wrap
 augroup END
-lua << EOF
-vim.lsp.set_log_level("debug")
-EOF
