@@ -3,7 +3,7 @@
 . $(dirname $0)/config
 . $(dirname $0)/colors
 
-foc_wsp_fore=${color28}
+foc_wsp_fore=${color4}
 curret_wsp=
 update=true
 while true
