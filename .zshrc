@@ -113,7 +113,6 @@ if _has fzf; then
     FZF_ALT_C_COMMAND='fd --type d --color never'
   fi
 
-  # Display source tree and file preview for CTRL-T and ALT-C.
   if _has tree; then
     # Show subdir tree for directories.
     FZF_ALT_C_OPTS="--preview '(exa --tree --color=always {} || tree -C {}) | head -200'"
@@ -135,6 +134,11 @@ if _has fzf; then
 fi
 
 [ -f ~/.xprofile ] && source ~/.xprofile
+alias cls="clear;ls "
+alias spark="export PYTHONPATH=/opt/SPARK/python; jupyter-notebook "
+alias open="xdg-open "
+alias vitex="nvim --listen /tmp/texserver"
+alias config='/usr/bin/git --git-dir=$HOME/.dotfiles.git/ --work-tree=$HOME'
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh

@@ -6,7 +6,6 @@ export R_PROFILE_USER=~/.R/Rprofile
 export SUDO_ASKPASS="/usr/lib/ssh/x11-ssh-askpass"
 export MANPAGER="nvim +Man!"
 export VISUAL="nvim"
-export EDITOR='nvim'
 export K9S_EDITOR='nvim'
 export TERM=xterm-256color
 export GOPATH=$HOME/go
@@ -28,8 +27,6 @@ export PYSPARK_DRIVER_PYTHON_OPTS='notebook'
 export PYSPARK_PYTHON=python3 # only if you're using Python 3
 
 # Aliases
-alias kwize-prod-update-aws-creds='. ~/.local/bin/aws-assume-role.sh 360243645589 AdministratorAccess'
-alias cls="clear;ls "
 alias open="xdg-open "
 alias grep="rg"
 alias cat="bat"
@@ -45,3 +42,9 @@ pycd() {
 		cd "$1"
 	fi
 }
+export GOROOT=/usr/lib/go
+export PATH=$PATH:$GOPATH
+export PATH=$PATH:/usr/local/go/bin
+export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+export TERM="xterm-256color"
+export PATH="$HOME/utils:$PATH"
