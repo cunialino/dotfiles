@@ -8,7 +8,7 @@ fi
 POWERLEVEL9K_MODE='nerdfont-complete'
 #POWERLEVEL9K_MODE='awesome-patched'
 # Path to your oh-my-zsh installation.
-export ZSH=/home/cunial/builds/ohmyzsh
+export ZSH=$HOME/builds/ohmyzsh
 
 # Set name of the theme to load.
 # Look in ~/.oh-my-zsh/themes/
