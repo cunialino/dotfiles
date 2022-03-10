@@ -90,38 +90,11 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-
-
-#Prompt
-#Powerlevel9k
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(os_icon dir vcs)
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(command_execution_time time)
-POWERLEVEL9K_TIME_FORMAT="%D{%H:%M \uf073  %d.%m.%y}"
-POWERLEVEL9K_STATUS_VERBOSE=false
-POWERLEVEL9K_SHORTEN_STRATEGY="truncate_middle"
-POWERLEVEL9K_LEFT_SEGMENT_SEPARATOR=$'\uE0C6'
-POWERLEVEL9K_RIGHT_SEGMENT_SEPARATOR=$'\uE0C7'
-POWERLEVEL9K_CUSTOM_OS="echo '\uf303'"
-
 eval $(dircolors ~/.dir_colors)
-
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-
-#Aliases
-alias cls="clear;ls "
-alias spark="export PYTHONPATH=/opt/SPARK/python; jupyter-notebook "
-alias open="xdg-open "
-alias vitex="nvim --listen /tmp/texserver"
-alias config='/usr/bin/git --git-dir=$HOME/.dotfiles.git/ --work-tree=$HOME'
-export GOPATH=$HOME/go
-export GOROOT=/usr/lib/go
-export PATH=$PATH:$GOPATH
-export PATH=$PATH:/usr/local/go/bin
-export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-export TERM="xterm-256color"
-export PATH="$HOME/utils:$PATH"
+[ -f ~/.xprofile ] && source ~/.xprofile
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
