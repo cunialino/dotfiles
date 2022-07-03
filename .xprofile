@@ -4,7 +4,7 @@ export QT_QPA_PLATFORMTHEME=gtk2
 export PATH=$PATH:$HOME/.local/bin
 export R_PROFILE_USER=~/.R/Rprofile
 export SUDO_ASKPASS="/usr/lib/ssh/x11-ssh-askpass"
-export MANPAGER="nvim -c MANPAGER -"
+export MANPAGER="nvim +Man!"
 export VISUAL="nvim"
 export EDITOR='nvim'
 export K9S_EDITOR='nvim'
@@ -14,9 +14,18 @@ export GOROOT=/usr/local/go
 export PATH=$PATH:$GOPATH
 export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 export TERM="xterm-256color"
-export PATH="$HOME/.npm-packages/bin:$HOME/utils:$PATH"
+export PATH="$HOME/.npm-packages/bin:$HOME/utils:$HOME/.cargo/bin:$PATH"
 
 # Aliases
 alias kwize-prod-update-aws-creds='. ~/.local/bin/aws-assume-role.sh 360243645589 AdministratorAccess'
 alias cls="clear;ls "
 alias open="xdg-open "
+
+# Helpers
+pycd() {
+	if [ -f "$1/Pipfile" ]; then
+		cd "$1" && pipenv shell
+	else
+		cd "$1"
+	fi
+}
