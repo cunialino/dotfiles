@@ -20,6 +20,11 @@ export PATH="$HOME/.npm-packages/bin:$HOME/utils:$HOME/.cargo/bin:$PATH"
 alias kwize-prod-update-aws-creds='. ~/.local/bin/aws-assume-role.sh 360243645589 AdministratorAccess'
 alias cls="clear;ls "
 alias open="xdg-open "
+alias grep="rg"
+alias cat="bat"
+alias ls="exa"
+alias diff="delta"
+alias find="fd"
 
 # Helpers
 pycd() {
