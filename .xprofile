@@ -16,6 +16,17 @@ export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 export TERM="xterm-256color"
 export PATH="$HOME/.npm-packages/bin:$HOME/utils:$HOME/.cargo/bin:$PATH"
 
+export JUPYTER_ASCENDING_EXECUTE_PORT=8889
+# Spark
+export SPARK_HOME="/opt/spark"
+export PATH=$SPARK_HOME/bin:$PATH
+export SPARK_LOCAL_IP='127.0.0.1'
+
+# Pyspark
+export PYSPARK_DRIVER_PYTHON=jupyter
+export PYSPARK_DRIVER_PYTHON_OPTS='notebook'
+export PYSPARK_PYTHON=python3 # only if you're using Python 3
+
 # Aliases
 alias kwize-prod-update-aws-creds='. ~/.local/bin/aws-assume-role.sh 360243645589 AdministratorAccess'
 alias cls="clear;ls "
