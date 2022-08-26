@@ -2,8 +2,12 @@
 
 Shell related dotfiles.
 
-## TODO
+Requirements:
 
-- [ ] defaults fonts with fontconfig
-- [ ] Xorg config files
-- [ ] re-patch fonts with the nice icons for the bar
+- [exa](https://the.exa.website/): modern version of ls
+- [bat](https://github.com/sharkdp/bat): modern version of cat
+- [bat-extras](https://github.com/eth-p/bat-extras): nice stuff
+- [ripgrep](https://blog.burntsushi.net/ripgrep/): modern version of grep
+- [fd](https://github.com/sharkdp/fd): modern version of find
+- [delta](https://github.com/dandavison/delta): modern version of diff
+- [fzf]
