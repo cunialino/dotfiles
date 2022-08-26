@@ -57,13 +57,10 @@ COMPLETION_WAITING_DOTS="true"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git sudo vi-mode zsh-autosuggestions)
+plugins=(git sudo vi-mode zsh-autosuggestions web-search)
 
 VI_MODE_SET_CURSOR=true
 
-NORMAL_MODE_INDICATOR="%{$FX[italic]$FG[201]%}NORMAL%{$FX[reset]%}"
-INSERT_MODE_INDICATOR="%{$FX[italic]$FG[201]%}INSERT%{$FX[reset]%}"
-NORMAL_MODE_INDICATOR="%{$FX[italic]$FG[201]%}NORMAL%{$FX[reset]%}"
 # User configuration
 
 # export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
