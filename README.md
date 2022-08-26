@@ -1,6 +1,6 @@
 # Dotfiles
 
-- i3-wm configuration
+Shell related dotfiles.
 
 ## TODO
 
