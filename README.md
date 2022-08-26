@@ -10,4 +10,7 @@ Requirements:
 - [ripgrep](https://blog.burntsushi.net/ripgrep/): modern version of grep
 - [fd](https://github.com/sharkdp/fd): modern version of find
 - [delta](https://github.com/dandavison/delta): modern version of diff
-- [fzf]
+- [fzf](https://github.com/junegunn/fzf)
+- [nvim](https://neovim.io/)
+  - [pynvim](https://github.com/neovim/pynvim)
+- [nord-dircolors](https://github.com/arcticicestudio/nord-dircolors): link this to ~/.dir_colors
