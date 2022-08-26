@@ -25,4 +25,5 @@ createLinks() {
 
 }
 
+downloadFonts
 createLinks
