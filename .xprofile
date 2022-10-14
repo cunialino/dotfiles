@@ -48,4 +48,5 @@ pycd() {
 }
 
 command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv global 3.10.6)"
 eval "$(pyenv init -)"
