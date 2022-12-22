@@ -1,6 +1,7 @@
 require("lint").linters_by_ft = {
 	tex = { "proselint" },
 	text = { "proselint" },
+	sh = { "shellcheck" },
 }
 
 local lintGrp = vim.api.nvim_create_augroup("LintAutogroup", { clear = true })
