@@ -156,6 +156,8 @@ cython_debug/
 # Tox
 .tox/
 
+# Have a general ignored folder
+ignore/
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
