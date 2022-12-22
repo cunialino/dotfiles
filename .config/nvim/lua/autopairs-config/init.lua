@@ -17,7 +17,7 @@
 local npairs = require("nvim-autopairs")
 local Rule = require('nvim-autopairs.rule')
 
-npairs.setup({check_ts = true})
+  npairs.setup({check_ts = true})
 
 -- local ts_conds = require('nvim-autopairs.ts-conds')
 --

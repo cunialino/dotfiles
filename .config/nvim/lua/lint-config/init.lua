@@ -1,9 +1,7 @@
 require("lint").linters_by_ft = {
-  tex = { "proselint" },
-  text = { "proselint" },
+	tex = { "proselint" },
+	text = { "proselint" },
 }
-vim.api.nvim_create_autocmd({ "BufWritePost" }, {
-  callback = function()
-    require("lint").try_lint()
-  end,
-})
+
+local lintGrp = vim.api.nvim_create_augroup("LintAutogroup", { clear = true })
+vim.api.nvim_create_autocmd("BufWritePost", { command = "lua require('lint').try_lint()", group = lintGrp })
