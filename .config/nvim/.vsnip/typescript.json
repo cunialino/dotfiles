@@ -1,0 +1,32 @@
+{
+  "Console Log": {
+    "prefix": [
+      "log"
+    ],
+    "body": [
+      "console.log($1)"
+    ],
+    "description": "Console log easier"
+  },
+  "Query": {
+    "prefix": [
+      "query"
+    ],
+    "body": [
+      "<Query",
+      "\tquery={$1}",
+      "\tvariables={{$2}}>",
+      "\t\t{({ data, loading, error }: QueryResult<any>) => {",
+      "\t\tif (loading)",
+      "\t\treturn (",
+      "\t\t\t<Loader />);",
+      "\t\tif (error) return <h4>Error!</h4>;",
+      "\t\treturn (",
+      "\t\t\t$3",
+      "\t\t);",
+      "\t}}",
+      "</Query>"
+    ],
+    "description": "Apollo query"
+  }
+}
