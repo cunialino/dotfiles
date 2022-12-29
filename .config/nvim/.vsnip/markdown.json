@@ -1,0 +1,22 @@
+{
+  "Image": {
+    "prefix": [
+      "image"
+    ],
+    "body": [
+      "<p align=\"$1\">",
+      "\t<img src=\"$2\">",
+      "</p>"
+    ],
+    "description": "Insert image with align"
+  },
+  "Line break": {
+    "prefix": [
+      "newline"
+    ],
+    "body": [
+      "<br/>"
+    ],
+    "description": "Force new line"
+  }
+}
