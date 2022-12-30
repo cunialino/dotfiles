@@ -57,7 +57,7 @@ COMPLETION_WAITING_DOTS="true"
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git sudo vi-mode zsh-autosuggestions web-search)
+plugins=(git sudo web-search archlinux)
 
 VI_MODE_SET_CURSOR=true
 
@@ -103,8 +103,8 @@ if _has bat; then
   export BAT_THEME="Nord"
 fi
 
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 if _has fzf; then
-  [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
   if _has fd; then
     # Use fd for fzf.
     FZF_DEFAULT_COMMAND='fd --type f --follow --hidden'
