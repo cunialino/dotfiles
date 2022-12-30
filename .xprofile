@@ -50,5 +50,5 @@ export TERM="xterm-256color"
 export PATH="$HOME/utils:$PATH"
 
 command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv global 3.10.6)"
+eval "$(pyenv global 3.10)"
 eval "$(pyenv init -)"
