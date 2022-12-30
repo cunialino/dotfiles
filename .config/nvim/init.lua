@@ -3,7 +3,7 @@ require("ide-settings/neovimSettings")
 require("ide-settings/keybindings")
 local packer = require("packer")
 packer.init({
-	snapshot_path = "/home/cunial/.config/nvim/.snapshots", -- Default save directory for snapshots
+	snapshot_path = "/home/elia/.config/nvim/.snapshots", -- Default save directory for snapshots
 })
 packer.startup(function()
 	use("wbthomason/packer.nvim")
