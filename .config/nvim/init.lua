@@ -141,8 +141,17 @@ packer.startup(function()
 			require("hop").setup()
 		end,
 	})
-	use({ "wakatime/vim-wakatime" })
-	use({ "untitled-ai/jupyter_ascending.vim" })
-	use({ "lervag/vimtex", config = "require'vimtex-config'" })
+	use({ "goerz/jupytext.vim" })
+
+	use({
+		"jackMort/ChatGPT.nvim",
+		after = { "telescope.nvim" },
+		config = "require('chatgpt-config')",
+		opt = false,
+		requires = {
+			"MunifTanjim/nui.nvim",
+			"nvim-lua/plenary.nvim",
+		},
+	})
 end)
 vim.cmd("colorscheme nord")

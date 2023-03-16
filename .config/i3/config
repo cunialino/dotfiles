@@ -30,7 +30,7 @@ font "pango:Hack Nerd Font 0"
 #floating_modifier $mod
 
 # start a terminal
-bindsym $mod+Return exec termite
+bindsym $mod+Return exec alacritty
 # kill focused window
 bindsym $mod+Shift+q kill
 #Workspaces names
@@ -240,7 +240,7 @@ bindsym $mod+c exec comp_mgr.sh -t
 exec setxkbmap -option caps:escape
 exec xrandr --setprovideroutputsource modesetting NVIDIA-0
 exec xrandr --auto
-exec feh --bg-scale /home/elia/Pictures/wallpaper.png
+exec feh --bg-scale /home/elia/.wallpaper.jpg
 exec pulseaudio --daemon &
 exec xcompmgr -c &
 exec devilspie -a &
