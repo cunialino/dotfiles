@@ -18,3 +18,5 @@
 	keepBackup = false
 [mergetool "vimdiff"]
   cmd = nvim -f -c \"Gvdiffsplit!\" \"$MERGED\"
+[safe]
+	directory = /home/elia/windowsHome/fim-275-ing-pipe-kpis

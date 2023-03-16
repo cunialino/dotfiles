@@ -82,7 +82,7 @@ Battery() {
 }
 
 CPU() {
-  cpu_per=$(top -bn 1 | egrep '^\s' | awk -v fore=${foreground} -v col_alt=${color1} -v ic=${icon_cpu} 'NR> 1 {perc+=$9} END {perc/=4;perc = int(perc); retval=perc>80?"%{F"col_alt"}"ic" "perc" %%%{F"fore"}":ic" "perc" %"; print retval}')
+  cpu_per=$(top -bn 1 | grep -E '^\s' | awk -v fore=${foreground} -v col_alt=${color1} -v ic=${icon_cpu} 'NR> 1 {perc+=$9} END {perc/=4;perc = int(perc); retval=perc>80?"%{F"col_alt"}"ic" "perc" %%%{F"fore"}":ic" "perc" %"; print retval}')
   cpu_fan_temp=$(sensors asus-isa-0000 | grep "temp\|fan" | tr -d ' ' | tr '\n' ':' | awk -v fore=${foreground} -v col_alt=${color1} -F":" '{gsub("+", ""); retval=int($4)>90?"%{F"col_alt"}"$4"%{F"fore"} | ":$4" | "; print retval$2}')
   echo -n $cpu_per" | "$cpu_fan_temp
 }

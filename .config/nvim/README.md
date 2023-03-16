@@ -6,7 +6,7 @@ Inspired by [VapourVim](https://github.com/cunialino/VapourNvim)
 
 - [ ] **IMPORTANT:** Enable some keybindings just when plugin is loaded, or think of other imprvements like for the preview.
 - [ ] Extensive dap support, add more languages
-- [ ] Test alternatives to JupyterAscending. I don't like it that much.
+- [ ] Test alternatives to JupyterAscending. I don't like it that much. Magma + jupytext
 
 
 - [x] Add [JupyterAscending](https://github.com/untitled-ai/jupyter_ascending.vim), will do when I'll actually need this
