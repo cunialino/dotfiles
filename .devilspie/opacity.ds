@@ -3,7 +3,9 @@
 ( contains ( window_class ) "Termite" )
 ( contains ( window_class ) "Alacritty" )
 ( contains ( window_class ) "firefox" )
+( contains ( window_class ) "Google-chrome" )
 ( contains ( window_class ) "Zathura" )
+( contains (window_class) "Matplotlib")
 )
 ( begin
 ( spawn_async (str "transset-df -i " (window_xid) " 0.7" ))
