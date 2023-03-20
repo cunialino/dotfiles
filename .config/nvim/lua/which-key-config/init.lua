@@ -108,6 +108,14 @@ local mappings = {
       "Toggle lazygit",
     },
   },
+  i = {
+    name="Iron",
+    a = {"<cmd>IronAttach<cr>", "Iron attach"},
+    f = {"<cmd>IronFocus<cr>", "Iron focus"},
+    h = {"<cmd>IronHide<cr>", "Iron hide"},
+    s = {"<cmd>IronRepl<cr>", "Iron REPL"},
+    r = {"<cmd>IronRestart<cr>", "Iron Restart"}
+  },
   S = {
     name = "Hop search",
     f = {

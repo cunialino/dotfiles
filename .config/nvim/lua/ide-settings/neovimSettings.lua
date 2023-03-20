@@ -1,8 +1,8 @@
 tabwidth = 2
-vim.cmd('filetype plugin indent on')
-vim.o.shortmess = vim.o.shortmess .. 'c'
+vim.cmd("filetype plugin indent on")
+vim.o.shortmess = vim.o.shortmess .. "c"
 vim.o.hidden = true
-vim.o.whichwrap = 'b,s,<,>,[,],h,l'
+vim.o.whichwrap = "b,s,<,>,[,],h,l"
 vim.o.pumheight = 10
 vim.o.fileencoding = "utf-8"
 vim.o.cmdheight = 2
@@ -56,4 +56,4 @@ vim.g.loaded_netrwPlugin = 1
 vim.g.loaded_tutor_mode_plugin = 1
 vim.g.loaded_remote_plugins = 1
 
-vim.g.jupytext_fmt = 'py'
+vim.g.jupytext_fmt = "py:percent"

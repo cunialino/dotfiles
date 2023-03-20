@@ -16,7 +16,7 @@ packer.startup(function()
 		event = "BufRead",
 	})
 	use({ "tamton-aquib/staline.nvim", config = "require'staline-config'", event = "BufRead" })
-	use({ "glepnir/dashboard-nvim", config = "require('dashboard-config')" })
+	use({ "glepnir/dashboard-nvim", event = "VimEnter", config = "require('dashboard-config')" })
 	use({
 		"lukas-reineke/indent-blankline.nvim",
 		config = "require'blankline-config'",
@@ -142,16 +142,22 @@ packer.startup(function()
 		end,
 	})
 	use({ "goerz/jupytext.vim" })
+	use({ "MunifTanjim/nui.nvim" })
 
 	use({
 		"jackMort/ChatGPT.nvim",
-		after = { "telescope.nvim" },
+		opt = true,
+		keys = { "<leader>gpt" },
+		after = { "nui.nvim", "telescope.nvim" },
 		config = "require('chatgpt-config')",
-		opt = false,
 		requires = {
 			"MunifTanjim/nui.nvim",
 			"nvim-lua/plenary.nvim",
+			"nvim-telescope/telescope.nvim",
 		},
 	})
+
+	use({ "hkupty/iron.nvim", config = 'require("iron-config")' })
+	use({ "lkhphuc/jupyter-kernel.nvim", config = "require('jupyter-kernel.nvim').setup()" })
 end)
 vim.cmd("colorscheme nord")
