@@ -38,8 +38,8 @@ ide_settings = {
 
 UtilityFunctions = {
 	saveAndExit = function()
-		vim.cmd("SessionSave")
-		vim.cmd("q")
+		--vim.cmd("SessionSave")
+		vim.cmd("wq")
 	end,
 	syncPlugins = function()
 		vim.cmd("PackerSnapshot backup")
