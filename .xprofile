@@ -41,21 +41,30 @@ alias open="xdg-open "
 alias vitex="nvim --listen /tmp/texserver"
 alias config='/usr/bin/git --git-dir=$HOME/builds/dotfiles --work-tree=$HOME'
 
+penv() {
+  if [ ! -d "$HOME/.local/share/venvs/$1" ]; then
+    echo "Creating venv $1..."
+    python -m venv "$HOME/.local/share/venvs/$1"
+    echo "... Done!"
+  fi
+  echo "Activating..."
+  . "$HOME/.local/share/venvs/$1/bin/activate"
+  echo "... Done!"
+}
+
 # Helpers
 pycd() {
-	if [ -f "$1/Pipfile" ]; then
-		cd "$1" && pipenv shell
-	else
-		cd "$1"
-	fi
+  if [ -f "$1/Pipfile" ]; then
+    cd "$1" && pipenv shell
+  else
+    cd "$1"
+  fi
 }
 export PATH=$PATH:$GOPATH
 export PATH=$PATH:/usr/local/go/bin
 export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 export TERM="xterm-256color"
 export PATH="$HOME/utils:$PATH"
-
-export OPENAI_API_KEY="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"
 
 command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv global 3.10)"
