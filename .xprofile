@@ -42,13 +42,18 @@ alias vitex="nvim --listen /tmp/texserver"
 alias config='/usr/bin/git --git-dir=$HOME/builds/dotfiles --work-tree=$HOME'
 
 penv() {
-  if [ ! -d "$HOME/.local/share/venvs/$1" ]; then
-    echo "Creating venv $1..."
-    python -m venv "$HOME/.local/share/venvs/$1"
+  if [ -z $1 ]; then
+    local env_dir=$(basename $(pwd))
+  else
+    local env_dir=$1
+  fi
+  if [ ! -d "$HOME/.local/share/venvs/$env_dir" ]; then
+    echo "Creating venv $env_dir..."
+    python -m venv "$HOME/.local/share/venvs/$env_dir"
     echo "... Done!"
   fi
   echo "Activating..."
-  . "$HOME/.local/share/venvs/$1/bin/activate"
+  . "$HOME/.local/share/venvs/$env_dir/bin/activate"
   echo "... Done!"
 }
 
@@ -59,6 +64,14 @@ pycd() {
   else
     cd "$1"
   fi
+}
+newnotebook() {
+  echo "{
+ \"cells\": [],
+ \"metadata\": {},
+ \"nbformat\": 4,
+ \"nbformat_minor\": 2
+}" >"$(pwd)/$1"
 }
 export PATH=$PATH:$GOPATH
 export PATH=$PATH:/usr/local/go/bin
