@@ -22,7 +22,7 @@ require("formatter").setup({
 			require("formatter.filetypes.json").jq,
 		},
 		yaml = {
-			require("formatter.filetypes.yaml").yamlfmt,
+			require("formatter.filetypes.yaml").prettier,
 		},
 		["*"] = {
 			require("formatter.filetypes.any").remove_trailing_whitespace,

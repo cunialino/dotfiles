@@ -147,7 +147,7 @@ packer.startup(function()
 	use({
 		"jackMort/ChatGPT.nvim",
 		opt = true,
-		keys = { "<leader>gpt" },
+		cmd = "ChatGPT",
 		after = { "nui.nvim", "telescope.nvim" },
 		config = "require('chatgpt-config')",
 		requires = {
@@ -158,6 +158,5 @@ packer.startup(function()
 	})
 
 	use({ "hkupty/iron.nvim", config = 'require("iron-config")' })
-	use({ "lkhphuc/jupyter-kernel.nvim", config = "require('jupyter-kernel.nvim').setup()" })
 end)
 vim.cmd("colorscheme nord")
