@@ -85,7 +85,6 @@ packer.startup(function()
 			{ "nvim-lua/plenary.nvim" },
 			{ "nvim-telescope/telescope-live-grep-args.nvim" },
 		},
-		cmd = "Telescope",
 		config = "require'telescope-config'",
 	})
 
@@ -143,20 +142,7 @@ packer.startup(function()
 	})
 	use({ "goerz/jupytext.vim" })
 	use({ "MunifTanjim/nui.nvim" })
-
-	use({
-		"jackMort/ChatGPT.nvim",
-		opt = true,
-		cmd = "ChatGPT",
-		after = { "nui.nvim", "telescope.nvim" },
-		config = "require('chatgpt-config')",
-		requires = {
-			"MunifTanjim/nui.nvim",
-			"nvim-lua/plenary.nvim",
-			"nvim-telescope/telescope.nvim",
-		},
-	})
-
 	use({ "hkupty/iron.nvim", config = 'require("iron-config")' })
+	use({ "Bryley/neoai.nvim", require = { "MunifTanjim/nui.nvim" }, config = 'require("neoai-config")' })
 end)
 vim.cmd("colorscheme nord")
