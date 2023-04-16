@@ -88,7 +88,7 @@ CPU() {
 }
 
 Volume() {
-  vol=$(amixer -c 1 get Master | grep Mono: | awk -v ic_on=${icon_vol} -v ic_off=${icon_vol_mute} '{gsub(/[\[\]]/, ""); if($6=="off") print ic_off; else print ic_on" "$4}')
+  vol=$(pamixer --get-volume-human)
   echo -n $vol
 }
 
@@ -98,6 +98,6 @@ Ram() {
 }
 
 while true; do
-  echo "%{F${foreground}}%{l}$(Workspaces)%{r}$(Nvidia) ${sep_l_left} $(CPU) ${sep_l_left} $(Ram) ${sep_l_left} $(Volume) ${sep_l_left} $(Battery) ${sep_l_left} $(Clock)%{F-}%{B-}"
+  echo "%{S1}%{F${foreground}}%{l}$(Workspaces)%{r}$(Nvidia) ${sep_l_left} $(CPU) ${sep_l_left} $(Ram) ${sep_l_left} $(Volume) ${sep_l_left} $(Battery) ${sep_l_left} $(Clock)%{F-}%{B-}"
   sleep 0.01
 done

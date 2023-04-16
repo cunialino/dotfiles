@@ -63,7 +63,7 @@ bindsym $mod+Up focus up
 bindsym $mod+Right focus right
 
 # Moving workspaces between screens
-bindsym $mod+p move workspace to output up
+bindsym $mod+p move workspace to output right
 # move focused window
 bindsym $mod+Shift+j move left
 bindsym $mod+Shift+k move down
@@ -159,11 +159,6 @@ mode "resize" {
 
 bindsym $mod+r mode "resize"
 
-# Start i3bar to display a workspace bar (plus the system information i3status
-# finds out, if available)
-bar {
-    i3bar_command ~/.config/i3/lemonbar/launch_bar.sh
-}
 #exec_always --no-startup-id $HOME/.config/polybar/launch.sh
 #exec_always $HOME/.config/i3/lemonbar/testing/launch_bar.sh
 hide_edge_borders both
@@ -234,15 +229,20 @@ bindsym Mod1+l     exec mpc toggle
 bindsym $mod+u workspace prev
 bindsym $mod+o workspace next
 
+exec_always --no-startup-id ~/.local/bin/set-display.sh
 #toggle compmgr to remove transprency
 bindsym $mod+c exec comp_mgr.sh -t
 #Ex xinitrc
 exec setxkbmap -option caps:escape
-exec xrandr --setprovideroutputsource modesetting NVIDIA-0
-exec xrandr --auto
+exec setxkbmap it
 exec feh --bg-scale /home/elia/.wallpaper.jpg
-exec pulseaudio --daemon &
 exec xcompmgr -c &
 exec devilspie -a &
 exec --no-startup-id redshift
 exec --no-startup-id mopidy
+
+# Start i3bar to display a workspace bar (plus the system information i3status
+# finds out, if available)
+bar {
+    i3bar_command ~/.config/i3/lemonbar/launch_bar.sh
+}
