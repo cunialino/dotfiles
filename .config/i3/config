@@ -233,8 +233,6 @@ exec_always --no-startup-id ~/.local/bin/set-display.sh
 #toggle compmgr to remove transprency
 bindsym $mod+c exec comp_mgr.sh -t
 #Ex xinitrc
-exec setxkbmap -option caps:escape
-exec setxkbmap it
 exec feh --bg-scale /home/elia/.wallpaper.jpg
 exec xcompmgr -c &
 exec devilspie -a &

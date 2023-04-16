@@ -52,6 +52,7 @@ virtualbox-guest-utils
 wget
 xclip
 xcompmgr
+xf86-input-synaptics
 xf86-video-intel
 xorg-server
 xorg-xclipboard
