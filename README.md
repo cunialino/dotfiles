@@ -44,3 +44,9 @@ git clone https://github.com/romkatv/powerlevel10k.git builds/ohmyzsh/custom/the
 ## Neovim
 
 it works out of the box, but here we define the pyhton configuration.
+
+## Alacritty themes
+It is in the requirements, you only need the themes.
+```bash
+git clone https://github.com/eendroroy/alacritty-theme.git ~/.config/alacritty/themes/
+```

@@ -104,6 +104,7 @@ if _has bat; then
 fi
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+[ -f /usr/share/fzf/key-bindings.zsh ] && source /usr/share/fzf/key-bindings.zsh
 if _has fzf; then
   if _has fd; then
     # Use fd for fzf.
