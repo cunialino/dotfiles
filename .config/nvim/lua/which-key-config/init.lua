@@ -132,12 +132,9 @@ local mappings = {
 		},
 	},
 	o = { ":only<cr>", "Only" },
-	c = {
-		name = "ChatGPT",
-		c = { "<cmd>ChatGPT<cr>", "Open Chat" },
-		a = { "<cmd>ChatGPTActAs", "Act as" },
-		C = { "<cmd>ChatGPTCompleteCode<cr>", "Complete code" },
-		e = { "<cmd>ChatGPTEditWithInstructions<cr>", "Edit with instructions" },
+	n = {
+		name = "Neo AI",
+		t = { "<cmd>NeoAIToggle<cr>", "Toggle" },
 	},
 }
 mappings["/"] = { ":CommentToggle<cr>", "Toggle Comment" }
