@@ -8,15 +8,11 @@ export MANPAGER="nvim +Man!"
 export VISUAL="nvim"
 export K9S_EDITOR='nvim'
 export TERM=xterm-256color
-export GOPATH=$HOME/go
-export GOROOT=/usr/local/go
-export PATH=$PATH:$GOPATH
-export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 export TERM="xterm-256color"
 export PATH="$HOME/.npm-packages/bin:$HOME/utils:$HOME/.cargo/bin:$PATH"
 export PYENV_ROOT="$HOME/.local/bin/pyenv/"
+export PATH="$HOME/utils:$PATH"
 
-export JUPYTER_ASCENDING_EXECUTE_PORT=8889
 # Spark
 export SPARK_HOME="/opt/spark"
 export PATH=$SPARK_HOME/bin:$PATH
@@ -73,11 +69,6 @@ newnotebook() {
  \"nbformat_minor\": 2
 }" >"$(pwd)/$1"
 }
-export PATH=$PATH:$GOPATH
-export PATH=$PATH:/usr/local/go/bin
-export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-export TERM="xterm-256color"
-export PATH="$HOME/utils:$PATH"
 
 command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv global 3.10)"
