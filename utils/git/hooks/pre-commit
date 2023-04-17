@@ -1,9 +1,9 @@
 #!/bin/sh
 
-staged_files=$(git diff --name-only --chached)
+staged_files=$(git diff --name-only --cached)
 tox
-res=#?
+res=$?
 git add requirements.txt
-git add $(staged_files)
+git add $staged_files
 
 exit $res
