@@ -6,6 +6,7 @@
 ( contains ( window_class ) "Google-chrome" )
 ( contains ( window_class ) "Zathura" )
 ( contains (window_class) "Matplotlib")
+( contains (window_class) "Picture in Picture")
 )
 ( begin
 ( spawn_async (str "transset-df -i " (window_xid) " 0.7" ))
