@@ -20,7 +20,7 @@ telescope.setup({
 			"--column",
 			"--smart-case",
 		},
-		prompt_prefix = " ",
+		prompt_prefix = "󰍉 ",
 		selection_caret = " ",
 		entry_prefix = "  ",
 		initial_mode = "insert",
