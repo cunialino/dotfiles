@@ -2,6 +2,7 @@
 if [ $# -gt 0 ]; then
   "$*"
 else
+  autorandr horizontal
   xrdb -merge ~/.Xresources
   [ -f ~/.xprofile ] && . "$HOME/.xprofile"
   export SSH_AUTH_SOCK
