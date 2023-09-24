@@ -18,10 +18,14 @@ Clock() {
 }
 
 Nvidia() {
-  tmp=$(cat /proc/acpi/bbswitch 2>/dev/null | cut -d" " -f2)
-  if [[ $tmp == "ON" ]]; then
-    info=${sep_l_left}" "${icon_nvd}" "$(nvidia-settings -q GPUUtilization -t 2>/dev/null | awk '{gsub(/[A-Z]/,""); gsub(/[a-z]/,""); gsub(",", ""); gsub("=", ""); {for(n=1;n<=NF;n++){$n=$n"% | "}}print}')$(nvidia-settings -q ThermalSensorReading -t 2>/dev/null)"°C"
-    echo -n $info
+  tmp=$(lspci | grep 3D)
+  if [[ $tmp ]]; then
+    graphics_usage="$(nvidia-settings -q GPUUtilization -t | cut -d ',' -f 1 | cut -d '=' -f 2)"
+    memory_usage="$(nvidia-settings -q GPUUtilization -t | cut -d ',' -f 2 | cut -d '=' -f 2)"
+    memory_usage="$(nvidia-settings -q GPUUtilization -t | cut -d ',' -f 2 | cut -d '=' -f 2)"
+    pci_usage="$(nvidia-settings -q GPUUtilization -t | cut -d ',' -f 3 | cut -d '=' -f 2)"
+    thermal="$(nvidia-settings -q ThermalSensorReading -t 2>/dev/null)"
+    printf "${sep_l_left} ${icon_nvd} %3d %% | %3d %% | %3d %% | %3d °C" "$graphics_usage" "$memory_usage" "$pci_usage" "$thermal"
   fi
 
 }
