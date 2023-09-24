@@ -11,7 +11,7 @@ iron.setup({
 				format = require("iron.fts.common").bracketed_paste,
 			},
 		},
-		repl_open_cmd = view.center("80%", 20),
+		repl_open_cmd = view.split("10%"),
 	},
 	keymaps = {
 		send_motion = "<C-s>",

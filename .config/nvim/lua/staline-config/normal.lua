@@ -101,9 +101,9 @@ require('staline').setup {
     right_separator = icons.separators.Right,
     cool_symbol = " ", -- Change this to override defult OS icon.
     full_path = false,
-    mod_symbol = "  ",
+    mod_symbol = " 󰏫 ",
     lsp_client_symbol = " ",
-    line_column = "[%l/%L] 並%p%% ", -- `:h stl` to see all flags.
+    line_column = "[%l/%L] 󰕱%p%% ", -- `:h stl` to see all flags.
     fg = "#000000", -- Foreground text color.
     bg = "none", -- Default background is transparent.
     inactive_color = "#303030",
@@ -120,11 +120,11 @@ require('staline').setup {
     V = colors.purple
   },
   mode_icons = {
-    n = " NORMAL",
-    i = " INSERT",
+    n = "󰋜 NORMAL",
+    i = "󰏫 INSERT",
     c = " COMMAND",
-    v = " VISUAL",
-    V = " VISUAL"
+    v = "󰈈 VISUAL",
+    V = "󰈈 VISUAL"
   },
   sections = {
     left = { '-mode', 'left_sep_double', ' ', 'branch' },
@@ -133,7 +133,7 @@ require('staline').setup {
   },
   special_table = {
     NvimTree = { 'NvimTree', ' ' },
-    packer = { 'Packer', ' ' } -- etc
+    packer = { 'Packer', '󰇚 ' } -- etc
   },
-  lsp_symbols = { Error = " ", Info = " ", Warn = " ", Hint = "" }
+  lsp_symbols = { Error = "󰅙 ", Info = "󰋼 ", Warn = " ", Hint = "" }
 }
