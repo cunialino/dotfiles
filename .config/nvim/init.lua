@@ -11,12 +11,18 @@ packer.startup(function()
 	use({ "norcalli/nvim-colorizer.lua", config = "require'colorizer-config'", event = "BufRead" })
 	use({
 		"akinsho/nvim-bufferline.lua",
-		requires = "kyazdani42/nvim-web-devicons",
+		requires = "nvim-tree/nvim-web-devicons",
 		config = 'require"bufferline-config"',
 		event = "BufRead",
 	})
 	use({ "tamton-aquib/staline.nvim", config = "require'staline-config'", event = "BufRead" })
-	use({ "glepnir/dashboard-nvim", event = "VimEnter", config = "require('dashboard-config')" })
+	use({ "nvim-tree/nvim-web-devicons" })
+	use({
+		"glepnir/dashboard-nvim",
+		event = "VimEnter",
+		config = "require('dashboard-config')",
+		requires = { "nvim-tree/nvim-web-devicons" },
+	})
 	use({
 		"lukas-reineke/indent-blankline.nvim",
 		config = "require'blankline-config'",
@@ -32,10 +38,9 @@ packer.startup(function()
 		event = "BufRead",
 		config = "require('gitsigns-config')",
 	})
-	use({ "kyazdani42/nvim-web-devicons", event = "BufRead" })
 	-- Colorschemes
 	use({ "shaunsingh/nord.nvim" })
-	use({ "kyazdani42/nvim-tree.lua", cmd = "NvimTreeToggle", config = "require'nvimtree-config'" })
+	use({ "nvim-tree/nvim-tree.lua", cmd = "NvimTreeToggle", config = "require'nvimtree-config'" })
 	use({ "folke/which-key.nvim", config = "require'which-key-config'" })
 	use({
 		"terrortylor/nvim-comment",
@@ -51,7 +56,7 @@ packer.startup(function()
 	use({ "andweeb/presence.nvim", event = "BufRead", config = 'require("presence-config")' })
 	use({
 		"folke/trouble.nvim",
-		requires = "kyazdani42/nvim-web-devicons",
+		requires = "nvim-tree/nvim-web-devicons",
 		config = "require'trouble-config'",
 	})
 	use({ "mfussenegger/nvim-dap" })
