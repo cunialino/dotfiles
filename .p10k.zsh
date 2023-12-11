@@ -303,10 +303,6 @@
   #
   # For example, given these settings:
   #
-  #   typeset -g POWERLEVEL9K_DIR_CLASSES=(
-  #     '~/work(|/*)'  WORK     ''
-  #     '~(|/*)'       HOME     ''
-  #     '*'            DEFAULT  '')
   #
   # Whenever the current directory is ~/work or a subdirectory of ~/work, it gets styled with one
   # of the following classes depending on its writability and existence: WORK, WORK_NOT_WRITABLE or
@@ -351,7 +347,9 @@
   typeset -g POWERLEVEL9K_VCS_UNTRACKED_ICON='\uf059 '
   typeset -g POWERLEVEL9K_VCS_UNSTAGED_ICON='\uf06a '
   typeset -g POWERLEVEL9K_VCS_STAGED_ICON='\uf055 '
+  # TODO: fix icon
   typeset -g POWERLEVEL9K_VCS_CONFLICT_ICON='\uf696 '
+  # TODO: fix icon
   typeset -g POWERLEVEL9K_VCS_STASH_ICON='\uf9ce'
 
 
@@ -1079,7 +1077,7 @@
   # Custom icon.
   # typeset -g POWERLEVEL9K_RVM_VISUAL_IDENTIFIER_EXPANSION='⭐'
  typeset -g POWERLEVEL9K_DIR_CLASSES=(
-     '~/codes(|/*)'  WORK     ' '
+     '~/WORK(|/*)'  WORK     ' '
      '~(|/*)'           HOME     ' '
      '*'                DEFAULT  ' '
    )
