@@ -17,14 +17,14 @@ db.setup({
 			},
 			{
 				desc = " Git config",
-				group = "?",
-				action = "<cmd>lua require('toggleterm.terminal').Terminal:new({cmd='lazygit', direction = 'float'}):toggle()<cr>",
+				group = "@propery",
+				action = "lua require('toggleterm.terminal').Terminal:new({cmd='lazygit --git-dir=$HOME/builds/dotfiles --work-tree=$HOME', direction = 'float'}):toggle()",
 				key = "g",
 			},
 			{
 				desc = " dotfiles",
 				group = "Number",
-				action = "Telescope dotfiles",
+				action = 'lua require("telescope.builtin").find_files({ prompt_title = "Config Files", cwd = vim.fn.stdpath("config"), })',
 				key = "d",
 			},
 		},
