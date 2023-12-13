@@ -126,6 +126,10 @@ packer.startup(function()
 	use({ "hrsh7th/vim-vsnip", after = "nvim-cmp", config = "require('vsnip-config')" })
 	use({ "hrsh7th/vim-vsnip-integ", after = "nvim-cmp" })
 	use({ "rafamadriz/friendly-snippets" })
+	use({
+		"ray-x/lsp_signature.nvim",
+		config = "require('lsp_signature').setup({})",
+	})
 
 	-- DB plugins
 	use({
@@ -148,6 +152,6 @@ packer.startup(function()
 	use({ "goerz/jupytext.vim" })
 	use({ "MunifTanjim/nui.nvim" })
 	use({ "hkupty/iron.nvim", config = 'require("iron-config")' })
-	use({ "Bryley/neoai.nvim", require = { "MunifTanjim/nui.nvim" }, config = 'require("neoai-config")' })
+	-- use({ "Bryley/neoai.nvim", require = { "MunifTanjim/nui.nvim" }, config = 'require("neoai-config")' })
 end)
 vim.cmd("colorscheme nord")

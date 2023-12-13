@@ -12,8 +12,7 @@ require("formatter").setup({
 			require("formatter.filetypes.latex").latexindex,
 		},
 		python = {
-			require("formatter.filetypes.python").black,
-			require("formatter.filetypes.python").isort,
+			require("formatter.filetypes.python").ruff,
 		},
 		sh = {
 			require("formatter.filetypes.sh").shfmt,

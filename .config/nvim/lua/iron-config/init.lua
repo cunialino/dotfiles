@@ -7,7 +7,7 @@ iron.setup({
 		scratch_repl = true,
 		repl_definition = {
 			python = {
-				command = { "jupyter-console" },
+				command = { "python" },
 				format = require("iron.fts.common").bracketed_paste,
 			},
 		},
