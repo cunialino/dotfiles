@@ -5,7 +5,9 @@ local lspconfig = require("lspconfig")
 
 lsp_installer.setup({})
 
-for _, server in ipairs(lsp_installer.get_installed_servers()) do
+servers = { { name = "ruff_lsp" }, unpack(lsp_installer.get_installed_servers()) }
+
+for _, server in ipairs(servers) do
 	local capabilities = require("cmp_nvim_lsp").default_capabilities(vim.lsp.protocol.make_client_capabilities())
 	local opts = { capabilities = capabilities }
 	if ide_settings.language_servers[server.name] then
@@ -13,6 +15,7 @@ for _, server in ipairs(lsp_installer.get_installed_servers()) do
 	end
 	lspconfig[server.name].setup({ opts })
 end
+
 -- Diagnostics
 local signs = {
 	Error = icons.lsp_signs.Error,

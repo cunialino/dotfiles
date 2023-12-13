@@ -33,6 +33,25 @@ ide_settings = {
 				return opts
 			end,
 		},
+		pylsp = {
+			config = function(opts)
+				opts = vim.tbl_deep_extend("force", {
+					settings = {},
+				}, opts)
+				return opts
+			end,
+		},
+		ruff_lsp = {
+			config = function(opts)
+				opts = vim.tbl_deep_extend("force", {
+					on_attach = function(client, bufnr)
+						client.server_capabilities.hoverProvider = false
+					end,
+					settings = {},
+				}, opts)
+				return opts
+			end,
+		},
 	},
 }
 

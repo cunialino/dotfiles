@@ -23,7 +23,6 @@ cmp.setup({
 		end
 	end,
 	window = {
-		-- completion = cmp.config.window.bordered(),
 		documentation = cmp.config.window.bordered(),
 	},
 	snippet = {
@@ -35,7 +34,7 @@ cmp.setup({
 		format = lspkind.cmp_format({
 			with_text = true,
 			maxwidth = 50,
-			menu = { buffer = "[Buf]", nvim_lsp = "[LSP]", vsnip = "[Vsnip]" },
+			menu = { buffer = "[  ]", nvim_lsp = "[ 󰅩 ]", vsnip = "[  ]" },
 		}),
 	},
 	mapping = {
@@ -65,11 +64,29 @@ cmp.setup({
 		end, { "i", "s" }),
 	},
 	sources = {
-		{ name = "jupyter" },
+		{ name = "nvim_lsp_signature_help" },
 		{ name = "nvim_lsp" },
-		{ name = "vsnip" },
-		{ name = "buffer" },
-		{ name = "path" },
+		{
+			name = "vsnip",
+			entry_filter = function()
+				local context = require("cmp.config.context")
+				return not context.in_treesitter_capture("string") and not context.in_syntax_group("String")
+			end,
+		},
+		{
+			name = "buffer",
+			entry_filter = function()
+				local context = require("cmp.config.context")
+				return context.in_treesitter_capture("string") and not context.in_syntax_group("String")
+			end,
+		},
+		{
+			name = "path",
+			entry_filter = function()
+				local context = require("cmp.config.context")
+				return context.in_treesitter_capture("string") and not context.in_syntax_group("String")
+			end,
+		},
 	},
 })
 
