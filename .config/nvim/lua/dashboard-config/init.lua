@@ -29,4 +29,5 @@ db.setup({
 			},
 		},
 	},
+	project = { enable = true, limit = 8 },
 })
