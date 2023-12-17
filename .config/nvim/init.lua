@@ -1,157 +1,262 @@
 require("ide-settings")
 require("ide-settings/neovimSettings")
 require("ide-settings/keybindings")
-local packer = require("packer")
-packer.init({
-	snapshot_path = "/home/elia/.config/nvim/.snapshots", -- Default save directory for snapshots
-})
-packer.startup(function()
-	use("wbthomason/packer.nvim")
-	-- Syntax Highlighting and Visual Plugins
-	use({ "norcalli/nvim-colorizer.lua", config = "require'colorizer-config'", event = "BufRead" })
-	use({
-		"akinsho/nvim-bufferline.lua",
-		requires = "nvim-tree/nvim-web-devicons",
-		config = 'require"bufferline-config"',
-		event = "BufRead",
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+	vim.fn.system({
+		"git",
+		"clone",
+		"--filter=blob:none",
+		"https://github.com/folke/lazy.nvim.git",
+		"--branch=stable", -- latest stable release
+		lazypath,
 	})
-	use({ "tamton-aquib/staline.nvim", config = "require'staline-config'", event = "BufRead" })
-	use({ "nvim-tree/nvim-web-devicons" })
-	use({
+end
+vim.opt.rtp:prepend(lazypath)
+
+local lazy = require("lazy")
+lazy.setup({
+	-- Syntax Highlighting and Visual Plugins
+	{
+		"norcalli/nvim-colorizer.lua",
+		config = function()
+			require("colorizer-config")
+		end,
+		event = "BufRead",
+	},
+	{
+		"akinsho/nvim-bufferline.lua",
+		dependencies = { { "nvim-tree/nvim-web-devicons" } },
+		config = function()
+			require("bufferline-config")
+		end,
+		event = "BufRead",
+	},
+	{
+		"tamton-aquib/staline.nvim",
+		config = function()
+			require("staline-config")
+		end,
+		event = "BufRead",
+	},
+	{
 		"glepnir/dashboard-nvim",
 		event = "VimEnter",
-		config = "require('dashboard-config')",
-		requires = { "nvim-tree/nvim-web-devicons" },
-	})
-	use({
+		config = function()
+			require("dashboard-config")
+		end,
+		dependencies = { { "nvim-tree/nvim-web-devicons" } },
+	},
+	{
 		"lukas-reineke/indent-blankline.nvim",
-		config = "require'blankline-config'",
+		config = function()
+			require("blankline-config")
+		end,
 		event = "BufRead",
-	})
-	use({ "mhartington/formatter.nvim", config = "require'formatter-config'" })
-	use({ "mfussenegger/nvim-lint", config = "require'lint-config'" })
-	use({ "folke/zen-mode.nvim", config = 'require("zen-mode-config")' })
-	use({ "folke/twilight.nvim", config = "require('twilight-config')" })
-	use({
+	},
+	{
+		"mhartington/formatter.nvim",
+		config = function()
+			require("formatter-config")
+		end,
+	},
+	{
+		"mfussenegger/nvim-lint",
+		config = function()
+			require("lint-config")
+		end,
+	},
+	{
+		"folke/zen-mode.nvim",
+		config = function()
+			require("zen-mode-config")
+		end,
+	},
+	{
+		"folke/twilight.nvim",
+		config = function()
+			require("twilight-config")
+		end,
+	},
+	{
 		"lewis6991/gitsigns.nvim",
-		requires = { "nvim-lua/plenary.nvim" },
+		dependencies = { { "nvim-lua/plenary.nvim" } },
 		event = "BufRead",
-		config = "require('gitsigns-config')",
-	})
+		config = function()
+			require("gitsigns-config")
+		end,
+	},
 	-- Colorschemes
-	use({ "shaunsingh/nord.nvim" })
-	use({ "nvim-tree/nvim-tree.lua", cmd = "NvimTreeToggle", config = "require'nvimtree-config'" })
-	use({ "folke/which-key.nvim", config = "require'which-key-config'" })
-	use({
+	{ "shaunsingh/nord.nvim" },
+	{
+		"nvim-tree/nvim-tree.lua",
+		cmd = "NvimTreeToggle",
+		config = function()
+			require("nvimtree-config")
+		end,
+	},
+	{
+		"folke/which-key.nvim",
+		config = function()
+			require("which-key-config")
+		end,
+	},
+	{
 		"terrortylor/nvim-comment",
 		cmd = "CommentToggle",
-		config = "require('nvim_comment').setup()",
-	})
-	use({
+		config = function()
+			require("nvim_comment").setup()
+		end,
+	},
+	{
 		"ur4ltz/surround.nvim",
 		config = function()
 			require("surround").setup({ mappings_style = "sandwich" })
 		end,
-	})
-	use({ "andweeb/presence.nvim", event = "BufRead", config = 'require("presence-config")' })
-	use({
+	},
+	{
+		"andweeb/presence.nvim",
+		event = "BufRead",
+		config = function()
+			require("presence-config")
+		end,
+	},
+	{
 		"folke/trouble.nvim",
-		requires = "nvim-tree/nvim-web-devicons",
-		config = "require'trouble-config'",
-	})
-	use({ "mfussenegger/nvim-dap" })
-	use({
+		dependencies = { { "nvim-tree/nvim-web-devicons" } },
+		config = function()
+			require("trouble-config")
+		end,
+	},
+	{ "mfussenegger/nvim-dap" },
+	{
 		"mfussenegger/nvim-dap-python",
-		config = "require('dap-python').setup('~/.local/share/virtualenvs/debugpy/bin/python')",
-	})
+		config = function()
+			require("dap-python").setup("~/.local/share/virtualenvs/debugpy/bin/python")
+		end,
+	},
 	--this causes setup called twice
-	use({
+	{
 		"rcarriga/nvim-dap-ui",
-		requires = { "mfussenegger/nvim-dap" },
-		config = "require('dapui').setup()",
-	})
-	use({ "tpope/vim-fugitive" })
-	use({
+		dependencies = { { "mfussenegger/nvim-dap" } },
+		config = function()
+			require("dapui").setup()
+		end,
+	},
+	{ "tpope/vim-fugitive" },
+	{
 		"iamcco/markdown-preview.nvim",
-		run = "cd app && npm install",
-		config = "require('markdown-prev-config')",
+		build = "cd app && npm install",
+		config = function()
+			require("markdown-prev-config")
+		end,
 		ft = { "markdown" },
-	})
+	},
 	-- Terminal Integration
-	use({ "akinsho/nvim-toggleterm.lua", config = 'require"toggleterm-config"' })
-
+	{
+		"akinsho/nvim-toggleterm.lua",
+		config = function()
+			require("toggleterm-config")
+		end,
+	},
 	-- Navigation
-	use({ "nvim-telescope/telescope-fzf-native.nvim", run = "make" })
-	use({ "nvim-telescope/telescope-ui-select.nvim" })
-	use({
+	{
 		"nvim-telescope/telescope.nvim",
-		requires = {
+		dependencies = {
 			{ "nvim-lua/popup.nvim" },
 			{ "nvim-lua/plenary.nvim" },
 			{ "nvim-telescope/telescope-live-grep-args.nvim" },
+			{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
+			{ "nvim-telescope/telescope-ui-select.nvim" },
 		},
-		config = "require'telescope-config'",
-	})
+		config = function()
+			require("telescope-config")
+		end,
+	},
 
 	--
 	-- Tree-Sitter
-	use({
+	{
 		"nvim-treesitter/nvim-treesitter",
 		event = "BufWinEnter",
-		run = ":TSUpdate",
-		config = "require'treesitter-config'",
-	})
-	use({ "RRethy/nvim-treesitter-endwise", after = "nvim-treesitter" })
-	use({ "RRethy/nvim-treesitter-textsubjects", after = "nvim-treesitter" })
+		build = ":TSUpdate",
+		config = function()
+			require("treesitter-config")
+		end,
+	},
+	{ "RRethy/nvim-treesitter-endwise" },
+	{ "RRethy/nvim-treesitter-textsubjects" },
 	--
 	--
 	--  -- LSP and Autocomplete
 	--  schema store has to be before lspconfig!!!
-	use({ "b0o/schemastore.nvim" })
-	use({ "neovim/nvim-lspconfig", config = "require'language-servers'" })
-	use({ "williamboman/nvim-lsp-installer" })
+	{ "b0o/schemastore.nvim" },
+	{
+		"neovim/nvim-lspconfig",
+		config = function()
+			require("language-servers")
+		end,
+	},
+	{ "williamboman/nvim-lsp-installer" },
 	-- Cmp block
-	use({ "onsails/lspkind-nvim" })
-	use({
+	{ "onsails/lspkind-nvim" },
+	{
 		"hrsh7th/nvim-cmp",
 		config = function()
 			require("cmp-config")
 		end,
-	})
-	use({ "windwp/nvim-autopairs", after = "nvim-cmp", config = "require'autopairs-config'" })
-	use({ "hrsh7th/cmp-nvim-lsp" })
-	use({ "hrsh7th/cmp-buffer", after = "nvim-cmp" })
-	use({ "hrsh7th/cmp-path", after = "nvim-cmp" })
-	use({ "hrsh7th/cmp-vsnip", after = "nvim-cmp" })
-	use({ "hrsh7th/vim-vsnip", after = "nvim-cmp", config = "require('vsnip-config')" })
-	use({ "hrsh7th/vim-vsnip-integ", after = "nvim-cmp" })
-	use({ "rafamadriz/friendly-snippets" })
-	use({
+	},
+	{
+		"windwp/nvim-autopairs",
+		config = function()
+			require("autopairs-config")
+		end,
+	},
+	{ "hrsh7th/cmp-nvim-lsp" },
+	{ "hrsh7th/cmp-buffer" },
+	{ "hrsh7th/cmp-path" },
+	{ "hrsh7th/cmp-vsnip" },
+	{
+		"hrsh7th/vim-vsnip",
+		config = function()
+			require("vsnip-config")
+		end,
+	},
+	{ "hrsh7th/vim-vsnip-integ" },
+	{ "rafamadriz/friendly-snippets" },
+	{
 		"ray-x/lsp_signature.nvim",
-		config = "require('lsp_signature').setup({})",
-	})
+		config = function()
+			require("lsp_signature").setup({})
+		end,
+	},
 
 	-- DB plugins
-	use({
+	{
 		"tpope/vim-dadbod",
-		requires = {
-			"kristijanhusak/vim-dadbod-ui",
+		dependencies = {
+			{ "kristijanhusak/vim-dadbod-ui" },
 		},
-		setup = function()
+		init = function()
 			vim.g.db_ui_save_location = "~/.config/db_ui"
 		end,
-	})
-	use({
+	},
+	{
 		"phaazon/hop.nvim",
 		branch = "v2", -- optional but strongly recommended
 		config = function()
 			-- you can configure Hop the way you like here; see :h hop-config
 			require("hop").setup()
 		end,
-	})
-	use({ "goerz/jupytext.vim" })
-	use({ "MunifTanjim/nui.nvim" })
-	use({ "hkupty/iron.nvim", config = 'require("iron-config")' })
+	},
+	{ "goerz/jupytext.vim" },
+	{ "MunifTanjim/nui.nvim" },
+	{
+		"hkupty/iron.nvim",
+		config = function()
+			require("iron-config")
+		end,
+	},
 	-- use({ "Bryley/neoai.nvim", require = { "MunifTanjim/nui.nvim" }, config = 'require("neoai-config")' })
-end)
+})
 vim.cmd("colorscheme nord")
