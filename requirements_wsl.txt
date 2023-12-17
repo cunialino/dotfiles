@@ -21,6 +21,7 @@ stylua-git
 tk
 unzip
 wget
+win32yank-bin
 yay
 zellij
 zsh
