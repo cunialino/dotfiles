@@ -12,7 +12,7 @@ db.setup({
 				icon_hl = "@variable",
 				desc = "Files",
 				group = "Label",
-				action = "Telescope find_files",
+				action = "FzfLua files",
 				key = "f",
 			},
 			{
@@ -24,7 +24,7 @@ db.setup({
 			{
 				desc = " dotfiles",
 				group = "Number",
-				action = 'lua require("telescope.builtin").find_files({ prompt_title = "Config Files", cwd = vim.fn.stdpath("config"), })',
+				action = 'lua require("fzf-lua").files({ prompt_title = "Config Files", cwd = vim.fn.stdpath("config"), })',
 				key = "d",
 			},
 		},
