@@ -39,10 +39,6 @@ local normal_mappings = {
 			S = { ":PackerStatus<cr>", "Packer Status" },
 			u = { ":PackerUpdate<cr>", "Update Plugins" },
 		},
-		z = {
-			name = "Focus",
-			z = { ":ZenMode<cr>", "Toggle Zen Mode" },
-			t = { ":Twilight<cr>", "Toggle Twilight" },
 		},
 		e = { ":NvimTreeToggle<cr>", "File Explorer" },
 		g = {
@@ -78,13 +74,6 @@ local normal_mappings = {
 			t = { "<cmd>:lua require('dapui').toggle()<cr>", "Toggle ui" },
 		},
 		h = { ":Dashboard<cr>", "Dashboard" },
-		D = {
-			name = "Database",
-			u = { ":DBUIToggle<CR>", "Toggle db ui" },
-			f = { ":DBUIFindBuffer<CR>", "Find buffer" },
-			r = { ":DBUIRenameBuffer<CR>", "Rename buffer" },
-			l = { ":DBUILastQueryInfo<CR>", "Last query info" },
-		},
 		t = {
 			name = "Trouble",
 			x = { "<cmd>TroubleToggle<cr>", "Toggle" },
