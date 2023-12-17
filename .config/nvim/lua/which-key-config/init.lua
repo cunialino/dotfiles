@@ -29,6 +29,7 @@ local normal_mappings = {
 		Q = { ":q!<cr>", "Force Quit" },
 		w = { ":w<cr>", "Write" },
 		E = { ":e ~/.config/nvim/lua/vapour/user-config/init.lua<cr>", "Edit User Config" },
+<<<<<<< Updated upstream
 		p = {
 			name = "Packer",
 			r = { ":PackerClean<cr>", "Remove Unused Plugins" },
@@ -39,6 +40,23 @@ local normal_mappings = {
 			S = { ":PackerStatus<cr>", "Packer Status" },
 			u = { ":PackerUpdate<cr>", "Update Plugins" },
 		},
+<<<<<<< Updated upstream
+=======
+		z = {
+			name = "Focus",
+			z = { ":ZenMode<cr>", "Toggle Zen Mode" },
+			t = { ":Twilight<cr>", "Toggle Twilight" },
+=======
+		l = {
+			name = "Lazy",
+			r = { ":Lazy clean<cr>", "Remove Unused Plugins" },
+			i = { ":Lazy install<cr>", "Install Plugins" },
+			p = { ":Lazy profile<cr>", "Lazy Profile" },
+			s = { ":Lazy sync<cr>", "Sync Plugins" },
+			S = { ":Lazy show<cr>", "Lazy Status" },
+			u = { ":Lazy update<cr>", "Update Plugins" },
+>>>>>>> Stashed changes
+>>>>>>> Stashed changes
 		},
 		e = { ":NvimTreeToggle<cr>", "File Explorer" },
 		g = {

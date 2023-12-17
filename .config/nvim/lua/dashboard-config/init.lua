@@ -6,7 +6,7 @@ db.setup({
 			enable = true,
 		},
 		shortcut = {
-			{ desc = "󰊳 Update", group = "@property", action = "PackerSync", key = "u" },
+			{ desc = "󰊳 Update", group = "@property", action = "Lazy sync", key = "u" },
 			{
 				icon = " ",
 				icon_hl = "@variable",
