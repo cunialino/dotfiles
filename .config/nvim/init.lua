@@ -159,18 +159,13 @@ lazy.setup({
 			require("toggleterm-config")
 		end,
 	},
-	-- Navigation
 	{
-		"nvim-telescope/telescope.nvim",
-		dependencies = {
-			{ "nvim-lua/popup.nvim" },
-			{ "nvim-lua/plenary.nvim" },
-			{ "nvim-telescope/telescope-live-grep-args.nvim" },
-			{ "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
-			{ "nvim-telescope/telescope-ui-select.nvim" },
-		},
+		"ibhagwan/fzf-lua",
+		-- optional for icon support
+		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			require("telescope-config")
+			-- calling `setup` is optional for customization
+			require("fzf-lua").setup({})
 		end,
 	},
 
