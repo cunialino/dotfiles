@@ -2,9 +2,8 @@ local db = require("dashboard")
 db.setup({
 	theme = "hyper",
 	config = {
-		week_header = {
-			enable = true,
-		},
+		header = require("dashboard-config.penguin-header"),
+
 		shortcut = {
 			{ desc = "󰊳 Update", group = "@property", action = "Lazy sync", key = "u" },
 			{
@@ -29,5 +28,10 @@ db.setup({
 			},
 		},
 	},
-	project = { enable = true, limit = 8 },
+	preview = {
+		command = "lolcat -F 0.3",
+		file_path = vim.fn.stdpath("config") .. "/lua/dashboard-config/penguin-header/preview",
+		file_height = 16,
+		file_width = 30,
+	},
 })
