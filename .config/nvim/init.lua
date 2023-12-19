@@ -222,5 +222,6 @@ lazy.setup({
 			require("iron-config")
 		end,
 	},
+	{ "glepnir/dbsession.nvim", cmd = { "SessionSave", "SessionDelete", "SessionLoad" }, opts = {} },
 })
 vim.cmd("colorscheme nord")
