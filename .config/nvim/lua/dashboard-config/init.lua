@@ -26,6 +26,19 @@ db.setup({
 				action = 'lua require("fzf-lua").files({ prompt_title = "Config Files", cwd = vim.fn.stdpath("config"), })',
 				key = "d",
 			},
+			{
+				desc = "Sessions",
+				action = function()
+					require("fzf-lua").fzf_exec("ls ~/.cache/nvim/session | cut -d '.' -f 1", {
+						actions = {
+							["default"] = function(selected, opts)
+								vim.cmd("SessionLoad " .. selected[1])
+							end,
+						},
+					})
+				end,
+				key = "s",
+			},
 		},
 	},
 	preview = {
