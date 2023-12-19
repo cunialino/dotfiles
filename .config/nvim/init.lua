@@ -67,18 +67,6 @@ lazy.setup({
 		end,
 	},
 	{
-		"folke/zen-mode.nvim",
-		config = function()
-			require("zen-mode-config")
-		end,
-	},
-	{
-		"folke/twilight.nvim",
-		config = function()
-			require("twilight-config")
-		end,
-	},
-	{
 		"lewis6991/gitsigns.nvim",
 		dependencies = { { "nvim-lua/plenary.nvim" } },
 		event = "BufRead",
@@ -115,20 +103,12 @@ lazy.setup({
 		end,
 	},
 	{
-		"andweeb/presence.nvim",
-		event = "BufRead",
-		config = function()
-			require("presence-config")
-		end,
-	},
-	{
 		"folke/trouble.nvim",
 		dependencies = { { "nvim-tree/nvim-web-devicons" } },
 		config = function()
 			require("trouble-config")
 		end,
 	},
-	{ "mfussenegger/nvim-dap" },
 	{
 		"mfussenegger/nvim-dap-python",
 		config = function()
@@ -144,14 +124,6 @@ lazy.setup({
 		end,
 	},
 	{ "tpope/vim-fugitive" },
-	{
-		"iamcco/markdown-preview.nvim",
-		build = "cd app && npm install",
-		config = function()
-			require("markdown-prev-config")
-		end,
-		ft = { "markdown" },
-	},
 	-- Terminal Integration
 	{
 		"akinsho/nvim-toggleterm.lua",
@@ -164,8 +136,9 @@ lazy.setup({
 		-- optional for icon support
 		dependencies = { "nvim-tree/nvim-web-devicons" },
 		config = function()
-			-- calling `setup` is optional for customization
-			require("fzf-lua").setup({})
+			local fzflua = require("fzf-lua")
+			fzflua.setup({})
+			fzflua.register_ui_select()
 		end,
 	},
 
@@ -178,28 +151,44 @@ lazy.setup({
 		config = function()
 			require("treesitter-config")
 		end,
+		dependencies = {
+			{ "RRethy/nvim-treesitter-endwise" },
+			{ "RRethy/nvim-treesitter-textsubjects" },
+		},
 	},
-	{ "RRethy/nvim-treesitter-endwise" },
-	{ "RRethy/nvim-treesitter-textsubjects" },
 	--
 	--
 	--  -- LSP and Autocomplete
 	--  schema store has to be before lspconfig!!!
-	{ "b0o/schemastore.nvim" },
 	{
 		"neovim/nvim-lspconfig",
 		config = function()
 			require("language-servers")
 		end,
+		dependencies = {
+			{ "b0o/schemastore.nvim" },
+			{ "williamboman/nvim-lsp-installer" },
+		},
 	},
-	{ "williamboman/nvim-lsp-installer" },
 	-- Cmp block
-	{ "onsails/lspkind-nvim" },
 	{
 		"hrsh7th/nvim-cmp",
 		config = function()
 			require("cmp-config")
 		end,
+		dependencies = {
+			{ "hrsh7th/cmp-nvim-lsp" },
+			{ "hrsh7th/cmp-buffer" },
+			{ "hrsh7th/cmp-path" },
+			{ "hrsh7th/cmp-vsnip" },
+			{ "onsails/lspkind-nvim" },
+			{
+				"ray-x/lsp_signature.nvim",
+				config = function()
+					require("lsp_signature").setup({})
+				end,
+			},
+		},
 	},
 	{
 		"windwp/nvim-autopairs",
@@ -207,35 +196,17 @@ lazy.setup({
 			require("autopairs-config")
 		end,
 	},
-	{ "hrsh7th/cmp-nvim-lsp" },
-	{ "hrsh7th/cmp-buffer" },
-	{ "hrsh7th/cmp-path" },
-	{ "hrsh7th/cmp-vsnip" },
 	{
 		"hrsh7th/vim-vsnip",
 		config = function()
 			require("vsnip-config")
 		end,
-	},
-	{ "hrsh7th/vim-vsnip-integ" },
-	{ "rafamadriz/friendly-snippets" },
-	{
-		"ray-x/lsp_signature.nvim",
-		config = function()
-			require("lsp_signature").setup({})
-		end,
+		dependencies = {
+			{ "hrsh7th/vim-vsnip-integ" },
+			{ "rafamadriz/friendly-snippets" },
+		},
 	},
 
-	-- DB plugins
-	{
-		"tpope/vim-dadbod",
-		dependencies = {
-			{ "kristijanhusak/vim-dadbod-ui" },
-		},
-		init = function()
-			vim.g.db_ui_save_location = "~/.config/db_ui"
-		end,
-	},
 	{
 		"phaazon/hop.nvim",
 		branch = "v2", -- optional but strongly recommended
@@ -245,13 +216,11 @@ lazy.setup({
 		end,
 	},
 	{ "goerz/jupytext.vim" },
-	{ "MunifTanjim/nui.nvim" },
 	{
 		"hkupty/iron.nvim",
 		config = function()
 			require("iron-config")
 		end,
 	},
-	-- use({ "Bryley/neoai.nvim", require = { "MunifTanjim/nui.nvim" }, config = 'require("neoai-config")' })
 })
 vim.cmd("colorscheme nord")
