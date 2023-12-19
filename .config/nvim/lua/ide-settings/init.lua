@@ -54,22 +54,3 @@ ide_settings = {
 		},
 	},
 }
-
-UtilityFunctions = {
-	saveAndExit = function()
-		--vim.cmd("SessionSave")
-		vim.cmd("wq")
-	end,
-	syncPlugins = function()
-		vim.cmd("PackerSnapshot backup")
-		vim.cmd("PackerSync")
-	end,
-	preview = function()
-		local filetype = vim.bo.filetype
-		if filetype == "tex" then
-			vim.cmd("LatexPreviewToggle")
-		elseif filetype == "markdown" then
-			vim.cmd("MarkdownPreviewToggle")
-		end
-	end,
-}
