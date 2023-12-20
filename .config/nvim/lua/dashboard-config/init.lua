@@ -23,20 +23,12 @@ db.setup({
 			{
 				desc = " dotfiles",
 				group = "Number",
-				action = 'lua require("fzf-lua").files({ prompt_title = "Config Files", cwd = vim.fn.stdpath("config"), })',
+				action = require("custom-fzf").search_config_files,
 				key = "d",
 			},
 			{
-				desc = "Sessions",
-				action = function()
-					require("fzf-lua").fzf_exec("ls ~/.cache/nvim/session | cut -d '.' -f 1", {
-						actions = {
-							["default"] = function(selected, opts)
-								vim.cmd("SessionLoad " .. selected[1])
-							end,
-						},
-					})
-				end,
+				desc = "󰑓 Sessions",
+				action = require("custom-fzf").load_sessions,
 				key = "s",
 			},
 		},
