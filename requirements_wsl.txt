@@ -11,6 +11,7 @@ git-delta
 jq
 lazygit
 lolcat
+lua-language-server
 neovim
 npm
 openssh
