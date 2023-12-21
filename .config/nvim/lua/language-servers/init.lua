@@ -5,7 +5,7 @@ local lspconfig = require("lspconfig")
 
 lsp_installer.setup({})
 
-servers = { { name = "ruff_lsp" }, unpack(lsp_installer.get_installed_servers()) }
+servers = { { name = "ruff_lsp" }, { name = "lua_ls" }, unpack(lsp_installer.get_installed_servers()) }
 
 for _, server in ipairs(servers) do
 	local capabilities = require("cmp_nvim_lsp").default_capabilities(vim.lsp.protocol.make_client_capabilities())
