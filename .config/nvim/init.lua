@@ -216,12 +216,36 @@ lazy.setup({
 		end,
 	},
 	{ "goerz/jupytext.vim" },
+	{ "glepnir/dbsession.nvim", cmd = { "SessionSave", "SessionDelete", "SessionLoad" }, opts = {} },
 	{
-		"hkupty/iron.nvim",
-		config = function()
-			require("iron-config")
+		"Olical/conjure",
+		ft = { "python", "lua" }, -- etc
+		dependencies = {
+			{
+				"PaterJason/cmp-conjure",
+				config = function()
+					local cmp = require("cmp")
+					local config = cmp.get_config()
+					table.insert(config.sources, {
+						name = "buffer",
+						option = {
+							sources = {
+								{ name = "conjure" },
+							},
+						},
+					})
+					cmp.setup(config)
+				end,
+			},
+		},
+		config = function(_, opts)
+			require("conjure.main").main()
+			require("conjure.mapping")["on-filetype"]()
+		end,
+		init = function()
+			vim.g["conjure#debug"] = false
+			vim.g["conjure#extract#tree_sitter#enabled"] = true
 		end,
 	},
-	{ "glepnir/dbsession.nvim", cmd = { "SessionSave", "SessionDelete", "SessionLoad" }, opts = {} },
 })
 vim.cmd("colorscheme nord")
