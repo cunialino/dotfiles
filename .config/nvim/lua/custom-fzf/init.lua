@@ -26,7 +26,7 @@ function custom_fzf.set_env()
 	fzflua.fzf_exec(cmd, {
 		fn_transform = function(x)
 			local venv_path = string.match(x, "(.*)/bin/activate")
-			local prefix = " :"
+			local prefix = " "
 			if custom_fzf.venvs[venv_path] ~= nil then
 				prefix = " " .. prefix
 			end
@@ -34,7 +34,7 @@ function custom_fzf.set_env()
 		end,
 		actions = {
 			["default"] = function(selected, opts)
-				local venv_path = string.match(selected[1], ".*:(.*)")
+				local venv_path = string.match(selected[1], ".*(.*)")
 				if venv_path ~= vim.fn.expand("$VIRTUAL_ENV") then
 					local old_venv = vim.fn.expand("$VIRTUAL_ENV")
 					if old_venv == "$VIRTUAL_ENV" then
