@@ -3,7 +3,7 @@ local fzflua = require("fzf-lua")
 local custom_fzf = {}
 
 function custom_fzf.load_sessions()
-	cmd = "ls " .. vim.fn.stdpath("cache") .. "/session | cut -d '.' -f 1"
+	local cmd = "ls " .. vim.fn.stdpath("cache") .. "/session | cut -d '.' -f 1"
 	fzflua.fzf_exec(cmd, {
 		actions = {
 			["default"] = function(selected, opts)
