@@ -1,5 +1,3 @@
-local log = require("vim.lsp.log")
-local util = require("vim.lsp.util")
 local lsp_installer = require("nvim-lsp-installer")
 local lspconfig = require("lspconfig")
 
