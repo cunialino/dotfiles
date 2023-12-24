@@ -55,6 +55,12 @@ function custom_fzf.set_env()
 				end
 			end,
 		},
+		fzf_opts = {
+			["--preview"] = require("fzf-lua").shell.preview_action_cmd(function(items)
+				local venv_path = string.match(items[1], ".*(.*)")
+				return string.format("%s/bin/pip freeze | bat --style=default --color=always", venv_path)
+			end),
+		},
 	})
 end
 
