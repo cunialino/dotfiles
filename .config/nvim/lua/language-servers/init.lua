@@ -63,6 +63,9 @@ lspconfig["lua_ls"].setup({
 					[vim.fn.stdpath("config") .. "/lua"] = true,
 				},
 			},
+			semantic = {
+				enable = false,
+			},
 		},
 	},
 })
@@ -91,35 +94,6 @@ for type, icon in pairs(signs) do
 	local hl = "DiagnosticSign" .. type
 	vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
 end
-
--- Show icons in autocomplete
-require("vim.lsp.protocol").CompletionItemKind = {
-	"",
-	"",
-	"ƒ",
-	" ",
-	"",
-	"",
-	"",
-	"󰜰",
-	"󰏗",
-	"󰏗",
-	"",
-	"󰎠",
-	"了",
-	"󰌆 ",
-	"󰘍 ",
-	" ",
-	" ",
-	"",
-	" ",
-	" ",
-	" ",
-	" ",
-	"",
-	"󰆕",
-	"<󰊄>",
-}
 
 vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
 	underline = true,
