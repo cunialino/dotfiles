@@ -1,7 +1,8 @@
 return {
 	"Olical/conjure",
-	ft = { "clojure", "fennel", "python", "lua" }, -- etc
+	ft = { "python", "lua" },
 	dependencies = {
+		{ "neovim/nvim-lspconfig" },
 		{
 			"PaterJason/cmp-conjure",
 			config = function()
@@ -20,11 +21,14 @@ return {
 		},
 	},
 	config = function(_, opts)
+		local wk = require("which-key")
+		local keys = {
+			["<leader>"] = {
+				c = {
+					name = "Conjure",
+				},
+			},
+		}
 		require("conjure.main").main()
-		require("conjure.mapping")["on-filetype"]()
-	end,
-	init = function()
-		-- Set configuration options here
-		vim.g["conjure#debug"] = true
 	end,
 }

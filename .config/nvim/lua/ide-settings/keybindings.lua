@@ -1,9 +1,5 @@
 vim.g.mapleader = " "
 vim.g.maplocalleader = ","
-vim.api.nvim_set_keymap("n", "<Space>", "<NOP>", { noremap = true, silent = true })
-
-vim.api.nvim_set_keymap("i", "jk", "<ESC>", { noremap = true })
-vim.api.nvim_set_keymap("i", "kj", "<ESC>", { noremap = true })
 
 vim.api.nvim_set_keymap("n", "<M-j>", ":resize -2<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<M-k>", ":resize +2<CR>", { noremap = true, silent = true })

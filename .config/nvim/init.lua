@@ -16,46 +16,27 @@ vim.opt.rtp:prepend(lazypath)
 
 local lazy = require("lazy")
 lazy.setup({
-	{ import = "plugins" },
+	{ "goerz/jupytext.vim" },
+	{ "glepnir/dbsession.nvim", cmd = { "SessionSave", "SessionDelete", "SessionLoad" } },
+	{ "phaazon/hop.nvim", branch = "v2" },
+	{ "windwp/nvim-autopairs", config = true },
+	{ "terrortylor/nvim-comment", cmd = "CommentToggle", config = true },
 	{
-		"neovim/nvim-lspconfig",
-		config = function()
-			require("language-servers")
-		end,
-		dependencies = {
-			{ "b0o/schemastore.nvim" },
-			{ "williamboman/nvim-lsp-installer" },
+		"ur4ltz/surround.nvim",
+		opts = {
+			mappings_style = "sandwich",
 		},
 	},
-	-- Cmp block
-	{
-		"hrsh7th/nvim-cmp",
-		config = function()
-			require("cmp-config")
-		end,
-		dependencies = {
-			{ "hrsh7th/cmp-nvim-lsp" },
-			{ "hrsh7th/cmp-buffer" },
-			{ "hrsh7th/cmp-path" },
-			{ "hrsh7th/cmp-vsnip" },
-			{ "onsails/lspkind-nvim" },
-			{
-				"hrsh7th/vim-vsnip",
-				init = function()
-					vim.g.vsnip_snippet_dir = "~/.config/nvim/.vsnip/"
-				end,
-				dependencies = {
-					{ "hrsh7th/vim-vsnip-integ" },
-					{ "rafamadriz/friendly-snippets" },
-				},
-			},
-			{
-				"ray-x/lsp_signature.nvim",
-				config = function()
-					require("lsp_signature").setup({})
-				end,
-			},
-		},
+	{ "tpope/vim-fugitive" },
+	{ "akinsho/nvim-toggleterm.lua" },
+	{ import = "plugins" },
+	{ import = "plugins.lsp" },
+}, {
+	checker = {
+		enabled = true,
+		notify = false,
+	},
+	change_detection = {
+		notify = false,
 	},
 })
-vim.cmd("colorscheme nord")

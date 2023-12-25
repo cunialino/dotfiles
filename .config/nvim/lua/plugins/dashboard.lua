@@ -22,17 +22,17 @@ return {
 					action = "lua require('toggleterm.terminal').Terminal:new({cmd='lazygit --git-dir=$HOME/builds/dotfiles --work-tree=$HOME', direction = 'float'}):toggle()",
 					key = "g",
 				},
-				--{
-				--	desc = " dotfiles",
-				--	group = "Number",
-				--	action = require("custom-fzf").search_config_files,
-				--	key = "d",
-				--},
-				--{
-				--	desc = "󰑓 Sessions",
-				--	action = require("custom-fzf").load_sessions,
-				--	key = "s",
-				--},
+				{
+					desc = " dotfiles",
+					group = "Number",
+					action = require("custom-fzf").search_config_files,
+					key = "d",
+				},
+				{
+					desc = "󰑓 Sessions",
+					action = require("custom-fzf").load_sessions,
+					key = "s",
+				},
 			},
 		},
 		preview = {
@@ -42,5 +42,5 @@ return {
 			file_width = 30,
 		},
 	},
-	dependencies = { { "nvim-tree/nvim-web-devicons" } },
+	dependencies = { { "nvim-tree/nvim-web-devicons" }, { "ibhagwan/fzf-lua" } },
 }
