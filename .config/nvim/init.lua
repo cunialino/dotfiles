@@ -16,11 +16,9 @@ vim.opt.rtp:prepend(lazypath)
 
 local lazy = require("lazy")
 lazy.setup({
-	{ "goerz/jupytext.vim" },
-	{ "glepnir/dbsession.nvim", cmd = { "SessionSave", "SessionDelete", "SessionLoad" } },
-	{ "phaazon/hop.nvim", branch = "v2" },
+	{ "glepnir/dbsession.nvim", cmd = { "SessionSave", "SessionDelete", "SessionLoad" }, config = true },
+	{ "phaazon/hop.nvim", branch = "v2", config = true },
 	{ "windwp/nvim-autopairs", config = true },
-	{ "terrortylor/nvim-comment", cmd = "CommentToggle", config = true },
 	{
 		"ur4ltz/surround.nvim",
 		opts = {
@@ -28,7 +26,6 @@ lazy.setup({
 		},
 	},
 	{ "tpope/vim-fugitive" },
-	{ "akinsho/nvim-toggleterm.lua" },
 	{ import = "plugins" },
 	{ import = "plugins.lsp" },
 }, {
