@@ -1,8 +1,7 @@
-local fzflua = require("fzf-lua")
-
 local custom_fzf = {}
 
 function custom_fzf.load_sessions()
+	local fzflua = require("fzf-lua")
 	local cmd = "ls " .. vim.fn.stdpath("cache") .. "/session | cut -d '.' -f 1"
 	fzflua.fzf_exec(cmd, {
 		actions = {
@@ -14,6 +13,7 @@ function custom_fzf.load_sessions()
 end
 
 function custom_fzf.search_config_files()
+	local fzflua = require("fzf-lua")
 	fzflua.files({ prompt_title = "Config Files", cwd = vim.fn.stdpath("config") })
 end
 
@@ -22,6 +22,7 @@ if custom_fzf.venvs == nil then
 end
 
 function custom_fzf.set_env()
+	local fzflua = require("fzf-lua")
 	local cmd = "fd -H -I -E 'nvim' -E 'pyenv' -E 'pipx' 'activate$' " .. vim.fn.expand("$HOME")
 	fzflua.fzf_exec(cmd, {
 		fn_transform = function(x)
