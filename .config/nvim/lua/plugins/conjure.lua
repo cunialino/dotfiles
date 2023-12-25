@@ -1,8 +1,8 @@
 return {
 	"Olical/conjure",
-	ft = { "python", "lua" },
+	ft = { "lua", "python" },
+	priority = 0,
 	dependencies = {
-		{ "neovim/nvim-lspconfig" },
 		{
 			"PaterJason/cmp-conjure",
 			config = function()
@@ -21,14 +21,7 @@ return {
 		},
 	},
 	config = function(_, opts)
-		local wk = require("which-key")
-		local keys = {
-			["<leader>"] = {
-				c = {
-					name = "Conjure",
-				},
-			},
-		}
 		require("conjure.main").main()
+		require("conjure.mapping")["on-filetype"]()
 	end,
 }
