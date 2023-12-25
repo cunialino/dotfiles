@@ -1,4 +1,3 @@
-pip-chill==1.0.1
-pynvim==0.4.3
-pytz==2022.7.1
-yamlfmt==1.1.1
+pip-chill
+pynvim
+pytz
