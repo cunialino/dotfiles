@@ -13,6 +13,7 @@ return {
 				w = { ":w<cr>", "Write" },
 				L = { ":Lazy<cr>", "Lazy" },
 				e = { ":NvimTreeToggle<cr>", "File Explorer" },
+				E = { ":lua require('custom-fzf').set_env()<cr>", "Set python venv" },
 				d = {
 					name = "Debug",
 					b = { "<cmd>lua require'dap'.toggle_breakpoint()<cr>", "Toggle Breakpoint" },
