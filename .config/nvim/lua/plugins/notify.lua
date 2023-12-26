@@ -3,6 +3,12 @@ return {
 	event = "VeryLazy",
 	init = function()
 		vim.notify = require("notify")
+		vim.diagnostic.open_float = function()
+			local line_diagno = vim.lsp.diagnostic.get_line_diagnostics()
+			for _, v in pairs(line_diagno) do
+				vim.notify(v["message"], 2, { title = string.format("%s: %s", v["source"], v["code"]), timeout = 2000 })
+			end
+		end
 	end,
 	keys = function()
 		local wk = require("which-key")
