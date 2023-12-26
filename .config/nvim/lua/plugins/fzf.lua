@@ -4,6 +4,9 @@ return {
 	init = function()
 		local fzflua = require("fzf-lua")
 		fzflua.register_ui_select()
+		vim.lsp.buf.references = fzflua.lsp_references
+		vim.lsp.buf.definition = fzflua.lsp_definitions
+		vim.lsp.buf.declaration = fzflua.lsp_declarations
 	end,
 	opts = {
 		"fzf-native",
@@ -31,6 +34,12 @@ return {
 					name = "Git",
 					c = { "<cmd>FzfLua git_commits<cr>", "Show commits" },
 					b = { "<cmd>FzfLua git_branches<cr>", "Show branches" },
+				},
+				l = {
+
+					name = "LSP",
+					p = { "<cmd>FzfLua lsp_document_diagnostics<cr>", "Document dignostics" },
+					P = { "<cmd>FzfLua lsp_workspace_diagnostics<cr>", "Document dignostics" },
 				},
 			},
 		}
