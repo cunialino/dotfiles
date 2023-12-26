@@ -16,16 +16,6 @@ vim.opt.rtp:prepend(lazypath)
 
 local lazy = require("lazy")
 lazy.setup({
-	{ "glepnir/dbsession.nvim", cmd = { "SessionSave", "SessionDelete", "SessionLoad" }, config = true },
-	{ "phaazon/hop.nvim", branch = "v2", config = true },
-	{ "windwp/nvim-autopairs", config = true },
-	{
-		"ur4ltz/surround.nvim",
-		opts = {
-			mappings_style = "sandwich",
-		},
-	},
-	{ "tpope/vim-fugitive" },
 	{ import = "plugins" },
 	{ import = "plugins.lsp" },
 }, {
