@@ -18,6 +18,7 @@ local keys = {
 			t = { "<cmd>lua vim.lsp.buf.type_definition()<CR>", "Type definition" },
 			d = { "<cmd>lua vim.lsp.buf.definition()<CR>", "Go to definition" },
 			D = { "<cmd>lua vim.lsp.buf.delaration()<CR>", "Go to declaration" },
+			r = { "<cmd>lua vim.lsp.buf.references()<cr>", "References" },
 			R = { "<cmd>lua vim.lsp.buf.rename()<CR>", "Rename" },
 			a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code actions" },
 			e = { "<cmd>lua vim.diagnostic.get()<CR>", "Show line diagnostics" },
