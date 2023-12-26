@@ -13,8 +13,8 @@ return {
 	"tamton-aquib/staline.nvim",
 	opts = {
 		defaults = {
-			left_separator = icons.separators.Left,
-			right_separator = icons.separators.Right,
+			left_separator = require("icons").separators.Left,
+			right_separator = require("icons").separators.Right,
 			cool_symbol = " ", -- Change this to override defult OS icon.
 			full_path = false,
 			mod_symbol = " 󰏫 ",

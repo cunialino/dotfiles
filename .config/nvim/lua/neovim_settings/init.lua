@@ -1,4 +1,6 @@
-tabwidth = 2
+local tabwidth = 2
+vim.g.mapleader = " "
+vim.g.maplocalleader = ","
 vim.cmd("filetype plugin indent on")
 vim.o.shortmess = vim.o.shortmess .. "c"
 vim.o.hidden = true
