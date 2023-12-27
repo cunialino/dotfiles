@@ -38,6 +38,12 @@ local function default_on_attach(client, bufnr)
 				N = { "<cmd>lua vim.diagnostic.goto_prev()<CR>", "Go to previous diagnostic" },
 				f = { "<cmd>lua vim.lsp.buf.format({ async = true })<CR>", "Format File" },
 				I = { "<cmd>Mason<cr>", "Install language server" },
+				s = {
+					function()
+						vim.diagnostic.show()
+					end,
+					"Show diagnostics",
+				},
 			},
 		},
 	}
