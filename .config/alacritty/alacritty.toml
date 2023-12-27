@@ -1,0 +1,20 @@
+import = ["/home/elia/.config/alacritty/themes/themes/nord.toml"]
+
+[font]
+size = 10
+
+[font.bold]
+family = "SauceCodePro NF"
+style = "Bold"
+
+[font.bold_italic]
+family = "SauceCodePro NF"
+style = "Bold Italic"
+
+[font.italic]
+family = "SauceCodePro NF"
+style = "Italic"
+
+[font.normal]
+family = "SauceCodePro NF"
+style = "Regular"
