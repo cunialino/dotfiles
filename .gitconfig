@@ -5,6 +5,25 @@
 	helper = cache
 [core]
 	excludesfile = /home/elia/.gitignore
+  pager = delta
+
+[interactive]
+  diffFilter = delta --color-only --features=interactive --syntax-theme=Nord
+
+[delta]
+  features = decorations
+
+[delta "interactive"]
+  keep-plus-minus-markers = false
+
+[delta "decorations"]
+  commit-decoration-style = blue ol
+  commit-style = raw
+  file-style = omit
+  hunk-header-decoration-style = blue box
+  hunk-header-file-style = red
+  hunk-header-line-number-style = "#067a00"
+  hunk-header-style = file line-number syntax
 [filter "lfs"]
 	process = git-lfs filter-process
 	required = true
@@ -12,12 +31,15 @@
 	smudge = git-lfs smudge -- %f
 [init]
 	defaultBranch = main
+[interactive]
+    diffFilter = delta --color-only
 [merge]
 	tool = vimdiff
 [mergetool]
 	keepBackup = false
 [mergetool "vimdiff"]
   cmd = nvim -f -c \"Gvdiffsplit!\" \"$MERGED\"
+
 [safe]
 	directory = /home/elia/windowsHome/fim-275-ing-pipe-kpis
 [includeIf "gitdir:~/WORK/"]
