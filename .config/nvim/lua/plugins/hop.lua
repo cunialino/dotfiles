@@ -14,11 +14,6 @@ return {
 				"<cmd>lua require'hop'.hint_char1({ direction = require'hop.hint'.HintDirection.BEFORE_CURSOR, current_line_only = false })<cr>",
 				"Char backward",
 			},
-			S = {
-				"<cmd>lua require'hop'.hint_patterns()<cr>",
-				"Pattern search",
-			},
-		}
-)
+		})
 	end,
 }
