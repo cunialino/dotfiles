@@ -1,3 +1,4 @@
 pip-chill
 pynvim
 pytz
+pipx
