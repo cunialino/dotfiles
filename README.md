@@ -15,6 +15,14 @@ Requirements:
   - [pynvim](https://github.com/neovim/pynvim)
 - [nord-dircolors](https://github.com/arcticicestudio/nord-dircolors): link this to ~/.dir_colors
 
+## Install repo
+
+```bash
+git clone --bare https://github.com/cunialino/dotfiles.git $HOME/builds/dotfiles
+git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME
+git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME checkout
+```
+
 ## ZSH
 
 - install zsh
@@ -24,29 +32,9 @@ change default shell
 chsh -s /usr/bin/zsh
 ```
 
-clone ohmyzh
-```bash
-git clone https://github.com/ohmyzsh.git $HOME/builds/ohmyzsh
-```
-
-clone powerlevel10k
-```bash
-git clone https://github.com/romkatv/powerlevel10k.git builds/ohmyzsh/custom/themes/powerlevel10k
-```
-
 ## I3 and Lemonbar
 
 - install i3 (i3-gaps has been merged)
 - install lemonbar-xft-git
   - install jq, acpi and alsa-utils
 - install devilspie
-
-## Neovim
-
-it works out of the box, but here we define the pyhton configuration.
-
-## Alacritty themes
-It is in the requirements, you only need the themes.
-```bash
-git clone https://github.com/eendroroy/alacritty-theme.git ~/.config/alacritty/themes/
-```
