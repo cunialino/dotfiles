@@ -1,0 +1,11 @@
+@define-color fg rgba(216, 222, 233, 1);
+@define-color bg rgba(46, 52, 64, 1);
+@define-color black rgba(59, 66, 82, 0.7);
+@define-color red rgba(191, 97, 106, 0.7);
+@define-color green rgba(163, 190, 140, 0.7);
+@define-color yellow rgba(235,203,139, 0.7);
+@define-color blue rgba(129, 161, 193, 0.7);
+@define-color magenta rgba(180, 142, 173, 0.7);
+@define-color cyan rgba(136, 192, 208, 0.7);
+@define-color white rgba(229, 233, 240, 0.7);
+@define-color orange rgba(208, 135, 112, 0.7);
