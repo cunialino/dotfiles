@@ -29,6 +29,19 @@ return {
 		},
 		renderer = {
 			indent_markers = { enable = true, icons = { corner = "└ ", edge = "│ ", none = "  " } },
+			icons = {
+				glyphs = {
+					git = {
+						unstaged = " ",
+						staged = " ",
+						unmerged = " ",
+						renamed = "󰑕 ",
+						untracked = " ",
+						deleted = "󰚃 ",
+						ignored = "◌",
+					},
+				},
+			},
 		},
 		filters = {
 			dotfiles = true,
