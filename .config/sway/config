@@ -37,8 +37,12 @@ bindsym $mod+Shift+q kill
 
 bindsym $mod+Shift+S sticky enable
 # change focus
-bindsym $mod+j focus left
-bindsym $mod+k focus down
+bindsym $mod+j focus down
+bindsym $mod+k focus up
+bindsym $mod+l focus left
+bindsym $mod+h focus right
+
+
 bindsym $mod+semicolon focus right
 
 # alternatively, you can use the cursor keys:
@@ -53,7 +57,7 @@ bindsym $mod+p move workspace to output right
 bindsym $mod+Shift+j move left
 bindsym $mod+Shift+k move down
 bindsym $mod+Shift+l move up
-bindsym $mod+Shift+semicolon move right
+bindsym $mod+Shift+h move right
 
 # alternatively, you can use the cursor keys:
 bindsym $mod+Shift+Left move left
@@ -62,10 +66,10 @@ bindsym $mod+Shift+Up move up
 bindsym $mod+Shift+Right move right
 
 # split in horizontal orientation
-bindsym $mod+h split h
+bindsym $mod+Shift+v split v
 
 # split in vertical orientation
-bindsym $mod+v split v
+bindsym $mod+v split h
 
 # enter fullscreen mode for the focused container
 bindsym $mod+f fullscreen toggle
@@ -89,7 +93,7 @@ bindsym $mod+a focus parent
 
 # switch to workspace
 bindsym $mod+1 workspace number 1
-bindsym $mod+2 workspace number 2; layout tabbed
+bindsym $mod+2 workspace number 2
 bindsym $mod+3 workspace number 3; layout tabbed
 bindsym $mod+4 workspace number 4
 bindsym $mod+5 workspace number 5
