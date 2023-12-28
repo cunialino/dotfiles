@@ -37,7 +37,7 @@ pulseaudio
 pulseaudio-alsa
 pulseaudio-bluetooth
 pyenv
-sway
+swayfx
 swaybg
 tk
 ttf-ubraille

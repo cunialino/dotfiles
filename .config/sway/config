@@ -185,6 +185,7 @@ input "type:keyboard" {
 output "*" {
   background /home/elia/.wallpaper.jpg fill
 }
+corner_radius 20
 bar {
   swaybar_command waybar
 }
