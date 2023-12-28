@@ -1,0 +1,10 @@
+lastupdatecheck: 0
+recentrepos:
+- /home/elia
+- /home/elia/tesi
+- /home/elia/builds/pokerGG
+startuppopupversion: 5
+customcommandshistory:
+- config add .config/waybar
+hidecommandlog: false
+ignorewhitespaceindiffview: false
