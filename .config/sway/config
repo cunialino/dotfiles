@@ -182,6 +182,11 @@ for_window [app_id=".*"] opacity $opacity
 input "type:keyboard" {
   xkb_layout it
 }
+input "type:touchpad" {
+  tap enabled
+  natural_scroll enabled
+  scroll_factor 0.1
+}
 output "*" {
   background /home/elia/.wallpaper.jpg fill
 }
