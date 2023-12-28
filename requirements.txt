@@ -52,6 +52,7 @@ shfmt
 stylua-git
 tk
 transset-df
+ttf-ubraille
 ueberzug
 unzip
 vi
