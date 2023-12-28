@@ -9,6 +9,7 @@
 #
 # Please see http://i3wm.org/docs/userguide.html for a complete reference!
 
+set $opacity 0.5
 set $mod Mod4
 
 # Font for window titles. Will also be used by the bar unless a different font
@@ -33,22 +34,6 @@ font "pango:SauceCodePro NF 0"
 bindsym $mod+Return exec alacritty
 # kill focused window
 bindsym $mod+Shift+q kill
-#Workspaces names
-#exec i3-msg 'rename workspace 1 to "1:"'
-#exec i3-msg 'rename workspace 2 to "2:"'
-#exec i3-msg 'rename workspace 3 to "3:"'
-#exec i3-msg 'rename workspace 4 to "4:"'
-#exec i3-msg 'rename workspace 5 to "5:"'
-#exec i3-msg 'rename workspace 6 to "6:UA1"'
-#exec i3-msg 'rename workspace 7 to "7:UA2"'
-#exec i3-msg 'rename workspace 8 to "8:UA3"'
-#exec i3-msg 'rename workspace 9 to "9:"'
-#exec i3-msg 'rename workspace 10 to "10:"'
-#
-# There also is the (new) i3-dmenu-desktop which only displays applications
-# shipping a .desktop file. It is a wrapper around dmenu, so you need that
-# installed.
-# bindsym $mod+d exec --no-startup-id i3-dmenu-desktop
 
 bindsym $mod+Shift+S sticky enable
 # change focus
@@ -104,7 +89,7 @@ bindsym $mod+a focus parent
 
 # switch to workspace
 bindsym $mod+1 workspace number 1
-bindsym $mod+2 workspace number 2
+bindsym $mod+2 workspace number 2; layout tabbed
 bindsym $mod+3 workspace number 3; layout tabbed
 bindsym $mod+4 workspace number 4
 bindsym $mod+5 workspace number 5
@@ -128,10 +113,6 @@ bindsym $mod+Shift+0 move container to workspace number 10
 
 # reload the configuration file
 bindsym $mod+Shift+c reload
-# restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
-bindsym $mod+Shift+r restart
-# exit i3 (logs you out of your X session)
-bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -b 'Yes, exit i3' 'i3-msg exit'"
 
 # resize window (you can also use the mouse for that)
 mode "resize" {
@@ -164,8 +145,8 @@ bindsym $mod+r mode "resize"
 hide_edge_borders both
 #Borderless
 
-new_window none
-new_float none
+default_border none
+default_floating_border none
 
 
 
@@ -175,41 +156,17 @@ gaps inner 10
 gaps outer 15
 
 #Per-app settings
-for_window [class="Thunar"] floating enable
-for_window [title="finestra_notizie"] floating enable
-for_window [title="finestra_notizie"] sticky enable
 for_window [title="Picture-in-Picture"] sticky enable, resize set 600px 340px, move position 1295px 715px
 
-#Assign program to specific workspaces
-assign [class="firefox"] number 2
-assign [class="Chromium"] number 2
-assign [class="MATLAB"] number 3
-assign [class="RStudio"] number 3
-assign [class="Bleachbit"] number 10
-assign [class="Pavucontrol"]number 10
-assign [class="filelight"] number 10
-assign [class="Lxappearance"] number 10
-assign [class="Vlc"] number 9
-assign [class="Okular"] number 5
-assign [class="DesktopEditors"] number 5
-#Alcune app settano la classe dopo essere state aperte...
-for_window [class="Nvidia-settings"] move to workspace number 10
-for_window [class="Google-chrome"] move to workspace number 2
-for_window [class="Spotify"] move to workspace number 4
+for_window [app_id="google-chrome"] move to workspace number 2
 
 #Keybindings
 
-bindsym $mod+d exec rofi -modi drun -show drun -opacity 70
-bindsym $mod+l exec i3lock-fancy-rapid 20 1
-bindsym $mod+g exec xdg-open https://google.it
-bindsym $mod+t exec thunar
+bindsym $mod+d exec wofi -S drun
+
 
 #Kbd brightness
 # idk wht but it works out of the box as of Jan 2022
-
-#Monitor brightness
-bindsym XF86MonBrightnessDown exec brightnessctl -c backlight -d intel_backlight set 10%-
-bindsym XF86MonBrightnessUp exec brightnessctl -c backlight -d intel_backlight set +10%
 
 #Volume
 
@@ -217,30 +174,17 @@ bindsym XF86AudioLowerVolume exec pamixer -d 5
 bindsym XF86AudioRaiseVolume exec pamixer -i 5
 bindsym XF86AudioMute exec pamixer -t
 
-#Tasti musica
-bindsym XF86AudioPlay exec mpc toggle
-bindsym XF86AudioNext exec mpc next
-bindsym XF86AudioPrev exec mpc prev
-bindsym Mod1+j     exec mpc prev
-bindsym Mod1+k     exec mpc next
-bindsym Mod1+l     exec mpc toggle
-
 #Swipe workspaces
 bindsym $mod+u workspace prev
 bindsym $mod+o workspace next
+for_window [app_id=".*"] opacity $opacity
 
-exec_always --no-startup-id ~/.local/bin/set-display.sh
-#toggle compmgr to remove transprency
-bindsym $mod+c exec comp_mgr.sh -t
-#Ex xinitrc
-exec feh --bg-scale /home/elia/.wallpaper.jpg
-exec xcompmgr -c &
-exec devilspie -a &
-exec --no-startup-id redshift
-exec --no-startup-id mopidy
-
-# Start i3bar to display a workspace bar (plus the system information i3status
-# finds out, if available)
+input "type:keyboard" {
+  xkb_layout it
+}
+output "*" {
+  background /home/elia/.wallpaper.jpg fill
+}
 bar {
-    i3bar_command ~/.config/i3/lemonbar/launch_bar.sh
+  swaybar_command waybar
 }
