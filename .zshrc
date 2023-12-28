@@ -9,6 +9,7 @@ POWERLEVEL9K_MODE='nerdfont-complete'
 #POWERLEVEL9K_MODE='awesome-patched'
 # Path to your oh-my-zsh installation.
 export ZSH=$HOME/builds/ohmyzsh
+export ZSH_CUSTOM=$HOME/builds/custom_ohmyzsh
 
 # Set name of the theme to load.
 # Look in ~/.oh-my-zsh/themes/
