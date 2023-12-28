@@ -131,12 +131,18 @@ return {
 		local lspconfig = require("lspconfig")
 		local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
-		for server, server_opts in pairs(opts.servers) do
+		local installed_mslp_servers = require("mason-lspconfig").get_installed_servers()
+		local server_configs = vim.tbl_keys(opts.servers)
+
+		local all_servers = vim.tbl_deep_extend("keep", installed_mslp_servers, server_configs)
+
+		for _, server in pairs(all_servers) do
+			local server_opts = opts.servers[server] or {}
 			server_opts.capabilities = vim.tbl_deep_extend(
 				"force",
 				vim.lsp.protocol.make_client_capabilities(),
 				cmp_nvim_lsp.default_capabilities(),
-				opts.capabilities or {}
+				server_opts.capabilities or {}
 			)
 			lspconfig[server].setup(server_opts)
 		end
