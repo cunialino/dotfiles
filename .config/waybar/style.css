@@ -14,38 +14,8 @@ window#waybar {
 }
 
 
-button {
-    /* Use box-shadow instead of border so the text isn't offset */
-    box-shadow: inset 0 -3px transparent;
-    /* Avoid rounded borders under each button name */
-    border: none;
-    border-radius: 0;
-}
-
-#workspaces button {
-    background-color: transparent;
-    border-radius: 50px;
-    border-style: solid;
-    border-width: 1px;
-    border-color: @cyan;
-    color: @fg;
-    padding-top: 1px;
-    padding-bottom: 1px;
-    color: @fg;
-}
-#workspaces > * {
-  margin: 0 2px;
-}
-
-#workspaces button.focused {
-    color: @cyan;
-}
-
-#workspaces button.urgent {
-    background-color: @red;
-}
-
-
+#workspaces,
+.modules-right,
 .modules-center {
     background-color: transparent;
     border-radius: 50px;
@@ -53,87 +23,62 @@ button {
     border-width: 1px;
     border-color: @cyan;
     color: @fg;
-    padding: 0 10px;
-
+}
+#workspaces button:not(:last-child),
+.modules-center widget:not(:last-child),
+.modules-right widget:not(:last-child)
+{
+    border-right-style: solid;
+    border-right-width: 1px;
+    border-right-color: @cyan;
 }
 
-#temperature,
-#cpu,
-#memory {
-    border-radius: 10px;
-}
-#clock,
-#battery,
-#backlight,
-#network,
-#pulseaudio,
-#mpd {
-    background-color: transparent;
-    border-radius: 50px;
-    border-style: solid;
-    border-width: 1px;
-    border-color: @cyan;
-    color: @fg;
-    padding: 0 10px;
-}
-
-#clock,
-#battery,
-#cpu,
-#memory,
-#disk,
-#temperature,
-#backlight,
-#network,
-#pulseaudio,
-#wireplumber,
-#custom-media,
-#tray,
-#mode,
-#idle_inhibitor,
-#scratchpad,
-#mpd {
-    padding: 0 10px;
-}
-/* If workspaces is the leftmost module, omit left margin */
-.modules-left > widget:first-child > #workspaces {
-    margin-left: 0;
-}
-
-/* If workspaces is the rightmost module, omit right margin */
-.modules-right > widget:last-child > #workspaces {
-    margin-right: 0;
-}
-
-
-#battery.charging, #battery.plugged {
-    color: @green;
-    border-color: @green;
+#cpu, #memory, #temperature, #network,
+#pulseaudio, #backlight, #battery, #clock
+{
+  padding-left: 10px;
+  padding-right: 20px;
 }
 
 @keyframes blink {
     to {
-        background-color: #ffffff;
-        color: #000000;
+        color: @black;
     }
 }
 
-#battery.critical:not(.charging) {
-    background-color: #f53c3c;
-    color: #ffffff;
+#workspaces button.focused {
+    color: @cyan;
     animation-name: blink;
-    animation-duration: 0.5s;
+    animation-duration: 1s;
     animation-timing-function: linear;
     animation-iteration-count: infinite;
     animation-direction: alternate;
 }
 
-#network.disconnected {
-    background-color: #f53c3c;
+#battery.charging, #battery.plugged {
+    color: @green;
+    animation-name: blink;
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
 }
 
 
-#temperature.critical {
-    background-color: @red;
-  color: @black;
+#battery.critical:not(.charging),
+#workspaces button.urgent,
+#temperature.critical,
+#network.disconnected
+{
+    color: @red;
+    animation-name: blink;
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+
+tooltip {
+  background-color: transparent;
 }
