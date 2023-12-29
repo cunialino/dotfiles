@@ -1,18 +1,18 @@
+@import "/home/elia/.config/waybar/themes/catppucin/themes/mocha.css";
 #window {
-    background-color: rgba(59,66,82, 0.5);
-    border: 1px solid rgba(229, 233, 240, 1);
+    background-color: alpha(@base, 0.5);
+    border: 1px solid @lavender;
     margin-right: 200px;
 }
 
-/*
 #outer-box {
-    background-color: rgba(20, 20,20, 0.7);
-    border: 1px solid rgba(255, 0, 0, 0.5);
-}*/
+    background-color: alpha(@base, 0.7);
+    border: 1px solid alpha(@lavender, 0.5);
+}
 
 #input {
-    color: #999999;
-    border: 1px solid rgba(100, 100, 100, 1);
+    color: @text;
+    border: 1px solid @lavender;
     border-radius: 20px;
 
     margin-left: 100px;
@@ -21,12 +21,12 @@
     margin-bottom: 20px;
 
     box-shadow: none;
-    background-color: rgba(0.7, 0.7, 0.7, 0.9);
+    background-color: alpha(@base, 0.5);
 }
 
 #input:focus {
-    color: #999999;
-    border: 1px solid rgba(229, 233, 240, 1);
+    color: @test;
+    border: 1px solid alpha(@lavender, 1);
 
     margin-left: 10px;
     margin-right: 10px;
@@ -34,11 +34,11 @@
     margin-bottom: 20px;
 
     box-shadow: none;
-    background-color: rgba(0.5, 0.5, 0.5, 0.9);
+    background-color: @base;
 }
 
 #entry {
-    font-family: JetBrainsMono;
+    font-family: SauceCodePro Nerd Font;
     border-radius: 20px;
     margin: 5px;
     margin-right: 20px;
@@ -46,7 +46,7 @@
     padding-left: 10px;
 }
 
-#entry:focus {
-    background: rgba(129, 161, 193, 0.7);
-    border: 1px solid rgba(229, 233, 240, 1);
+#entry:selected {
+    background: alpha(@base, 0.7);
+    border: 1px solid @lavender;
 }
