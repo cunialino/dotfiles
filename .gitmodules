@@ -10,3 +10,12 @@
 [submodule "builds/custom_ohmyzsh/themes/powerlevel10k"]
 	path = builds/custom_ohmyzsh/themes/powerlevel10k
 	url = https://github.com/romkatv/powerlevel10k.git
+[submodule ".config/bat/themes"]
+	path = .config/bat/themes
+	url = https://github.com/catppuccin/bat.git
+[submodule ".config/lazygit/themes/catppuccin"]
+	path = .config/lazygit/themes/catppuccin
+	url = https://github.com/catppuccin/lazygit.git
+[submodule ".config/waybar/themes/catppucin"]
+	path = .config/waybar/themes/catppucin
+	url = https://github.com/catppuccin/waybar.git
