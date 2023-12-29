@@ -1,4 +1,4 @@
-@import "colors.css";
+@import "themes/catppucin/themes/mocha.css";
 
 * {
     /* `otf-font-awesome` is required to be installed for icons */
@@ -8,7 +8,7 @@
 
 window#waybar {
     background-color: transparent;
-    color: @fg;
+    color: @text;
     transition-property: background-color;
     transition-duration: .5s;
 }
@@ -17,12 +17,12 @@ window#waybar {
 #workspaces,
 .modules-right,
 .modules-center {
-    background-color: @bg;
+    background-color: alpha( @base, 0.7 );
     border-radius: 50px;
     border-style: solid;
     border-width: 1px;
-    border-color: @cyan;
-    color: @fg;
+    border-color: @lavender;
+    color: @text;
 }
 #workspaces button:not(:last-child),
 .modules-center widget:not(:last-child),
@@ -30,7 +30,7 @@ window#waybar {
 {
     border-right-style: solid;
     border-right-width: 1px;
-    border-right-color: @cyan;
+    border-right-color: @lavender;
 }
 
 #cpu, #memory, #temperature, #network,
@@ -42,12 +42,12 @@ window#waybar {
 
 @keyframes blink {
     to {
-        color: @black;
+        color: @crust;
     }
 }
 
 #workspaces button.focused {
-    color: @cyan;
+    color: @lavender;
     animation-name: blink;
     animation-duration: 1s;
     animation-timing-function: linear;
@@ -83,5 +83,5 @@ window#waybar {
 
 
 tooltip {
-  background-color: transparent;
+  background-color: alpha(@base, 0.7);
 }

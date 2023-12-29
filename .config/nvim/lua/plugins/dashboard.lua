@@ -4,7 +4,7 @@ return {
 	opts = {
 		theme = "doom",
 		config = {
-			header = {}, --your header
+			header = require("penguin-header"), --your header
 			center = {
 				{
 					icon = "󰊳 ",
@@ -61,12 +61,12 @@ return {
 				"― Richard Feynman",
 			}, --your footer
 		},
-		preview = {
-			command = "lolcat -F 0.3",
-			file_path = vim.fn.stdpath("config") .. "/lua/penguin-header/preview",
-			file_height = 16,
-			file_width = 30,
-		},
+		-- preview = {
+		-- 	command = "lolcat -F 0.3",
+		-- 	file_path = vim.fn.stdpath("config") .. "/lua/penguin-header/preview",
+		-- 	file_height = 16,
+		-- 	file_width = 30,
+		-- },
 	},
 	dependencies = { { "nvim-tree/nvim-web-devicons" }, { "ibhagwan/fzf-lua" } },
 }

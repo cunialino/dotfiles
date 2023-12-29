@@ -99,14 +99,14 @@ _has() {
 bindkey '^ ' autosuggest-accept
 
 eval $(dircolors ~/.dir_colors)
-if _has bat; then
-  # Export theme for http://github.com/sharkdp/bat.
-  export BAT_THEME="Nord"
-fi
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 [ -f /usr/share/fzf/key-bindings.zsh ] && source /usr/share/fzf/key-bindings.zsh
 if _has fzf; then
+  export FZF_DEFAULT_OPTS=" \
+  --color=bg+:#313244,bg:#1e1e2e,spinner:#f5e0dc,hl:#f38ba8 \
+  --color=fg:#cdd6f4,header:#f38ba8,info:#cba6f7,pointer:#f5e0dc \
+  --color=marker:#f5e0dc,fg+:#cdd6f4,prompt:#cba6f7,hl+:#f38ba8"
   if _has fd; then
     # Use fd for fzf.
     FZF_DEFAULT_COMMAND='fd --type f --follow --hidden'
