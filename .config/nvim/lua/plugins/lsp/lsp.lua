@@ -33,17 +33,7 @@ local function default_on_attach(client, bufnr)
 				r = { "<cmd>lua vim.lsp.buf.references()<cr>", "References" },
 				R = { "<cmd>lua vim.lsp.buf.rename()<CR>", "Rename" },
 				a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code actions" },
-				e = { "<cmd>lua vim.diagnostic.open_float()<CR>", "Show line diagnostics" },
-				n = { "<cmd>lua vim.diagnostic.goto_next()<CR>", "Go to next diagnostic" },
-				N = { "<cmd>lua vim.diagnostic.goto_prev()<CR>", "Go to previous diagnostic" },
 				f = { "<cmd>lua vim.lsp.buf.format({ async = true })<CR>", "Format File" },
-				I = { "<cmd>Mason<cr>", "Install language server" },
-				s = {
-					function()
-						vim.diagnostic.show()
-					end,
-					"Show diagnostics",
-				},
 			},
 		},
 	}
