@@ -55,13 +55,16 @@ window#waybar {
     animation-direction: alternate;
 }
 
-#battery.charging, #battery.plugged {
+#battery.charging  {
     color: @green;
     animation-name: blink;
     animation-duration: 1s;
     animation-timing-function: linear;
     animation-iteration-count: infinite;
     animation-direction: alternate;
+}
+#battery.plugged{
+    color: @green;
 }
 
 
