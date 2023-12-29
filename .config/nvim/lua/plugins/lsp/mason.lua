@@ -42,5 +42,15 @@ return {
 				"ruff", -- python linter
 			},
 		})
+		local keys = {
+			["<leader>"] = {
+				l = {
+					name = "LSP",
+					I = { "<cmd>Mason<cr>", "Install language server" },
+				},
+			},
+		}
+		local wk = require("which-key")
+		wk.register(keys)
 	end,
 }

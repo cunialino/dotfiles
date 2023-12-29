@@ -45,9 +45,15 @@ return {
 				w = { ":w<cr>", "Write" },
 				L = { ":Lazy<cr>", "Lazy" },
 				e = { ":NvimTreeToggle<cr>", "File Explorer" },
-				E = { ":lua require('custom-fzf').set_env()<cr>", "Set python venv" },
+				E = { require("custom-fzf").set_env, "Set python venv" },
 				h = { ":Dashboard<cr>", "Dashboard" },
 				o = { ":only<cr>", "Only" },
+				D = {
+					name = "Diagnostics",
+					o = { vim.diagnostic.open_float, "Line diagnostics" },
+					n = { vim.diagnostic.goto_next, "Go to next diagnostic" },
+					N = { vim.diagnostic.goto_prev, "Go to previous diagnostic" },
+				},
 			},
 		}
 		wk.register(keys)
