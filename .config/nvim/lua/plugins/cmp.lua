@@ -4,7 +4,7 @@ return {
 		vim.o.completeopt = "menu,menuone,noselect"
 	end,
 	event = "InsertEnter",
-	opts = function()
+	opts = function(_, opts)
 		vim.api.nvim_set_hl(0, "CmpGhostText", { link = "Comment", default = true })
 		local cmp = require("cmp")
 		local defaults = require("cmp.config.default")()
@@ -36,6 +36,11 @@ return {
 				end,
 			}),
 			sources = cmp.config.sources({
+				{
+					name = "codeium",
+					group_index = 1,
+					priority = 100,
+				},
 				{ name = "nvim_lsp_signature_help" },
 				{ name = "nvim_lsp" },
 				{
@@ -64,7 +69,13 @@ return {
 				format = lspkind.cmp_format({
 					with_text = true,
 					maxwidth = 50,
-					menu = { buffer = "[  ]", nvim_lsp = "[ 󰅩 ]", vsnip = "[  ]" },
+					menu = { buffer = "[  ]", nvim_lsp = "[ 󰅩 ]", vsnip = "[  ]", codeium = "[ 󰧑 ]" },
+				}),
+				format_cs = require("lspkind").cmp_format({
+					mode = "symbol",
+					maxwidth = 50,
+					ellipsis_char = "...",
+					symbol_map = { Codeium = "" },
 				}),
 			},
 			experimental = {
@@ -93,6 +104,12 @@ return {
 			config = function()
 				require("lsp_signature").setup({})
 			end,
+		},
+		{
+			"Exafunction/codeium.nvim",
+			cmd = "Codeium",
+			build = ":Codeium Auth",
+			opts = {},
 		},
 	},
 }
