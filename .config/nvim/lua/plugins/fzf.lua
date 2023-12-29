@@ -1,3 +1,4 @@
+local git_icons = require("icons").git
 return {
 	"ibhagwan/fzf-lua",
 	dependencies = { "nvim-tree/nvim-web-devicons" },
@@ -15,6 +16,17 @@ return {
 			fzf = {
 				["ctrl-d"] = "preview-page-down",
 				["ctrl-f"] = "preview-page-up",
+			},
+		},
+		git = {
+			icons = {
+				["M"] = { icon = git_icons.unstaged, color = "yellow" },
+				["D"] = { icon = git_icons.deleted, color = "red" },
+				["A"] = { icon = git_icons.deleted, color = "green" },
+				["R"] = { icon = git_icons.renamed, color = "yellow" },
+				["C"] = { icon = "C", color = "yellow" },
+				["T"] = { icon = "T", color = "magenta" },
+				["?"] = { icon = git_icons.untracked, color = "magenta" },
 			},
 		},
 	},
