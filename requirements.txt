@@ -24,6 +24,7 @@ gtop
 iwd
 jq
 lazygit
+light
 linux
 linux-firmware
 lolcat

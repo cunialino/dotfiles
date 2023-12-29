@@ -144,8 +144,6 @@ mode "resize" {
 
 bindsym $mod+r mode "resize"
 
-#exec_always --no-startup-id $HOME/.config/polybar/launch.sh
-#exec_always $HOME/.config/i3/lemonbar/testing/launch_bar.sh
 hide_edge_borders both
 #Borderless
 
@@ -160,7 +158,7 @@ gaps inner 10
 gaps outer 15
 
 #Per-app settings
-for_window [title="Picture-in-Picture"] sticky enable, resize set 600px 340px, move position 1295px 715px
+for_window [title="^Picture-in-Picture$"] sticky enable, resize set 600px 340px, move position 1295px 715px
 
 for_window [app_id="google-chrome"] move to workspace number 2
 
@@ -178,6 +176,8 @@ bindsym XF86AudioLowerVolume exec pamixer -d 5
 bindsym XF86AudioRaiseVolume exec pamixer -i 5
 bindsym XF86AudioMute exec pamixer -t
 
+bindsym XF86MonBrightnessDown exec light -U 5
+bindsym XF86MonBrightnessUp exec light -A 5
 #Swipe workspaces
 bindsym $mod+u workspace prev
 bindsym $mod+o workspace next
@@ -195,7 +195,7 @@ output "*" {
   background /home/elia/.wallpaper fill
 }
 corner_radius 10
-#blur enable
+blur enable
 bar {
   swaybar_command waybar
 }
