@@ -1,5 +1,6 @@
 local function lsp_clients()
-	local clients = vim.lsp.get_active_clients()
+	local curr_buffer = vim.fn.bufnr()
+	local clients = vim.lsp.get_active_clients({ bufnr = curr_buffer })
 	local clients_list = {}
 	for _, client in pairs(clients) do
 		table.insert(clients_list, client.name)
@@ -48,7 +49,7 @@ return {
 					{
 						"diagnostics",
 						symbols = {
-							error = icons.lsp_signs.Error,
+							error = icons.lsp_signs.Error .. " ",
 							warn = icons.lsp_signs.Warn,
 							info = icons.lsp_signs.Info,
 							hint = icons.lsp_signs.Hint,
