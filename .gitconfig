@@ -4,11 +4,10 @@
 [credential]
 	helper = cache
 [core]
-	excludesfile = /home/elia/.gitignore
   pager = delta
 
 [interactive]
-  diffFilter = delta --color-only --features=interactive --syntax-theme=Nord
+  diffFilter = delta --color-only --features=interactive
 
 [delta]
   features = decorations
@@ -39,8 +38,5 @@
 	keepBackup = false
 [mergetool "vimdiff"]
   cmd = nvim -f -c \"Gvdiffsplit!\" \"$MERGED\"
-
-[safe]
-	directory = /home/elia/windowsHome/fim-275-ing-pipe-kpis
 [includeIf "gitdir:~/WORK/"]
   path = ~/WORK/.gitconfig

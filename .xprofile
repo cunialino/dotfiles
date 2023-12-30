@@ -1,9 +1,6 @@
 #!/bin/sh
 # Exports
-export QT_QPA_PLATFORMTHEME=gtk2
-export PATH=$PATH:$HOME/.local/bin
-export R_PROFILE_USER=~/.R/Rprofile
-export SUDO_ASKPASS="/usr/lib/ssh/x11-ssh-askpass"
+export PATH="$PATH":"$HOME"/.local/bin
 export MANPAGER="nvim +Man!"
 export VISUAL="nvim"
 export K9S_EDITOR='nvim'
@@ -14,12 +11,12 @@ export PYENV_ROOT="$HOME/.local/bin/pyenv/"
 
 # Spark
 export SPARK_HOME="/opt/spark"
-export PATH=$SPARK_HOME/bin:$PATH
-export SPARK_LOCAL_IP='127.0.0.1'
+export PATH="$SPARK_HOME"/bin:"$PATH"
+export SPARK_LOCAL_IP="127.0.0.1"
 
 # Pyspark
 export PYSPARK_DRIVER_PYTHON=jupyter
-export PYSPARK_DRIVER_PYTHON_OPTS='notebook'
+export PYSPARK_DRIVER_PYTHON_OPTS="notebook"
 export PYSPARK_PYTHON=python3 # only if you're using Python 3
 
 # Aliases
@@ -32,42 +29,8 @@ alias find="fd"
 
 alias cls="clear;ls "
 alias spark="export PYTHONPATH=/opt/SPARK/python; jupyter-notebook "
-alias open="xdg-open "
 alias vitex="nvim --listen /tmp/texserver"
 alias config='/usr/bin/git --git-dir=$HOME/builds/dotfiles --work-tree=$HOME'
-
-penv() {
-  if [ -z $1 ]; then
-    local env_dir=$(basename $(pwd))
-  else
-    local env_dir=$1
-  fi
-  if [ ! -d "$HOME/.local/share/venvs/$env_dir" ]; then
-    echo "Creating venv $env_dir..."
-    python -m venv "$HOME/.local/share/venvs/$env_dir"
-    echo "... Done!"
-  fi
-  echo "Activating..."
-  . "$HOME/.local/share/venvs/$env_dir/bin/activate"
-  echo "... Done!"
-}
-
-# Helpers
-pycd() {
-  if [ -f "$1/Pipfile" ]; then
-    cd "$1" && pipenv shell
-  else
-    cd "$1"
-  fi
-}
-newnotebook() {
-  echo "{
- \"cells\": [],
- \"metadata\": {},
- \"nbformat\": 4,
- \"nbformat_minor\": 2
-}" >"$(pwd)/$1"
-}
 
 command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
 eval "$(pyenv global 3.10)"
