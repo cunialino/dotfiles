@@ -21,7 +21,7 @@ window#waybar {
     border-radius: 50px;
     border-style: solid;
     border-width: 1px;
-    border-color: @lavender;
+    border-color: @peach;
     color: @text;
 }
 #workspaces button:not(:last-child),
@@ -30,7 +30,7 @@ window#waybar {
 {
     border-right-style: solid;
     border-right-width: 1px;
-    border-right-color: @lavender;
+    border-right-color: @peach;
 }
 
 #cpu, #memory, #temperature, #network,
@@ -47,7 +47,7 @@ window#waybar {
 }
 
 #workspaces button.focused {
-    color: @lavender;
+    color: @peach;
     animation-name: blink;
     animation-duration: 1s;
     animation-timing-function: linear;
