@@ -5,7 +5,7 @@
 	path = builds/ohmyzsh
 	url = https://github.com/ohmyzsh/ohmyzsh.git
 [submodule "/home/elia/.config/alacritty/themes"]
-	path = /home/elia/.config/alacritty/themes
+	path = .config/alacritty/themes
 	url = https://github.com/alacritty/alacritty-theme.git
 [submodule "builds/custom_ohmyzsh/themes/powerlevel10k"]
 	path = builds/custom_ohmyzsh/themes/powerlevel10k
