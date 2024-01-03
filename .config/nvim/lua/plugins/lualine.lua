@@ -45,6 +45,9 @@ return {
 					{ "filetype", icon_only = true, padding = { left = 1, right = 1 } },
 					{
 						lsp_clients,
+						cond = function()
+							return #vim.lsp.get_active_clients({ bufnr = vim.fn.bufnr() }) > 0
+						end,
 					},
 					{
 						"diagnostics",
