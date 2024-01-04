@@ -15,7 +15,20 @@ return {
 	},
 	opts = {
 		ensure_installed = { "debugpy" },
-		handlers = {},
+		handlers = {
+			function(config)
+				-- all sources with no handler get passed here
+
+				-- Keep original functionality
+				require("mason-nvim-dap").default_setup(config)
+			end,
+			python = function(config)
+				config.configurations = vim.tbl_deep_extend("force", config.configurations, {
+					{ cwd = vim.loop.cwd() },
+				})
+				require("mason-nvim-dap").default_setup(config)
+			end,
+		},
 	},
 	keys = function()
 		local wk = require("which-key")
