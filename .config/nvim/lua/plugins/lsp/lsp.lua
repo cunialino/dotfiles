@@ -33,7 +33,6 @@ local function default_on_attach(client, bufnr)
 				r = { "<cmd>lua vim.lsp.buf.references()<cr>", "References" },
 				R = { "<cmd>lua vim.lsp.buf.rename()<CR>", "Rename" },
 				a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code actions" },
-				f = { "<cmd>lua vim.lsp.buf.format({ async = true })<CR>", "Format File" },
 			},
 		},
 	}
@@ -86,6 +85,7 @@ return {
 						plugins = {
 							pyflakes = { enabled = false },
 							pylint = { enabled = false },
+							pycodestyle = { enabled = false },
 						},
 					},
 				},
