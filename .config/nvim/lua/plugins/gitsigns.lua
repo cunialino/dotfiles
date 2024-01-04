@@ -37,4 +37,21 @@ return {
 		update_debounce = 200,
 		status_formatter = nil,
 	},
+	keys = function()
+		local wk = require("which-key")
+    local gs = require("gitsigns")
+		local keys = {
+			["<leader>"] = {
+				g = {
+					name = "Git",
+					D = { gs.diffthis, "Diff this" },
+          p = { gs.preview_hunk, "Preview hunk"},
+          b = {gs.toggle_current_line_blame, "Toggle current line blame"}
+				},
+			},
+      ["]h"] = { gs.next_hunk, "Next Hunk" },
+      ["[h"] = { gs.prev_hunk, "Previews Hunk" },
+		}
+    wk.register(keys)
+	end,
 }

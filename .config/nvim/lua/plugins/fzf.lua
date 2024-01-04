@@ -16,6 +16,16 @@ return {
 			},
 		},
 		git = {
+
+			status = {
+				prompt = "GitStatus❯ ",
+				cmd = "git -c color.status=false status -su",
+				file_icons = true,
+				git_icons = true,
+				color_icons = true,
+				previewer = "git_diff",
+				preview_pager = "delta --width=$FZF_PREVIEW_COLUMNS",
+			},
 			icons = {
 				["M"] = { icon = git_icons.unstaged, color = "yellow" },
 				["D"] = { icon = git_icons.deleted, color = "red" },
@@ -41,8 +51,13 @@ return {
 				},
 				g = {
 					name = "Git",
-					c = { "<cmd>FzfLua git_commits<cr>", "Show commits" },
-					b = { "<cmd>FzfLua git_branches<cr>", "Show branches" },
+					F = {
+						name = "Fzf",
+						C = { "<cmd>FzfLua git_commits<cr>", "Show commits" },
+						B = { "<cmd>FzfLua git_branches<cr>", "Show branches" },
+						c = { "<cmd>FzfLua git_bcommits<cr>", "Show commits" },
+						s = { "<cmd> FzfLua git_status<cr>", "Show status" },
+					},
 				},
 			},
 		}
