@@ -28,7 +28,14 @@ return {
 				},
 			},
 		})
-		local formatGrp = vim.api.nvim_create_augroup("FormatAutogroup", { clear = true })
-		vim.api.nvim_create_autocmd("BufWritePost", { command = "FormatWrite", group = formatGrp })
+	end,
+  cmd = {"FormatWrite"},
+	keys = function()
+		local wk = require("which-key")
+		wk.register({
+			["<leader>"] = {
+				F = { ":FormatWrite<cr>", "Format file" },
+			},
+		})
 	end,
 }
