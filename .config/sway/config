@@ -9,7 +9,7 @@
 #
 # Please see http://i3wm.org/docs/userguide.html for a complete reference!
 
-set $opacity 0.7
+set $opacity 0.8
 set $pip_op 0.4
 set $mod Mod4
 

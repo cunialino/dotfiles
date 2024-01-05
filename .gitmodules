@@ -1,15 +1,6 @@
-[submodule "builds/nord-dir-colors"]
-	path = builds/nord-dir-colors
-	url = https://github.com/nordtheme/dircolors.git
-[submodule "builds/ohmyzsh"]
-	path = builds/ohmyzsh
-	url = https://github.com/ohmyzsh/ohmyzsh.git
 [submodule "/home/elia/.config/alacritty/themes"]
 	path = .config/alacritty/themes
 	url = https://github.com/alacritty/alacritty-theme.git
-[submodule "builds/custom_ohmyzsh/themes/powerlevel10k"]
-	path = builds/custom_ohmyzsh/themes/powerlevel10k
-	url = https://github.com/romkatv/powerlevel10k.git
 [submodule ".config/bat/themes"]
 	path = .config/bat/themes
 	url = https://github.com/catppuccin/bat.git
@@ -19,3 +10,6 @@
 [submodule ".config/waybar/themes/catppucin"]
 	path = .config/waybar/themes/catppucin
 	url = https://github.com/catppuccin/waybar.git
+[submodule ".config/nushell/nu_scripts"]
+	path = .config/nushell/nu_scripts
+	url = https://github.com/nushell/nu_scripts.git

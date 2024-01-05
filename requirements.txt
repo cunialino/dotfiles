@@ -6,6 +6,7 @@ bat-extras
 bemenu
 bluez
 bluez-utils
+bottom
 dhcp
 dhcpcd
 docker
@@ -20,7 +21,6 @@ git-delta
 google-chrome
 gputest
 grub
-gtop
 iwd
 jq
 lazygit
@@ -50,4 +50,6 @@ wl-clipboard
 wofi
 yay
 zellij
-zsh
+nushell
+starship
+carapace-bin
