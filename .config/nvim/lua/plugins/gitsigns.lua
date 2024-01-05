@@ -46,7 +46,10 @@ return {
 					name = "Git",
 					D = { gs.diffthis, "Diff this" },
           p = { gs.preview_hunk, "Preview hunk"},
-          b = {gs.toggle_current_line_blame, "Toggle current line blame"}
+          b = {gs.toggle_current_line_blame, "Toggle current line blame"},
+          s = { gs.stage_hunk, "Stage hunk" },
+          S = { gs.stage_buffer, "Stage buffer" },
+          u = { gs.undo_stage_hunk, "Undo stage hunk" },
 				},
 			},
       ["]h"] = { gs.next_hunk, "Next Hunk" },
