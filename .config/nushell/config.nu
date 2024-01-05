@@ -266,18 +266,21 @@ $env.config = {
     ]
 }
 
-source ~/.cache/carapace/init.nu
 
 $env.EDITOR = nvim
+
+$env.DF_GD = $env.HOME ++ /builds/dotfiles
 
 alias grep = rg
 alias cat = bat
 alias diff = delta
 alias find = fd
-alias gic = git $"--git-dir=($env.HOME ++ "/builds/dotfiles")" $"--work-tree=($env.HOME)"
-alias lazyconfig = lazygit $"--git-dir=($env.HOME ++ "/builds/dotfiles")" $"--work-tree=($env.HOME)"
+alias gic = git --git-dir $env.DF_GD --work-tree $env.HOME
+alias lazyconfig = lazygit --git-dir $env.DF_GD --work-tree $env.HOME
 
 use ~/.config/nushell/nu_scripts/themes/nu-themes/catppuccin-mocha.nu
 $env.config = ($env.config | merge {color_config: (catppuccin-mocha)})
 
 use ~/.cache/starship/init.nu
+
+source ~/.cache/carapace/init.nu
