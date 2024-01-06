@@ -15,9 +15,6 @@ let carapace_completer = {|spans|
   } else {
     $spans
   })
-  # let spans = (if ($spans | length) == 1 { ($spans | append "") } else { $spans } )
-
-  ( $spans | save /home/elia/log )
 
   carapace $spans.0 nushell $spans
   | from json
