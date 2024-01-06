@@ -285,13 +285,12 @@ $env.config = {
 
 $env.EDITOR = nvim
 
-$env.DF_GD = $env.HOME ++ /builds/dotfiles
-
 alias grep = rg
 alias cat = bat
 alias diff = delta
 alias find = fd
-alias gic = git --git-dir $env.DF_GD --work-tree $env.HOME 
+alias gic = git --git-dir ~/builds/dotfiles --work-tree ~/
+alias g = git
 alias lazyconfig = lazygit --git-dir $env.DF_GD --work-tree $env.HOME
 
 use ~/.config/nushell/nu_scripts/themes/nu-themes/catppuccin-mocha.nu
