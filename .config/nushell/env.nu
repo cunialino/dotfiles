@@ -34,10 +34,3 @@ $env.NU_PLUGIN_DIRS = [
 $env.PYENV_ROOT = $env.HOME ++ /.local/bin/pyenv
 
 $env.PATH = ($env.PATH | split row (char esep) | prepend ($env.PYENV_ROOT ++ /shims))
-
-mkdir ~/.cache/starship
-starship init nu | save -f ~/.cache/starship/init.nu
-
-
-# mkdir ~/.cache/carapace
-# carapace _carapace nushell | save --force ~/.cache/carapace/init.nu
