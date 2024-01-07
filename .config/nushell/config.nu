@@ -98,7 +98,22 @@ $env.config = {
         pre_prompt: [{ null }] # run before the prompt is shown
         pre_execution: [{ null }] # run before the repl input is run
         env_change: {
-            PWD: [{|before, after| null }] # run if the PWD environment is different since the last repl input
+            PWD: [
+              {
+                condition: {|before, after| $after ++ /.git | path exists }
+                code: {|before, after| 
+                  hide-env GIT_DIR
+                  hide-env GIT_WORK_TREE
+                }
+              }
+              {
+                condition: {|before, after| not ( $after ++ /.git | path exists  )}
+                code: {|before, after| 
+                  $env.GIT_DIR = $env.HOME ++ /builds/dotfiles
+                  $env.GIT_WORK_TREE = $env.HOME 
+                }
+              }
+            ]
         }
         display_output: "if (term size).columns >= 100 { table -e } else { table }" # run to display the output of a pipeline
         command_not_found: { null } # return an error message when a command is not found
@@ -289,9 +304,6 @@ alias grep = rg
 alias cat = bat
 alias diff = delta
 alias find = fd
-alias gic = git --git-dir ~/builds/dotfiles --work-tree ~/
-alias g = git
-alias lazyconfig = lazygit --git-dir $env.DF_GD --work-tree $env.HOME
 
 use ~/.config/nushell/nu_scripts/themes/nu-themes/catppuccin-mocha.nu
 $env.config = ($env.config | merge {color_config: (catppuccin-mocha)})
