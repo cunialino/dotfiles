@@ -17,3 +17,6 @@ builds/
 .config/fontforge
 trash/
 .dir_colors
+history.txt
+*.wasm
+mimeapps.list
