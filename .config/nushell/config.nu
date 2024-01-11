@@ -100,9 +100,14 @@ $env.config = {
         env_change: {
             PWD: [
               {
-                condition: {|before, after| $after ++ /.git | path exists }
+                condition: {|before, after| ( $after ++ /.git | path exists ) and ( "GIT_DIR" in $env ) }
                 code: {|before, after| 
                   hide-env GIT_DIR
+                }
+              }
+              {
+                condition: {|before, after| ( $after ++ /.git | path exists ) and ( "GIT_WORK_TREE" in $env ) }
+                code: {|before, after| 
                   hide-env GIT_WORK_TREE
                 }
               }
