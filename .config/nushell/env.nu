@@ -33,4 +33,6 @@ $env.NU_PLUGIN_DIRS = [
 
 $env.PYENV_ROOT = $env.HOME ++ /.local/bin/pyenv
 
+$env.PATH = ($env.PATH | split row (char esep) | prepend ~/.local/bin)
+
 $env.PATH = ($env.PATH | split row (char esep) | prepend ($env.PYENV_ROOT ++ /shims))
