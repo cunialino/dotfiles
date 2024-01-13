@@ -8,6 +8,7 @@ palette = "mocha"
 
 [aws]
 symbol = " "
+format = '[$symbol($profile )(\($region\) )(\[$duration\] )]($style)'
 force_display = true
 
 [c]
@@ -16,6 +17,7 @@ symbol = " "
 [directory]
 home_symbol = " "
 read_only = " 󰌾"
+style = "bold sapphire"
 [directory.substitutions]
 " /Downloads" = ""
 " /Documents" = "󰈙"
@@ -29,6 +31,7 @@ symbol = " "
 
 [git_branch]
 symbol = " "
+style = "bold green"
 
 [git_status]
 format='$all_status$behind$ahead'
@@ -92,9 +95,11 @@ Windows = "󰍲 "
 
 [package]
 symbol = "󰏗 "
+style = "bold maroon"
 
 [python]
 symbol = " "
+format = '[${symbol}${pyenv_prefix}(${version} )(\($virtualenv\) )]($style)'
 
 [palettes.mocha]
 blue = "#89b4fa"
