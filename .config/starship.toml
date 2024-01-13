@@ -31,15 +31,16 @@ symbol = " "
 symbol = " "
 
 [git_status]
-behind=" ${behind_count}"
-ahead=" ${ahead_count}"
-conflicted = "󰞇 ${count}"
-untracked = " ${count}"
-modified = " ${count}"
-staged = " ${count}"
-renamed = "󰑕 ${count}"
-deleted = "󰚃 ${count}"
-stashed = " ${count}"
+format='$all_status$behind$ahead'
+behind="[ ${behind_count}](green) "
+ahead="[ ${ahead_count}](green) "
+conflicted = "[󰞇 ${count}](red) "
+untracked = "[ ${count}](blue) "
+modified = "[ ${count}](peach) "
+staged = "[ ${count}](yellow) "
+renamed = "[󰑕 ${count}](green) "
+deleted = "[󰚃 ${count}](maroon) "
+stashed = "[ ${count}](green) "
 
 
 [hostname]
