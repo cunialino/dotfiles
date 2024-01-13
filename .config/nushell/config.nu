@@ -310,9 +310,10 @@ alias cat = bat
 alias diff = delta
 alias find = fd
 
+source aliases/arch.nu
+
 use ~/.config/nushell/nu_scripts/themes/nu-themes/catppuccin-mocha.nu
 $env.config = ($env.config | merge {color_config: (catppuccin-mocha)})
 
 use starship.nu
-
 source carapace.nu
