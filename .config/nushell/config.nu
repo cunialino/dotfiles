@@ -112,7 +112,7 @@ $env.config = {
                 }
               }
             ]
-            ZELLIJ_IS_RUNNING: [
+            ZELLIJ_IS_RUNNING: [ #Need this to restore on zellij exit
               {
                 condition: { (( "ZELLIJ_IS_RUNNING" in $env )) and (not ($env.PWD ++ /.git | path exists))}
                 code: {
