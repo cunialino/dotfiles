@@ -84,7 +84,14 @@ $env.config = {
 
     hooks: {
         pre_prompt: [{ null }] # run before the prompt is shown
-        pre_execution: [{ null }] # run before the repl input is run
+        pre_execution: [
+          {
+            let cmd = commandline | split row " " | get 0
+            if $cmd == zellij {
+              nu ~/.config/zellij/plugins.nu
+            }
+          }
+        ] # run before the repl input is run
         env_change: {
             PWD: [
               {
