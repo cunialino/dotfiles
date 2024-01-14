@@ -1,0 +1,43 @@
+layout {
+  default_tab_template {
+    children
+    pane size=1 borderless=true {
+        plugin location="file:zjstatus.wasm" {
+            format_left  "{mode}{tabs}"
+
+            hide_frame_for_single_pane "true"
+
+            tab_normal   "#[fg=#6C7086] {name} "
+            tab_active   "#[fg=#9399B2,bold,italic] {name} "
+
+            command_git_branch_command     "git rev-parse --abbrev-ref HEAD"
+            command_git_branch_format      "#[fg=blue] {stdout} "
+            command_git_branch_interval    "10"
+            command_git_branch_rendermode  "static"
+
+            mode_locked        "#[fg=red] {name} "
+            mode_normal        "#[fg=black] {name} "
+            mode_resize        "#[fg=orange] {name} "
+            mode_pane          "#[fg=blue] {name} "
+            mode_tab           "#[fg=blue] {name} "
+            mode_scroll        "#[fg=blue] {name} "
+            mode_enter_search  "#[fg=black] {name} "
+            mode_search        "#[fg=black] {name} "
+            mode_rename_tab    "#[fg=black] {name} "
+            mode_rename_pane   "#[fg=black] {name} "
+            mode_session       "#[fg=black] {name} "
+            mode_move          "#[fg=black] {name} "
+            mode_prompt        "#[fg=black] {name} "
+            mode_tmux          "#[fg=black] {name} "
+        }
+    }
+  }
+  tab focus=true name="Edit" {
+    pane name="Neovim" command="nvim"
+  }
+  tab name="GIT"{
+    pane name="Runner" command="lazygit" {
+      cwd "~/"
+    }
+  }
+}
