@@ -303,7 +303,6 @@ $env.config = {
 }
 
 
-$env.EDITOR = nvim
 
 alias grep = rg
 alias cat = bat
