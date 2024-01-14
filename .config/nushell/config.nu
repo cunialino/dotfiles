@@ -1,4 +1,5 @@
 use ~/.config/nushell/nu_scripts/themes/nu-themes/catppuccin-mocha.nu
+use ~/.config/nushell/nu_scripts/custom-completions/zellij/zellij-completions.nu *
 
 $env.config = {
     color_config: (catppuccin-mocha)
