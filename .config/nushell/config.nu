@@ -86,8 +86,11 @@ $env.config = {
         pre_prompt: [{ null }] # run before the prompt is shown
         pre_execution: [
           {
-            let cmd = commandline | split row " " | get 0
-            if $cmd == zellij {
+            condition: { (commandline | split row " " | get 0) == zellij }
+            code: {
+              hide-env GIT_DIR
+              hide-env GIT_WORK_TREE
+              $env.ZELLIJ_IS_RUNNING = true
               nu ~/.config/zellij/plugins.nu
             }
           }
@@ -95,14 +98,9 @@ $env.config = {
         env_change: {
             PWD: [
               {
-                condition: {|before, after| ( $after ++ /.git | path exists ) and ( "GIT_DIR" in $env ) }
+                condition: {|before, after| ( $after ++ /.git | path exists )}
                 code: {|before, after| 
                   hide-env GIT_DIR
-                }
-              }
-              {
-                condition: {|before, after| ( $after ++ /.git | path exists ) and ( "GIT_WORK_TREE" in $env ) }
-                code: {|before, after| 
                   hide-env GIT_WORK_TREE
                 }
               }
@@ -111,6 +109,16 @@ $env.config = {
                 code: {|before, after| 
                   $env.GIT_DIR = $env.HOME ++ /builds/dotfiles
                   $env.GIT_WORK_TREE = $env.HOME 
+                }
+              }
+            ]
+            ZELLIJ_IS_RUNNING: [
+              {
+                condition: { (( "ZELLIJ_IS_RUNNING" in $env )) and (not ($env.PWD ++ /.git | path exists))}
+                code: {
+                  $env.GIT_DIR = $env.HOME ++ /builds/dotfiles
+                  $env.GIT_WORK_TREE = $env.HOME 
+                  hide-env ZELLIJ_IS_RUNNING
                 }
               }
             ]
