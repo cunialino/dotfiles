@@ -1,4 +1,7 @@
+use ~/.config/nushell/nu_scripts/themes/nu-themes/catppuccin-mocha.nu
+
 $env.config = {
+    color_config: (catppuccin-mocha)
     show_banner: false # true or false to enable or disable the welcome banner at startup
 
     ls: {
@@ -118,8 +121,8 @@ $env.config = {
                 page_size: 10
             }
             style: {
-                text: "#66ff66"
-                selected_text: { fg: "#66ff66" attr: r }
+                text: green
+                selected_text: { fg: green attr: r }
                 description_text: yellow
             }
             source: { |buffer, position|
@@ -138,8 +141,8 @@ $env.config = {
                 page_size: 10
             }
             style: {
-                text: "#66ff66"
-                selected_text: { fg: "#66ff66" attr: r }
+                text: green
+                selected_text: { fg: green attr: r }
                 description_text: yellow
             }
             source: { |buffer, position|
@@ -158,8 +161,8 @@ $env.config = {
                 page_size: 10
             }
             style: {
-                text: "#66ff66"
-                selected_text: { fg: "#66ff66" attr: r }
+                text: green
+                selected_text: { fg: green attr: r }
                 description_text: yellow
             }
             source: { |buffer, position|
@@ -295,8 +298,6 @@ alias find = fd
 
 source aliases/arch.nu
 
-use ~/.config/nushell/nu_scripts/themes/nu-themes/catppuccin-mocha.nu
-$env.config = ($env.config | merge {color_config: (catppuccin-mocha)})
 
 use starship.nu
 source carapace.nu
