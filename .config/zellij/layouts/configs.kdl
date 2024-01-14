@@ -38,6 +38,7 @@ layout {
   tab name="GIT"{
     pane name="Runner" command="lazygit" {
       cwd "~/"
+      args "--git-dir=builds/dotfiles" "--work-tree=."
     }
   }
 }
