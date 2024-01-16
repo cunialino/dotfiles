@@ -33,12 +33,14 @@ layout {
     }
   }
   tab focus=true name="Edit" {
-    pane name="Neovim" command="nvim"
+    pane name="Neovim" command="nu" {
+      args "-c 'overlay use git_config.nu; nvim'"
+    }
   }
   tab name="GIT"{
-    pane name="Runner" command="lazygit" {
+    pane name="Runner" command="nu" {
       cwd "~/"
-      args "--git-dir=builds/dotfiles" "--work-tree=."
+      args "-c 'overlay use git_config.nu; lazygit'"
     }
   }
 }
