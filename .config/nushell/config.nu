@@ -88,41 +88,10 @@ $env.config = {
           {
             condition: { (commandline | split row " " | get 0) == zellij }
             code: {
-              hide-env GIT_DIR
-              hide-env GIT_WORK_TREE
-              $env.ZELLIJ_IS_RUNNING = true
               nu ~/.config/zellij/plugins.nu
             }
           }
         ] # run before the repl input is run
-        env_change: {
-            PWD: [
-              {
-                condition: {|before, after| ( $after ++ /.git | path exists )}
-                code: {|before, after| 
-                  hide-env GIT_DIR
-                  hide-env GIT_WORK_TREE
-                }
-              }
-              {
-                condition: {|before, after| not ( $after ++ /.git | path exists  )}
-                code: {|before, after| 
-                  $env.GIT_DIR = $env.HOME ++ /builds/dotfiles
-                  $env.GIT_WORK_TREE = $env.HOME 
-                }
-              }
-            ]
-            ZELLIJ_IS_RUNNING: [ #Need this to restore on zellij exit
-              {
-                condition: { (( "ZELLIJ_IS_RUNNING" in $env )) and (not ($env.PWD ++ /.git | path exists))}
-                code: {
-                  $env.GIT_DIR = $env.HOME ++ /builds/dotfiles
-                  $env.GIT_WORK_TREE = $env.HOME 
-                  hide-env ZELLIJ_IS_RUNNING
-                }
-              }
-            ]
-        }
         display_output: "if (term size).columns >= 100 { table -e } else { table }" # run to display the output of a pipeline
         command_not_found: { null } # return an error message when a command is not found
     }
@@ -305,12 +274,12 @@ $env.config = {
     ]
 }
 
-
-
 alias grep = rg
 alias cat = bat
 alias diff = delta
 alias find = fd
+alias ag = overlay use git_config.nu
+alias dg = overlay hide git_config
 
 source aliases/arch.nu
 
