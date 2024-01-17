@@ -16,7 +16,7 @@ let carapace_completer = {|spans|
     $spans
   })
 
-  carapace $spans.0 nushell $spans
+  carapace $spans.0 nushell ...$spans
   | from json
 }
 
