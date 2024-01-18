@@ -92,6 +92,14 @@ $env.config = {
             }
           }
         ] # run before the repl input is run
+        env_change: {
+            PWD: [
+              {
+                  condition: {|before, after| (([$after .venv/bin/python] | path join) | path exists) }
+                  code: "overlay use venv_activate.nu"
+              }
+            ]
+        }
         display_output: "if (term size).columns >= 100 { table -e } else { table }" # run to display the output of a pipeline
         command_not_found: { null } # return an error message when a command is not found
     }
