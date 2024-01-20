@@ -5,8 +5,6 @@ export-env {
   let venv_path = ([$virtual_env $bin] | path join)
   let new_path = ($env | get PATH | prepend $venv_path)
 
-  print $env.PWD
-
   if (not ("venv_activate" in ...(overlay list))) and (([$env.PWD ".venv/bin/python"] | path join) | path exists) {
     let new_env = {
         PATH         : $new_path
@@ -18,4 +16,4 @@ export-env {
   }
 }
 
-export alias deactivate = overlay hide venv_activate --keep-env [ PWD ]
+export alias deactivate = overlay hide -e [ PWD ] venv_activate
