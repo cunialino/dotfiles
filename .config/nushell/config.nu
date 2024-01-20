@@ -96,7 +96,7 @@ $env.config = {
             PWD: [
               {
                   condition: {|before, after| (([$after .venv/bin/python] | path join) | path exists) }
-                  code: "overlay use venv_activate.nu"
+                  code: "overlay use venv_activate.nu; cd $after"
               }
             ]
         }
@@ -287,7 +287,6 @@ alias cat = bat
 alias diff = delta
 alias find = fd
 alias ag = overlay use git_config.nu
-alias dg = overlay hide git_config
 
 source aliases/arch.nu
 
