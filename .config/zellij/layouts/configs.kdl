@@ -37,8 +37,13 @@ layout {
       args "-c 'overlay use git_config.nu; nvim'"
     }
   }
+  tab name="Term" {
+    pane name="NU" command="nu" {
+      args "-c 'overlay use git_config.nu; nu'"
+    }
+  }
   tab name="GIT"{
-    pane name="Runner" command="nu" {
+    pane name="LazyGit" command="nu" {
       cwd "~/"
       args "-c 'overlay use git_config.nu; lazygit'"
     }
