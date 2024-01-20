@@ -1,12 +1,11 @@
 keybinds clear-defaults=true {
-  shared_except "tmux" "normal"{
+  shared_except "normal"{
     bind "Ctrl g" "Esc" { SwitchToMode "Normal"; }
   }
   normal {
     bind "Ctrl g" { SwitchToMode "Tmux"; }
   }
   tmux {
-    bind "Ctrl g" { Write 2; SwitchToMode "Normal"; }
     bind "p" { SwitchToMode "Pane"; }
     bind "t" { SwitchToMode "Tab"; }
     bind "r" { SwitchToMode "Resize"; }
@@ -20,6 +19,8 @@ keybinds clear-defaults=true {
       SwitchToMode "Normal";
     }
     bind "q" { Quit; }
+    bind "]" { NextSwapLayout; SwitchToMode "Normal"; }
+    bind "[" { PreviousSwapLayout; SwitchToMode "Normal"; }
   }
   pane {
       bind "h" { MoveFocus "Left"; }
@@ -66,7 +67,7 @@ keybinds clear-defaults=true {
       bind "l" "Right" { MovePane "Right"; }
   }
   scroll {
-      bind "Esc" { EditScrollback; SwitchToMode "normal"; }
+      bind "e" { EditScrollback; SwitchToMode "normal"; }
       bind "j" "Down" { ScrollDown; }
       bind "k" "Up" { ScrollUp; }
   }
