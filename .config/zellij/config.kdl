@@ -113,5 +113,5 @@ theme "catppuccin-mocha"
 default_shell "/usr/bin/nu"
 
 mouse_mode true
-
+session_serialization false
 copy_command "wl-copy"
