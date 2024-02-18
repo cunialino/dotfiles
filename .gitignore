@@ -20,3 +20,5 @@ trash/
 history.txt
 *.wasm
 mimeapps.list
+WORK/
+Ohara/
