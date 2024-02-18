@@ -43,13 +43,7 @@ return {
 				},
 				{ name = "nvim_lsp_signature_help" },
 				{ name = "nvim_lsp" },
-				{
-					name = "vsnip",
-					entry_filter = function()
-						local context = require("cmp.config.context")
-						return not context.in_treesitter_capture("string") and not context.in_syntax_group("String")
-					end,
-				},
+				{ name = "luasnip" },
 				{
 					name = "buffer",
 					entry_filter = function()
