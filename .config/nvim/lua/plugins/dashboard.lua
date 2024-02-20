@@ -16,15 +16,6 @@ return {
 					key = "u",
 				},
 				{
-					icon = " ",
-					desc = "Git config",
-					icon_hl = "@constant",
-					desc_hl = "@comment",
-					key_hl = "@function",
-					action = "lua require('toggleterm.terminal').Terminal:new({cmd='lazygit --git-dir=$HOME/builds/dotfiles --work-tree=$HOME', direction = 'float'}):toggle()",
-					key = "g",
-				},
-				{
 					icon = " ",
 					icon_hl = "@constant",
 					desc_hl = "@comment",
