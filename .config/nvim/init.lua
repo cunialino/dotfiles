@@ -1,4 +1,3 @@
-require("neovim_settings")
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
 	vim.fn.system({
@@ -12,6 +11,7 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+require("neovim_settings")
 local lazy = require("lazy")
 lazy.setup({
 	{ import = "plugins" },
