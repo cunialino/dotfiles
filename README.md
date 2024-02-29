@@ -23,18 +23,23 @@ git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME
 git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME checkout
 ```
 
-## ZSH
-
-- install zsh
+## NUSHELL
 
 change default shell
 ```bash
-chsh -s /usr/bin/zsh
+chsh -s /usr/bin/nu
 ```
 
-## I3 and Lemonbar
+## Void-Linux
+Session setup:
+```bash
+sudo usermod -aG _seatd elia
+sudo ln -s /etc/sv/seatd/ /var/service
+sudo sv start seatd
+```
 
-- install i3 (i3-gaps has been merged)
-- install lemonbar-xft-git
-  - install jq, acpi and alsa-utils
-- install devilspie
+To run sway:
+```bash
+mkdir /tmp/sway
+with-env { XDG_RUNTIME_DIR:"/tmp/swaytmp"} {sway}
+```
