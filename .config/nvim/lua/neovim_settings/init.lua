@@ -59,16 +59,6 @@ vim.g.loaded_tutor_mode_plugin = 1
 vim.g.loaded_remote_plugins = 1
 
 vim.g.jupytext_fmt = "py:percent"
-local function check_cwd_is_git()
-	local path = vim.loop.cwd() .. "/.git"
-	local is_git, _ = vim.loop.fs_stat(path)
-	return is_git
-end
-
-if not check_cwd_is_git() then
-	vim.env.GIT_WORK_TREE = vim.fn.expand("~")
-	vim.env.GIT_DIR = vim.fn.expand("~/builds/dotfiles")
-end
 
 local is_wsl = string.match(string.lower(vim.fn.system({ "uname", "-r" })), "wsl2") ~= nil
 if is_wsl then
