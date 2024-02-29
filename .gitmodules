@@ -13,3 +13,6 @@
 [submodule ".config/nushell/nu_scripts"]
 	path = .config/nushell/nu_scripts
 	url = https://github.com/nushell/nu_scripts.git
+[submodule "/home/elia/.local/bin/pyenv"]
+	path = /home/elia/.local/bin/pyenv
+	url = https://github.com/pyenv/pyenv.git
