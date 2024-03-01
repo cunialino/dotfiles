@@ -15,6 +15,7 @@ builds/
 .config/pypoetry
 .config/dconf
 .config/fontforge
+.config/google-chrome
 trash/
 .dir_colors
 history.txt
