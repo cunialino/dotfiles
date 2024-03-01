@@ -188,7 +188,7 @@ input "type:keyboard" {
 input "type:touchpad" {
   tap enabled
   natural_scroll enabled
-  scroll_factor 0.1
+  scroll_factor 0.5
 }
 output "*" {
   background /home/elia/.wallpaper fill
