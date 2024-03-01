@@ -1,5 +1,7 @@
 alacritty
 alsa-utils
+base-devel
+bat
 bemenu
 bluez
 bottom
@@ -17,13 +19,13 @@ fd
 fzf
 gcc
 git
-chromium
 jq
 lazygit
 light
 make
 neovim
 openssh
+ripgrep
 swayfx
 swaybg
 unzip
