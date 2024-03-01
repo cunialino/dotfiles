@@ -16,3 +16,6 @@
 [submodule "/home/elia/.local/bin/pyenv"]
 	path = /home/elia/.local/bin/pyenv
 	url = https://github.com/pyenv/pyenv.git
+[submodule "builds/void-packages"]
+	path = builds/void-packages
+	url = https://github.com/void-linux/void-packages.git
