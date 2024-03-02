@@ -1,5 +1,7 @@
 const plugins_dir = ~/.local/share/zellij/plugins/
 
+mkdir $plugins_dir
+
 cd $plugins_dir
 
 let plugins = [
