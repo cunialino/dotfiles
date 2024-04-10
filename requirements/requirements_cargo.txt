@@ -1,0 +1,10 @@
+bat
+csvlens
+difftastic
+eza
+fd-find
+starship
+zellij
+nu
+bottom
+ripgrep

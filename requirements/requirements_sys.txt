@@ -1,0 +1,15 @@
+alacritty
+alsa-utils
+bemenu
+bluez
+dhcp
+dhcpcd
+dosfstools
+efibootmgr
+light
+swayfx
+swaybg
+wayland
+wofi
+pulseaudio
+pamixer
