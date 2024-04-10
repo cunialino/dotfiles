@@ -23,3 +23,6 @@ history.txt
 mimeapps.list
 WORK/
 Ohara/
+.config/iterative
+.config/neofetch
+.config/dvc
