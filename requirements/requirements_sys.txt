@@ -1,4 +1,3 @@
-alacritty
 alsa-utils
 bemenu
 bluez
@@ -13,3 +12,4 @@ wayland
 wofi
 pulseaudio
 pamixer
+wezterm
