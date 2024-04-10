@@ -1,6 +1,3 @@
-[submodule "/home/elia/.config/alacritty/themes"]
-	path = .config/alacritty/themes
-	url = https://github.com/alacritty/alacritty-theme.git
 [submodule ".config/bat/themes"]
 	path = .config/bat/themes
 	url = https://github.com/catppuccin/bat.git
