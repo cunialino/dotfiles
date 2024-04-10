@@ -1,42 +1,43 @@
 [user]
 	email = elia.cunial@gmail.com
 	name = Elia Cunial
+
 [credential]
 	helper = cache
-[core]
-  pager = delta
 
-[interactive]
-  diffFilter = delta --color-only --features=interactive
+[diff]
+  tool = difftastic
+  external = difft
 
-[delta]
-  features = decorations
+[difftool]
+  prompt = false
 
-[delta "interactive"]
-  keep-plus-minus-markers = false
+[difftool "difftastic"]
+  cmd = difft "$LOCAL" "$REMOTE"
 
-[delta "decorations"]
-  commit-decoration-style = blue ol
-  commit-style = raw
-  file-style = omit
-  hunk-header-decoration-style = blue box
-  hunk-header-file-style = red
-  hunk-header-line-number-style = "#067a00"
-  hunk-header-style = file line-number syntax
+[pager]
+  difftool = true
+
 [filter "lfs"]
 	process = git-lfs filter-process
 	required = true
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
+
 [init]
 	defaultBranch = main
+
 [interactive]
-    diffFilter = delta --color-only
+  diffFilter = delta --color-only --features=interactive
+
 [merge]
 	tool = vimdiff
+
 [mergetool]
 	keepBackup = false
+
 [mergetool "vimdiff"]
   cmd = nvim -f -c \"Gvdiffsplit!\" \"$MERGED\"
+
 [includeIf "gitdir:~/WORK/"]
   path = ~/WORK/.gitconfig
