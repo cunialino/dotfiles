@@ -1,4 +1,4 @@
-const plugins_dir = ~/.local/share/zellij/plugins/
+let plugins_dir = ([$env.HOME, .local/share/zellij/plugins/] | path join)
 
 mkdir $plugins_dir
 
