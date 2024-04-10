@@ -1,4 +1,3 @@
-base
 base-devel
 docker
 docker-buildx
@@ -8,11 +7,10 @@ gcc
 jq
 lazygit
 neovim
-npm
+nodejs
 openssh
 unzip
 wget
-yay
 carapace
 curl
 make
@@ -20,4 +18,6 @@ cmake
 neovim
 wl-clipboard
 rustup
-libsixel
+clang
+mold
+openssl-devel

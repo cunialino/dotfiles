@@ -1,4 +1,3 @@
-openssl-devel
 zlib-devel
 tk-devel
 ncurses-devel
