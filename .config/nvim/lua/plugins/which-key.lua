@@ -44,7 +44,6 @@ return {
 				Q = { ":q!<cr>", "Force Quit" },
 				w = { ":w<cr>", "Write" },
 				L = { ":Lazy<cr>", "Lazy" },
-				e = { ":NvimTreeToggle<cr>", "File Explorer" },
 				E = { require("custom-fzf").set_env, "Set python venv" },
 				h = { ":Dashboard<cr>", "Dashboard" },
 				o = { ":only<cr>", "Only" },
