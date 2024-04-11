@@ -38,22 +38,6 @@ return {
 			desc = "TFM",
 		},
 		{
-			"<leader>mh",
-			function()
-				local tfm = require("tfm")
-				tfm.open(nil, tfm.OPEN_MODE.split)
-			end,
-			desc = "TFM - horizontal split",
-		},
-		{
-			"<leader>mv",
-			function()
-				local tfm = require("tfm")
-				tfm.open(nil, tfm.OPEN_MODE.vsplit)
-			end,
-			desc = "TFM - vertical split",
-		},
-		{
 			"<leader>mt",
 			function()
 				local tfm = require("tfm")
