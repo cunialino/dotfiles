@@ -2,6 +2,7 @@ return {
 	"jay-babu/mason-nvim-dap.nvim",
 	ft = { "python" },
 	dependencies = {
+		{ "nvim-neotest/nvim-nio" },
 		{
 			"mfussenegger/nvim-dap",
 			init = function()
