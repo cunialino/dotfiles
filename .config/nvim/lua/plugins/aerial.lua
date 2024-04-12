@@ -9,6 +9,6 @@ return
   keys = {
     {"{", "<cmd>AerialPrev<CR>", desc = "Aerial Prev"},
     {"}", "<cmd>AerialNext<CR>", desc = "Aerial Prev"},
-    {"a", "<cmd>AerialToggle!<CR>", desc = "Toggle Aerial"}
+    {"<leader>a", "<cmd>AerialToggle!<CR>", desc = "Toggle Aerial"}
   }
 }
