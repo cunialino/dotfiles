@@ -44,6 +44,8 @@ return {
 				{ name = "nvim_lsp_signature_help" },
 				{ name = "nvim_lsp" },
 				{ name = "luasnip" },
+
+        { name = 'nvim_lsp_signature_help' },
 				{
 					name = "buffer",
 					entry_filter = function()
@@ -93,12 +95,7 @@ return {
 		{ "hrsh7th/cmp-path" },
 		"saadparwaiz1/cmp_luasnip",
 		{ "onsails/lspkind-nvim" },
-		{
-			"ray-x/lsp_signature.nvim",
-			config = function()
-				require("lsp_signature").setup({})
-			end,
-		},
+    {"hrsh7th/cmp-nvim-lsp-signature-help"},
 		{
 			"Exafunction/codeium.nvim",
 			cmd = "Codeium",
