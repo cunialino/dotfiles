@@ -27,17 +27,5 @@
 [init]
 	defaultBranch = main
 
-[interactive]
-  diffFilter = delta --color-only --features=interactive
-
-[merge]
-	tool = vimdiff
-
-[mergetool]
-	keepBackup = false
-
-[mergetool "vimdiff"]
-  cmd = nvim -f -c \"Gvdiffsplit!\" \"$MERGED\"
-
 [includeIf "gitdir:~/WORK/"]
   path = ~/WORK/.gitconfig
