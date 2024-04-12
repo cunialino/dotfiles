@@ -9,3 +9,4 @@ nu
 bottom
 ripgrep
 inlyne
+yazi
