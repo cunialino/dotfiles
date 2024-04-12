@@ -47,6 +47,7 @@
   "surround.nvim": { "branch": "master", "commit": "36c253d6470910692491b13382f54c9bab2811e1" },
   "tfm.nvim": { "branch": "main", "commit": "96a4df8e10c3d6829989ca4ec963480ba6f6e5d7" },
   "trouble.nvim": { "branch": "main", "commit": "f1168feada93c0154ede4d1fe9183bf69bac54ea" },
+  "undotree": { "branch": "master", "commit": "aa93a7e5890dbbebbc064cd22260721a6db1a196" },
   "vim-fugitive": { "branch": "master", "commit": "4bc9d989930e37989b038540cc49e63728d3f220" },
   "vim-slime": { "branch": "main", "commit": "1feef68f237cb840a7220f83c24b6c60bf914eb5" },
   "which-key.nvim": { "branch": "main", "commit": "4433e5ec9a507e5097571ed55c02ea9658fb268a" }
