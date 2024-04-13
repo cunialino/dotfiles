@@ -1,36 +1,59 @@
+local base_daps_dir = vim.fn.stdpath("data") .. "/mason/bin/"
 return {
-	"jay-babu/mason-nvim-dap.nvim",
-	ft = { "python" },
+	"mfussenegger/nvim-dap",
+	init = function()
+		vim.fn.sign_define(
+			"DapBreakpoint",
+			{ text = " ", texthl = "@character.special", linehl = "", numhl = "@character.special" }
+		)
+	end,
 	dependencies = {
+		{ "jay-babu/mason-nvim-dap.nvim" },
 		{ "nvim-neotest/nvim-nio" },
-		{
-			"mfussenegger/nvim-dap",
-			init = function()
-				vim.fn.sign_define(
-					"DapBreakpoint",
-					{ text = " ", texthl = "@character.special", linehl = "", numhl = "@character.special" }
-				)
-			end,
-		},
 		{ "rcarriga/nvim-dap-ui", config = true },
 	},
 	opts = {
-		ensure_installed = { "debugpy" },
-		handlers = {
-			function(config)
-				-- all sources with no handler get passed here
-
-				-- Keep original functionality
-				require("mason-nvim-dap").default_setup(config)
+		debugpy = {
+			adapter = function(cb, config)
+				if config.request == "attach" then
+					local port = (config.connect or config).port
+					local host = (config.connect or config).host or "127.0.0.1"
+					cb({
+						type = "server",
+						port = assert(port, "`connect.port` is required for a python `attach` configuration"),
+						host = host,
+						options = {
+							source_filetype = "python",
+						},
+					})
+				else
+					cb({
+						type = "executable",
+						command = base_daps_dir .. "debugpy-adapter",
+						options = {
+							source_filetype = "python",
+						},
+					})
+				end
 			end,
-			python = function(config)
-				config.configurations = vim.tbl_deep_extend("force", config.configurations, {
-					{ cwd = vim.loop.cwd() },
-				})
-				require("mason-nvim-dap").default_setup(config)
-			end,
+			configuration = {
+				{
+					type = "python",
+					request = "launch",
+					name = "Launch file",
+					program = "${file}",
+				},
+			},
 		},
 	},
+	config = function(_, opts)
+		local dap = require("dap")
+		local daps_by_ft = require("tools").tool_by_type("dap")
+		for ft, current_dap in pairs(daps_by_ft) do
+			dap.adapters[ft] = opts[current_dap[1]].adapter
+			dap.configurations[ft] = opts[current_dap[1]].configuration
+		end
+	end,
 	keys = function()
 		local wk = require("which-key")
 		local keys = {

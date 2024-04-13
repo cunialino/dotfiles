@@ -3,7 +3,7 @@ tool_utils.tools_table = {
  python = {
     formatters = { "ruff", "typos", "codespell" },
     dap = { "debugpy" },
-    lsp = { "ruff_lsp" }
+    lsp = { "ruff_lsp", "pylsp" }
   },
   lua = {
     lsp = { "lua_ls"},
