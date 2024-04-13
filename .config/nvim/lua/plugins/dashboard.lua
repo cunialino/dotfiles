@@ -20,9 +20,9 @@ return {
 					icon_hl = "@constant",
 					desc_hl = "@comment",
 					key_hl = "@function",
-					desc = "Search within dotfiles",
+					desc = "Search within gitfiles",
 					group = "Number",
-					action = require("custom-fzf").search_config_files,
+					action = 'lua require("telescope.builtin").git_files()',
 					key = "d",
 				},
 				{
@@ -30,18 +30,9 @@ return {
 					icon_hl = "@constant",
 					desc = "Search Old File",
 					desc_hl = "@comment",
-					action = "FzfLua oldfiles",
+					action = 'lua require("telescope.builtin").oldfiles()',
 					key_hl = "@function",
 					key = "o",
-				},
-				{
-					icon = "󰑓 ",
-					icon_hl = "@constant",
-					desc = "Load saved Sessions",
-					desc_hl = "@comment",
-					action = require("custom-fzf").load_sessions,
-					key_hl = "@function",
-					key = "s",
 				},
 			},
 			footer = {
@@ -59,5 +50,5 @@ return {
 		-- 	file_width = 30,
 		-- },
 	},
-	dependencies = { { "nvim-tree/nvim-web-devicons" }, { "ibhagwan/fzf-lua" } },
+	dependencies = { { "nvim-tree/nvim-web-devicons" }, { "nvim-telescope/telescope.nvim"} },
 }
