@@ -115,6 +115,9 @@ return {
 					},
 				},
 			},
+			nushell = {
+				on_attach = default_on_attach,
+			},
 		},
 	},
 	config = function(_, opts)
