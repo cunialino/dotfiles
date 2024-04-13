@@ -121,6 +121,7 @@ return {
 		},
 	},
 	config = function(_, opts)
+		require("neodev").setup({})
 		local lspconfig = require("lspconfig")
 		local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
@@ -144,5 +145,6 @@ return {
 	dependencies = {
 		{ "b0o/schemastore.nvim" },
 		{ "hrsh7th/cmp-nvim-lsp" },
+		{ "folke/neodev.nvim" },
 	},
 }
