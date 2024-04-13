@@ -33,4 +33,12 @@ function tool_utils.parse_table(tool_type_filter)
   return merged_tools
 end
 
+function tool_utils.tool_by_type(type)
+  local tooltype_by_ft = {}
+  for ft, tools in pairs(tool_utils.tools_table) do
+    tooltype_by_ft[ft] = tools[type]
+  end
+  return tooltype_by_ft
+end
+
 return tool_utils
