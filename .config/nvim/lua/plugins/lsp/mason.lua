@@ -1,14 +1,21 @@
+local function conv(names, mapping)
+	local res = {}
+	for _, name in ipairs(names) do
+		if mapping[name] ~= nil then
+			table.insert(res, mapping[name])
+		end
+	end
+	return res
+end
 return {
 	"williamboman/mason.nvim",
 	dependencies = {
 		"williamboman/mason-lspconfig.nvim",
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
+		"zapling/mason-conform.nvim",
 	},
 	config = function()
-		-- import mason
 		local mason = require("mason")
-
-		-- import mason-lspconfig
 
 		local mason_tool_installer = require("mason-tool-installer")
 
@@ -25,14 +32,17 @@ return {
 			},
 		})
 
-		local conversion_table = require("mason-lspconfig").get_mappings().lspconfig_to_mason
-		local lspconfig_names = tools.parse_table()
-		local mason_names = {}
-		for _, lsp_name in ipairs(lspconfig_names) do
-			if conversion_table[lsp_name] ~= nil then
-				table.insert(mason, conversion_table[lsp_name])
-			end
-		end
+		local lsp_to_mason = require("mason-lspconfig").get_mappings().lspconfig_to_mason
+		local lspconfig_names = tools.parse_table("lsp")
+
+		local mason_names = conv(lspconfig_names, lsp_to_mason)
+
+		local conform_to_mason = require("mason-conform.mapping").conform_to_package
+		local conform_names = tools.parse_table("formatters")
+
+		mason_names = table.merge(mason_names, conv(conform_names, conform_to_mason))
+
+		mason_names = table.merge(mason_names, tools.parse_table("dap"))
 
 		mason_tool_installer.setup({
 			ensure_installed = mason_names, -- auto-install configured servers (with lspconfig)
