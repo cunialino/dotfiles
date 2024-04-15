@@ -33,7 +33,9 @@ layout {
     }
   }
   tab focus=true name="Edit" {
-    pane name="Neovim" command="nvim"
+    pane name="Neovim" command="nu" {
+      args "-c 'nvim'"
+    }
   }
   tab name="Run code"{
     pane name="Runner"
