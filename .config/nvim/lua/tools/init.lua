@@ -12,6 +12,10 @@ tool_utils.tools_table = {
 	yaml = {
 		linters = { "actionlint" },
 	},
+	rust = {
+		formatters = { "rustfmt" },
+		lsp = { "rust_analyzer" },
+	},
 	markdown = {
 		linters = { "proselint" },
 	},

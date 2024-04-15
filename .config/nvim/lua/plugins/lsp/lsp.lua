@@ -118,6 +118,16 @@ return {
 			nushell = {
 				on_attach = default_on_attach,
 			},
+			rust_analyzer = {
+				on_attach = default_on_attach,
+				settings = {
+					["rust-analyzer"] = {
+						cargo = {
+							allFeatures = true,
+						},
+					},
+				},
+			},
 		},
 	},
 	config = function(_, opts)
