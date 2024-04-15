@@ -29,9 +29,9 @@ return {
 		local lspconfig_names = tools.parse_table()
 		local mason_names = {}
 		for _, lsp_name in ipairs(lspconfig_names) do
-      if conversion_table[lsp_name] ~= nil then
-        table.insert(mason, conversion_table[lsp_name])
-      end
+			if conversion_table[lsp_name] ~= nil then
+				table.insert(mason, conversion_table[lsp_name])
+			end
 		end
 
 		mason_tool_installer.setup({
