@@ -4,10 +4,9 @@ return {
     vim.o.completeopt = "menu,menuone,noselect"
   end,
   event = "InsertEnter",
-  opts = function(_, opts)
+  opts = function(_, _)
     vim.api.nvim_set_hl(0, "CmpGhostText", { link = "Comment", default = true })
     local cmp = require("cmp")
-    local defaults = require("cmp.config.default")()
     local lspkind = require("lspkind")
     return {
       completion = {
