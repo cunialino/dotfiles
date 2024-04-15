@@ -15,6 +15,9 @@ tool_utils.tools_table = {
 	markdown = {
 		linters = { "proselint" },
 	},
+	json = {
+		formatters = { "jq" },
+	},
 }
 
 function tool_utils.parse_table(tool_type_filter)
