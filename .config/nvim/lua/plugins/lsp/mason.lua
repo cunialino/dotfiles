@@ -30,7 +30,6 @@ return {
 		local mason_names = {}
 		for _, lsp_name in ipairs(lspconfig_names) do
       if conversion_table[lsp_name] ~= nil then
-        vim.notify(lsp_name)
         table.insert(mason, conversion_table[lsp_name])
       end
 		end
