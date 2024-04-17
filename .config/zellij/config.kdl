@@ -114,3 +114,5 @@ theme "catppuccin-mocha"
 mouse_mode true
 session_serialization false
 copy_command "wl-copy"
+
+default_layout "welcome"
