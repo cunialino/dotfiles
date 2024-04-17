@@ -77,7 +77,7 @@ return {
 		local wk = require("which-key")
 		local keys = {
 			["<leader>"] = {
-				t = {
+				f = {
 					name = "Telescope",
 					f = { builtins.find_files, "Files" },
 					F = { builtins.find_files, "Files" },
