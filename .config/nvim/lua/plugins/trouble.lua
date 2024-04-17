@@ -1,32 +1,37 @@
 return {
 	"folke/trouble.nvim",
+	branch = "dev",
 	dependencies = { "nvim-tree/nvim-web-devicons" },
-	init = function()
-		vim.lsp.buf.references = function()
-			require("trouble").toggle("lsp_references")
-		end
-		vim.lsp.buf.definition = function()
-			require("trouble").toggle("lsp_definitions")
-		end
-	end,
 	config = true,
 	keys = function()
 		local wk = require("which-key")
 		wk.register({
 			["<leader>"] = {
-				D = {
+				T = {
 					name = "Diagnostics",
 					d = {
 						function()
-							require("trouble").toggle("document_diagnostics")
+							require("trouble").toggle("diagnostics")
 						end,
-						"Document Diagnostics",
+						"Diagnostics",
 					},
-					w = {
+					l = {
 						function()
-							require("trouble").toggle("workspace_diagnostics")
+							require("trouble").toggle("lsp")
 						end,
-						"Workspace Diagnostics",
+						"LSP",
+					},
+					q = {
+						function()
+							require("trouble").toggle("qflist")
+						end,
+						"QFList",
+					},
+					s = {
+						function()
+							require("trouble").toggle("symbols")
+						end,
+						"Syms",
 					},
 				},
 			},
