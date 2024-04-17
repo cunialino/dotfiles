@@ -7,7 +7,7 @@ return {
 		local wk = require("which-key")
 		wk.register({
 			["<leader>"] = {
-				T = {
+				t = {
 					name = "Diagnostics",
 					d = {
 						function()
