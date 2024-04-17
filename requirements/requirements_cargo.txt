@@ -8,5 +8,4 @@ zellij
 nu
 bottom
 ripgrep
-inlyne
-yazi
+yazi-fm
