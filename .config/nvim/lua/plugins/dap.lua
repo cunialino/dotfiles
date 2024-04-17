@@ -42,6 +42,7 @@ return {
 					request = "launch",
 					name = "Launch file",
 					program = "${file}",
+          pythonPath = "python",
 				},
 			},
 		},
