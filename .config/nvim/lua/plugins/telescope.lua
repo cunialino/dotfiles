@@ -11,9 +11,14 @@ return {
 	},
 	opts = function()
 		local actions = require("telescope.actions")
-		local open_with_trouble = require("trouble.sources.telescope").open
 
 		local lga_actions = require("telescope-live-grep-args.actions")
+
+    local open_with_trouble_qf = function (prompt_bufnr)
+      actions = require("telescope.actions")
+      actions.smart_send_to_qflist(prompt_bufnr)
+      require("trouble").open("qflist")
+    end
 		return {
 			defaults = {
 				prompt_prefix = " ",
@@ -33,13 +38,14 @@ return {
 				end,
 				mappings = {
 					i = {
-						["<c-t>"] = open_with_trouble,
+						["<c-q>"] = open_with_trouble_qf,
 						["<C-Down>"] = actions.cycle_history_next,
 						["<C-Up>"] = actions.cycle_history_prev,
 						["<C-f>"] = actions.preview_scrolling_down,
 						["<C-u>"] = actions.preview_scrolling_up,
 					},
 					n = {
+						["<c-q>"] = open_with_trouble_qf,
 						["q"] = actions.close,
 					},
 				},
