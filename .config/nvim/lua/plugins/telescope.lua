@@ -14,11 +14,11 @@ return {
 
 		local lga_actions = require("telescope-live-grep-args.actions")
 
-    local open_with_trouble_qf = function (prompt_bufnr)
-      actions = require("telescope.actions")
-      actions.smart_send_to_qflist(prompt_bufnr)
-      require("trouble").open("qflist")
-    end
+		local open_with_trouble_qf = function(prompt_bufnr)
+			actions = require("telescope.actions")
+			actions.smart_send_to_qflist(prompt_bufnr)
+			require("trouble").open("qflist")
+		end
 		return {
 			defaults = {
 				prompt_prefix = " ",
@@ -92,6 +92,8 @@ return {
 					t = { builtins.treesitter, "Treesitter" },
 					P = { builtins.builtin, "Pickers" },
 					r = { require("telescope").extensions.live_grep_args.live_grep_args, "RipGrep" },
+					h = { builtins.help_tags, "Help" },
+					o = { builtins.oldfiles, "Old Files" },
 				},
 			},
 		}
