@@ -10,4 +10,3 @@ I diveded them into the following files:
 - **requirements_pyenv_build:** additional deps for building python with [pyenv](https://github.com/pyenv/pyenv)
 - **requirements_cargo:** rust tools I use -> these are for meant to go into `cargo install --locked <pkg>`
 - **requirements_python:** pyhton packages I need -> `pip install <pkg>`
-- **requirements_wsl:** same as **\_term**, but for pacman

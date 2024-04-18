@@ -1,27 +1,26 @@
 # Dotfiles
 
-Shell related dotfiles.
+My dotfiles.
 
-Requirements:
+I organized them so that they are usable both from a Void-Linux distribution and from wsl (using wezterm from Windows host).
 
-- [exa](https://the.exa.website/): modern version of ls
-- [bat](https://github.com/sharkdp/bat): modern version of cat
-- [bat-extras](https://github.com/eth-p/bat-extras): nice stuff
-- [ripgrep](https://blog.burntsushi.net/ripgrep/): modern version of grep
-- [fd](https://github.com/sharkdp/fd): modern version of find
-- [delta](https://github.com/dandavison/delta): modern version of diff
-- [fzf](https://github.com/junegunn/fzf)
-- [nvim](https://neovim.io/)
-  - [pynvim](https://github.com/neovim/pynvim)
-- [nord-dircolors](https://github.com/arcticicestudio/nord-dircolors): link this to ~/.dir_colors
-
-## Install repo
+## Install repo 
 
 ```bash
-git clone --bare https://github.com/cunialino/dotfiles.git $HOME/builds/dotfiles
-git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME
-git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME checkout
+git clone --bare git@github.com:cunialino/dotfiles.git $HOME/builds/dotfiles
+git --git-dir=$HOME/dotfiles/dotfiles/ --work-tree=$HOME checkout
 ```
+
+Install requirements.
+
+## Mold
+
+[mold](https://github.com/rui314/mold) is a much faster linter, to always use it, link it to ~/.local/bin/ld:
+```bash
+sudo ln -s /usr/bin/mold ~/.local/bin/ld
+```
+
+Make also use ~/.local/bin/ld is in your PATH before /use/bin/.
 
 ## NUSHELL
 
@@ -31,6 +30,7 @@ chsh -s /usr/bin/nu
 ```
 
 ## Void-Linux
+
 Session setup:
 ```bash
 sudo usermod -aG _seatd elia
@@ -41,5 +41,5 @@ sudo sv start seatd
 To run sway:
 ```bash
 mkdir /tmp/sway
-with-env { XDG_RUNTIME_DIR:"/tmp/swaytmp"} {sway}
+with-env { XDG_RUNTIME_DIR:"/tmp/sway"} {sway}
 ```
