@@ -35,10 +35,6 @@ return {
         end,
       }),
       sources = cmp.config.sources({
-        {
-          name = "codeium",
-          group_index = 1,
-        },
         { name = "nvim_lsp_signature_help" },
         { name = "nvim_lsp" },
         { name = "luasnip" },
@@ -63,13 +59,12 @@ return {
         format = lspkind.cmp_format({
           with_text = true,
           maxwidth = 50,
-          menu = { buffer = "[  ]", nvim_lsp = "[ 󰅩 ]", vsnip = "[  ]", codeium = "[ 󰧑 ]" },
+          menu = { buffer = "[  ]", nvim_lsp = "[ 󰅩 ]", vsnip = "[  ]" },
         }),
         format_cs = require("lspkind").cmp_format({
           mode = "symbol",
           maxwidth = 50,
           ellipsis_char = "...",
-          symbol_map = { Codeium = "" },
         }),
       },
       experimental = {
@@ -106,11 +101,5 @@ return {
     { "onsails/lspkind-nvim" },
     { "hrsh7th/cmp-nvim-lsp-signature-help" },
     { "lukas-reineke/cmp-under-comparator" },
-    {
-      "Exafunction/codeium.nvim",
-      cmd = "Codeium",
-      build = ":Codeium Auth",
-      opts = {},
-    },
   },
 }
