@@ -1,7 +1,15 @@
 return {
 	"folke/trouble.nvim",
-	branch = "dev",
 	dependencies = { "nvim-tree/nvim-web-devicons" },
+	opts = {
+		modes = {
+			lsp = {
+				mode = "lsp",
+				focus = false,
+				win = { position = "right" },
+			},
+		},
+	},
 	config = true,
 	keys = function()
 		local wk = require("which-key")
