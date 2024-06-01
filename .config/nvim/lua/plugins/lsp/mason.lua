@@ -43,6 +43,7 @@ return {
 		mason_names = table.merge(mason_names, conv(conform_names, conform_to_mason))
 
 		mason_names = table.merge(mason_names, tools.parse_table("dap"))
+		mason_names = table.merge(mason_names, tools.parse_table("linters"))
 
 		mason_tool_installer.setup({
 			ensure_installed = mason_names, -- auto-install configured servers (with lspconfig)
