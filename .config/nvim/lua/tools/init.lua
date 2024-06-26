@@ -1,15 +1,17 @@
 local tool_utils = {}
 tool_utils.tools_table = {
 	python = {
-		formatters = { "ruff_format", "typos", "codespell" },
+		formatters = { "ruff_format" },
 		dap = { "debugpy" },
 		lsp = { "ruff_lsp", "pylsp" },
+		linters = { "mypy", "typos", "codespell" },
 	},
 	lua = {
 		lsp = { "lua_ls" },
 		formatters = { "stylua" },
 	},
 	yaml = {
+		formatters = { "prettier" },
 		linters = { "actionlint" },
 	},
 	rust = {
@@ -21,6 +23,7 @@ tool_utils.tools_table = {
 	},
 	json = {
 		formatters = { "jq" },
+		linters = { "jq" },
 	},
 }
 
