@@ -4,7 +4,7 @@ tool_utils.tools_table = {
 		formatters = { "ruff_format" },
 		dap = { "debugpy" },
 		lsp = { "ruff_lsp", "pylsp" },
-		linters = { "mypy", "typos", "codespell" },
+		linters = { "mypy" },
 	},
 	lua = {
 		lsp = { "lua_ls" },
@@ -24,6 +24,9 @@ tool_utils.tools_table = {
 	json = {
 		formatters = { "jq" },
 		linters = { "jq" },
+	},
+	["*"] = {
+		linters = { "typos" },
 	},
 }
 
