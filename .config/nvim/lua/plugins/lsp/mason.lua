@@ -13,6 +13,7 @@ return {
 		"williamboman/mason-lspconfig.nvim",
 		"WhoIsSethDaniel/mason-tool-installer.nvim",
 		"zapling/mason-conform.nvim",
+		"rshkarin/mason-nvim-lint",
 	},
 	config = function()
 		local mason = require("mason")
@@ -39,8 +40,14 @@ return {
 
 		local conform_to_mason = require("mason-conform.mapping").conform_to_package
 		local conform_names = tools.parse_table("formatters")
+		local mason_conform_names = conv(conform_names, conform_to_mason)
 
-		mason_names = table.merge(mason_names, conv(conform_names, conform_to_mason))
+		local lint_to_mason = require("mason-nvim-lint.mapping").nvimlint_to_package
+		local lint_names = tools.parse_table("linters")
+		local mason_lint_names = conv(lint_names, lint_to_mason)
+
+		mason_names = table.merge(mason_names, mason_conform_names)
+		mason_names = table.merge(mason_names, mason_lint_names)
 
 		mason_names = table.merge(mason_names, tools.parse_table("dap"))
 		mason_names = table.merge(mason_names, tools.parse_table("linters"))
