@@ -141,7 +141,7 @@ return {
 		local all_servers = vim.tbl_deep_extend("keep", installed_mslp_servers, server_configs)
 
 		for _, server in pairs(all_servers) do
-			local server_opts = opts.servers[server] or {}
+			local server_opts = opts.servers[server] or { on_attach = default_on_attach }
 			server_opts.capabilities = vim.tbl_deep_extend(
 				"force",
 				vim.lsp.protocol.make_client_capabilities(),
