@@ -46,11 +46,11 @@ return {
 		local lint_names = tools.parse_table("linters")
 		local mason_lint_names = conv(lint_names, lint_to_mason)
 
-		mason_names = table.merge(mason_names, mason_conform_names)
-		mason_names = table.merge(mason_names, mason_lint_names)
+		vim.list_extend(mason_names, mason_conform_names)
+		vim.list_extend(mason_names, mason_lint_names)
 
-		mason_names = table.merge(mason_names, tools.parse_table("dap"))
-		mason_names = table.merge(mason_names, tools.parse_table("linters"))
+		vim.list_extend(mason_names, tools.parse_table("dap"))
+		vim.list_extend(mason_names, tools.parse_table("linters"))
 
 		mason_tool_installer.setup({
 			ensure_installed = mason_names, -- auto-install configured servers (with lspconfig)
