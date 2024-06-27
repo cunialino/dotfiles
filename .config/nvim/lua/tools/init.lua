@@ -26,7 +26,7 @@ tool_utils.tools_table = {
 		linters = { "jq" },
 	},
 	["*"] = {
-		linters = { "typos" },
+		lsp = { "typos_lsp" },
 	},
 }
 
