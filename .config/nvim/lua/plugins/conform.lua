@@ -19,6 +19,7 @@ return {
         prepend_args = { "-i", "2" },
       },
     },
+    lsp_format = "fallback",
   },
   init = function()
     vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"

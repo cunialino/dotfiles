@@ -1,7 +1,6 @@
 local tool_utils = {}
 tool_utils.tools_table = {
 	python = {
-		formatters = { "ruff_format" },
 		dap = { "debugpy" },
 		lsp = { "ruff_lsp", "pylsp" },
 		linters = { "mypy" },
