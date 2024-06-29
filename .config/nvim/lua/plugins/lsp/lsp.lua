@@ -40,7 +40,7 @@ local function default_on_attach(client, bufnr)
 	local wk = require("which-key")
 	wk.register(keys)
 	if string.match(bufname, "conjure") then
-		vim.diagnostic.disable(bufnr)
+		vim.diagnostic.enable(false, bufnr)
 		vim.diagnostic.hide(nil, bufnr)
 		vim.diagnostic.reset(nil, bufnr)
 		if not vim.lsp.buf_is_attached(bufnr, client.id) then
@@ -92,7 +92,6 @@ return {
 			},
 			ruff_lsp = {
 				on_attach = function(client, bufnr)
-					client.server_capabilities.hoverProvider = false
 					default_on_attach(client, bufnr)
 				end,
 			},
@@ -114,9 +113,6 @@ return {
 						},
 					},
 				},
-			},
-			nushell = {
-				on_attach = default_on_attach,
 			},
 			rust_analyzer = {
 				on_attach = default_on_attach,
