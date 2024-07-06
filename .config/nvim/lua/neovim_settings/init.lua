@@ -30,6 +30,7 @@ vim.wo.wrap = false
 vim.wo.number = true
 vim.wo.cursorline = true
 vim.wo.signcolumn = "yes"
+vim.wo.relativenumber = true
 
 vim.o.tabstop = tabwidth
 vim.bo.tabstop = tabwidth
