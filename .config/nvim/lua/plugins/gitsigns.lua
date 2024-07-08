@@ -12,22 +12,22 @@ return {
 	},
 	keys = function()
 		local wk = require("which-key")
-    local gs = require("gitsigns")
+		local gs = require("gitsigns")
 		local keys = {
 			["<leader>"] = {
 				g = {
 					name = "Git",
 					D = { gs.diffthis, "Diff this" },
-          p = { gs.preview_hunk, "Preview hunk"},
-          b = {gs.toggle_current_line_blame, "Toggle current line blame"},
-          s = { gs.stage_hunk, "Stage hunk" },
-          S = { gs.stage_buffer, "Stage buffer" },
-          u = { gs.undo_stage_hunk, "Undo stage hunk" },
+					p = { gs.preview_hunk, "Preview hunk" },
+					b = { gs.toggle_current_line_blame, "Toggle current line blame" },
+					s = { gs.stage_hunk, "Stage hunk" },
+					S = { gs.stage_buffer, "Stage buffer" },
+					u = { gs.undo_stage_hunk, "Undo stage hunk" },
 				},
 			},
-      ["]h"] = { gs.next_hunk, "Next Hunk" },
-      ["[h"] = { gs.prev_hunk, "Previews Hunk" },
+			["]h"] = { gs.next_hunk, "Next Hunk" },
+			["[h"] = { gs.prev_hunk, "Previews Hunk" },
 		}
-    wk.register(keys)
+		wk.register(keys)
 	end,
 }
