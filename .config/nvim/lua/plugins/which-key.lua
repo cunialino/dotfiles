@@ -21,6 +21,7 @@ vim.api.nvim_set_keymap("v", "<leader>/", ":CommentToggle<cr>", { noremap = true
 
 vim.cmd('inoremap <expr> <c-j> ("\\<C-n>")')
 vim.cmd('inoremap <expr> <c-k> ("\\<C-p>")')
+
 vim.cmd("vnoremap // y/\\V<C-R>=escape(@\",'/')<CR><CR>")
 return {
 	"folke/which-key.nvim",
