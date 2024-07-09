@@ -77,6 +77,7 @@ return {
 		ts.load_extension("fzf")
 		ts.load_extension("dap")
 		ts.load_extension("live_grep_args")
+    ts.load_extension("notify")
 		local builtins = require("telescope.builtin")
 		local wk = require("which-key")
 		local keys = {
