@@ -24,12 +24,13 @@ local function set_up_adapters(adapters_config)
 			adapters[#adapters + 1] = adapter
 		end
 	end
-  return adapters
+	return adapters
 end
 return {
 	"nvim-neotest/neotest",
 	dependencies = {
 		"nvim-neotest/neotest-python",
+		"rouge8/neotest-rust",
 		"nvim-neotest/nvim-nio",
 		"nvim-lua/plenary.nvim",
 		"antoinemadec/FixCursorHold.nvim",
@@ -38,6 +39,7 @@ return {
 	opts = {
 		adapters = {
 			"neotest-python",
+			"neotest-rust",
 		},
 	},
 	config = function(_, opts)
