@@ -42,7 +42,7 @@ return {
 					request = "launch",
 					name = "Launch file",
 					program = "${file}",
-          pythonPath = "python",
+					pythonPath = "python",
 				},
 			},
 		},
@@ -55,20 +55,12 @@ return {
 			dap.configurations[ft] = opts[current_dap[1]].configuration
 		end
 	end,
-	keys = function()
-		local wk = require("which-key")
-		local keys = {
-			["<leader>"] = {
-				d = {
-					name = "Debug",
-					b = { "<cmd>lua require'dap'.toggle_breakpoint()<cr>", "Toggle Breakpoint" },
-					c = { "<cmd>:lua require'dap'.continue()<cr>", "Continue debug" },
-					o = { "<cmd>:lua require'dap'.step_over()<cr>", "Step over" },
-					i = { "<cmd>:lua require'dap'.step_into()<cr>", "Step into" },
-					t = { "<cmd>:lua require('dapui').toggle()<cr>", "Toggle ui" },
-				},
-			},
-		}
-		wk.register(keys)
-	end,
+	keys = {
+		{ "<leader>d", "", desc = "+Debug" },
+		{ "<leader>db", "<cmd>lua require'dap'.toggle_breakpoint()<cr>", desc = "Toggle Breakpoint" },
+		{ "<leader>dc", "<cmd>:lua require'dap'.continue()<cr>", desc = "Continue debug" },
+		{ "<leader>do", "<cmd>:lua require'dap'.step_over()<cr>", desc = "Step over" },
+		{ "<leader>di", "<cmd>:lua require'dap'.step_into()<cr>", desc = "Step into" },
+		{ "<leader>dt", "<cmd>:lua require('dapui').toggle()<cr>", desc = "Toggle ui" },
+	},
 }

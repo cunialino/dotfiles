@@ -55,15 +55,8 @@ return {
 		mason_tool_installer.setup({
 			ensure_installed = mason_names, -- auto-install configured servers (with lspconfig)
 		})
-		local keys = {
-			["<leader>"] = {
-				l = {
-					name = "LSP",
-					I = { "<cmd>Mason<cr>", "Install language server" },
-				},
-			},
-		}
-		local wk = require("which-key")
-		wk.register(keys)
 	end,
+	keys = {
+		{ "<leader>lI", "<cmd>Mason<cr>", desc = "Install language server" },
+	},
 }

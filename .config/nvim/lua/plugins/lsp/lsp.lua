@@ -16,29 +16,26 @@ end
 
 local function default_on_attach(client, bufnr)
 	local keys = {
-		["<leader>"] = {
-			l = {
-				name = "LSP",
-				i = { ":LspInfo<cr>", "Connected Language Servers" },
-				K = { "<cmd>lua vim.lsp.buf.hover()<CR>", "Hover" },
-				w = { "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", "Add workspace folder" },
-				W = { "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", "Remove workspace folder" },
-				l = {
-					"<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>",
-					"List workspace folder",
-				},
-				t = { "<cmd>lua vim.lsp.buf.type_definition()<CR>", "Type definition" },
-				d = { "<cmd>lua vim.lsp.buf.definition()<CR>", "Go to definition" },
-				D = { "<cmd>lua vim.lsp.buf.delaration()<CR>", "Go to declaration" },
-				r = { "<cmd>lua vim.lsp.buf.references()<cr>", "References" },
-				R = { "<cmd>lua vim.lsp.buf.rename()<CR>", "Rename" },
-				a = { "<cmd>lua vim.lsp.buf.code_action()<CR>", "Code actions" },
-			},
+		{"<leader>l",  group = "+LSP" },
+		{ "<leader>li", ":LspInfo<cr>", desc = "Connected Language Servers" },
+		{ "<leader>lK", "<cmd>lua vim.lsp.buf.hover()<CR>", desc = "Hover" },
+		{ "<leader>lw", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", desc = "Add workspace folder" },
+		{ "<leader>lW", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", desc = "Remove workspace folder" },
+		{
+			"<leader>ll",
+			"<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>",
+			desc = "List workspace folder",
 		},
+		{ "<leader>lt", "<cmd>lua vim.lsp.buf.type_definition()<CR>", desc = "Type definition" },
+		{ "<leader>ld", "<cmd>lua vim.lsp.buf.definition()<CR>", desc = "Go to definition" },
+		{ "<leader>lD", "<cmd>lua vim.lsp.buf.delaration()<CR>", desc = "Go to declaration" },
+		{ "<leader>lr", "<cmd>lua vim.lsp.buf.references()<cr>", desc = "References" },
+		{ "<leader>lR", "<cmd>lua vim.lsp.buf.rename()<CR>", desc = "Rename" },
+		{ "<leader>la", "<cmd>lua vim.lsp.buf.code_action()<CR>", desc = "Code actions" },
 	}
 	local bufname = vim.api.nvim_buf_get_name(bufnr)
 	local wk = require("which-key")
-	wk.register(keys)
+	wk.add(keys)
 	if string.match(bufname, "conjure") then
 		vim.diagnostic.enable(false, bufnr)
 		vim.diagnostic.hide(nil, bufnr)

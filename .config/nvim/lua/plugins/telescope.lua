@@ -77,27 +77,20 @@ return {
 		ts.load_extension("fzf")
 		ts.load_extension("dap")
 		ts.load_extension("live_grep_args")
-    ts.load_extension("notify")
-		local builtins = require("telescope.builtin")
-		local wk = require("which-key")
-		local keys = {
-			["<leader>"] = {
-				f = {
-					name = "Telescope",
-					f = { builtins.find_files, "Files" },
-					F = { builtins.find_files, "Files" },
-					g = { builtins.git_files, "Git Files" },
-					b = { builtins.buffers, "buffers" },
-					s = { builtins.current_buffer_fuzzy_find, "Search" },
-					R = { builtins.resume, "Resume" },
-					t = { builtins.treesitter, "Treesitter" },
-					P = { builtins.builtin, "Pickers" },
-					r = { require("telescope").extensions.live_grep_args.live_grep_args, "RipGrep" },
-					h = { builtins.help_tags, "Help" },
-					o = { builtins.oldfiles, "Old Files" },
-				},
-			},
-		}
-		wk.register(keys)
+		ts.load_extension("notify")
 	end,
+	keys = {
+		{ "<leader>f", "", desc = "+Telescope" },
+		{ "<leader>ff", require("telescope.builtin").find_files, desc = "Files" },
+		{ "<leader>fF", require("telescope.builtin").find_files, desc = "Files" },
+		{ "<leader>fg", require("telescope.builtin").git_files, desc = "Git Files" },
+		{ "<leader>fb", require("telescope.builtin").buffers, desc = "buffers" },
+		{ "<leader>fs", require("telescope.builtin").current_buffer_fuzzy_find, desc = "Search" },
+		{ "<leader>fR", require("telescope.builtin").resume, desc = "Resume" },
+		{ "<leader>ft", require("telescope.builtin").treesitter, desc = "Treesitter" },
+		{ "<leader>fP", require("telescope.builtin").builtin, desc = "Pickers" },
+		--{ "<leader>fr", require("telescope").extensions.live_grep_args.live_grep_args, desc = "RipGrep" },
+		{ "<leader>fh", require("telescope.builtin").help_tags, desc = "Help" },
+		{ "<leader>fo", require("telescope.builtin").oldfiles, desc = "Old Files" },
+	},
 }
