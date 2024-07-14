@@ -10,22 +10,16 @@ return {
 			end
 		end
 	end,
-	keys = function()
-		local wk = require("which-key")
-		wk.register({
-			["<leader>"] = {
-				n = {
-					name = "Notify",
-					d = {
-						function()
-							require("notify").dismiss({ silent = true, pending = true })
-						end,
-						"Dismiss all Notifications",
-					},
-				},
-			},
-		})
-	end,
+	keys = {
+		{ "<leader>n", "", desc = "+Notify" },
+		{
+			"<leader>nd",
+			function()
+				require("notify").dismiss({ silent = true, pending = true })
+			end,
+			desc = "Dismiss all Notifications",
+		},
+	},
 
 	opts = {
 		timeout = 3000,

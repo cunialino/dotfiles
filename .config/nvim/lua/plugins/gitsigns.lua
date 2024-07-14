@@ -11,23 +11,18 @@ return {
 		status_formatter = nil,
 	},
 	keys = function()
-		local wk = require("which-key")
 		local gs = require("gitsigns")
 		local keys = {
-			["<leader>"] = {
-				g = {
-					name = "Git",
-					D = { gs.diffthis, "Diff this" },
-					p = { gs.preview_hunk, "Preview hunk" },
-					b = { gs.toggle_current_line_blame, "Toggle current line blame" },
-					s = { gs.stage_hunk, "Stage hunk" },
-					S = { gs.stage_buffer, "Stage buffer" },
-					u = { gs.undo_stage_hunk, "Undo stage hunk" },
-				},
-			},
-			["]h"] = { gs.next_hunk, "Next Hunk" },
-			["[h"] = { gs.prev_hunk, "Previews Hunk" },
+			{ "<leader>g", "", desc = "+Git" },
+			{ "<leader>gD", gs.diffthis, desc = "Diff this" },
+			{ "<leader>gp", gs.preview_hunk, desc = "Preview hunk" },
+			{ "<leader>gb", gs.toggle_current_line_blame, desc = "Toggle current line blame" },
+			{ "<leader>gs", gs.stage_hunk, desc = "Stage hunk" },
+			{ "<leader>gS", gs.stage_buffer, desc = "Stage buffer" },
+			{ "<leader>gu", gs.undo_stage_hunk, desc = "Undo stage hunk" },
+			{ "]h", gs.next_hunk, desc = "Next Hunk" },
+			{ "[h", gs.prev_hunk, desc = "Previews Hunk" },
 		}
-		wk.register(keys)
+		return keys
 	end,
 }

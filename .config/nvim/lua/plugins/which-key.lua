@@ -38,23 +38,15 @@ return {
 		wk.setup(opts)
 
 		local keys = {
-			["<leader>"] = {
-				x = { ":bdelete<cr>", "Close Buffer" },
-				X = { ":bdelete!<cr>", "Force Close Buffer" },
-				q = { ":wq<cr>", "Save and Quit" },
-				Q = { ":q!<cr>", "Force Quit" },
-				w = { ":w<cr>", "Write" },
-				L = { ":Lazy<cr>", "Lazy" },
-				h = { ":Dashboard<cr>", "Dashboard" },
-				o = { ":only<cr>", "Only" },
-				D = {
-					name = "Diagnostics",
-					o = { vim.diagnostic.open_float, "Line diagnostics" },
-					n = { vim.diagnostic.goto_next, "Go to next diagnostic" },
-					N = { vim.diagnostic.goto_prev, "Go to previous diagnostic" },
-				},
-			},
+			{ "<leader>x", ":bdelete<cr>", desc = "Close Buffer" },
+			{ "<leader>X", ":bdelete!<cr>", desc = "Force Close Buffer" },
+			{ "<leader>q", ":wq<cr>", desc = "Save and Quit" },
+			{ "<leader>Q", ":q!<cr>", desc = "Force Quit" },
+			{ "<leader>w", ":w<cr>", desc = "Write" },
+			{ "<leader>L", ":Lazy<cr>", desc = "Lazy" },
+			{ "<leader>h", ":Dashboard<cr>", desc = "Dashboard" },
+			{ "<leader>o", ":only<cr>", desc = "Only" },
 		}
-		wk.register(keys)
+		wk.add(keys)
 	end,
 }
