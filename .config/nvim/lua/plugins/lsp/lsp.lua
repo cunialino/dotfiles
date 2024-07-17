@@ -16,7 +16,7 @@ end
 
 local function default_on_attach(client, bufnr)
 	local keys = {
-		{"<leader>l",  group = "+LSP" },
+		{ "<leader>l", group = "+LSP" },
 		{ "<leader>li", ":LspInfo<cr>", desc = "Connected Language Servers" },
 		{ "<leader>lK", "<cmd>lua vim.lsp.buf.hover()<CR>", desc = "Hover" },
 		{ "<leader>lw", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", desc = "Add workspace folder" },
@@ -149,5 +149,6 @@ return {
 		{ "b0o/schemastore.nvim" },
 		{ "hrsh7th/cmp-nvim-lsp" },
 		{ "folke/neodev.nvim" },
+		{ "williamboman/mason.nvim" },
 	},
 }
