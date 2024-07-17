@@ -17,7 +17,7 @@ vim.api.nvim_set_keymap("v", ">", ">gv", { noremap = true, silent = false })
 vim.api.nvim_set_keymap("x", "K", ":move '<-2<CR>gv-gv", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("x", "J", ":move '>+1<CR>gv-gv", { noremap = true, silent = true })
 
-vim.api.nvim_set_keymap("v", "<leader>/", ":CommentToggle<cr>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "J", "mzJ`z", { noremap = true, silent = true })
 
 vim.cmd('inoremap <expr> <c-j> ("\\<C-n>")')
 vim.cmd('inoremap <expr> <c-k> ("\\<C-p>")')
