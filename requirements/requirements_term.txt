@@ -21,3 +21,4 @@ rustup
 clang
 mold
 openssl-devel
+task
