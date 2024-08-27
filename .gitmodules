@@ -13,7 +13,3 @@
 [submodule "builds/void-packages"]
 	path = builds/void-packages
 	url = https://github.com/void-linux/void-packages.git
-[submodule "pyenv"]
-	path = builds/pyenv
-	url = https://github.com/pyenv/pyenv.git
-  ignore = dirty

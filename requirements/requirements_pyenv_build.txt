@@ -1,8 +1,0 @@
-zlib-devel
-tk-devel
-ncurses-devel
-bzip2-devel
-libffi-devel
-readline-devel
-sqlite-devel
-liblzma-devel
