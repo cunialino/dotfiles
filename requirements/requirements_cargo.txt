@@ -1,6 +1,5 @@
 bat
 cargo-nextest
-csvlens
 difftastic
 eza
 fd-find
@@ -9,4 +8,3 @@ zellij
 nu
 bottom
 ripgrep
-yazi-fm
