@@ -1,0 +1,11 @@
+
+layout {
+  tab focus=true name="Edit" {
+    pane name="Neovim" command="nu" borderless=true {
+      args "-c 'nvim'"
+    }
+  }
+  tab name="Terminal"{
+    pane name="" borderless=true 
+  }
+}
