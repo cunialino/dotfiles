@@ -66,6 +66,7 @@ return {
       "yaml",
       "dockerfile",
       "nu",
+      "rust",
     },
     incremental_selection = {
       enable = true,
