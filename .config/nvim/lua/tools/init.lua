@@ -11,7 +11,6 @@ tool_utils.tools_table = {
 	},
 	yaml = {
 		formatters = { "prettier" },
-		linters = { "actionlint" },
 	},
 	rust = {
 		formatters = { "rustfmt" },
