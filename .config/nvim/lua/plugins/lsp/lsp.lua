@@ -63,66 +63,86 @@ return {
 			vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = "" })
 		end
 	end,
-	opts = {
-		diagnostics = {
-			underline = true,
-			update_in_insert = false,
-			severity_sort = true,
-			virtual_text = {
-				source = "if_many",
-				prefix = "",
-				format = format_diagnostic,
-			},
-		},
-		servers = {
-			pylsp = {
-				on_attach = default_on_attach,
-				settings = {
-					pylsp = {
-						plugins = {
-							pyflakes = { enabled = false },
-							pylint = { enabled = false },
-							pycodestyle = { enabled = false },
-						},
-					},
+	opts = function()
+		return {
+			diagnostics = {
+				underline = true,
+				update_in_insert = false,
+				severity_sort = true,
+				virtual_text = {
+					source = "if_many",
+					prefix = "",
+					format = format_diagnostic,
 				},
 			},
-			ruff_lsp = {
-				on_attach = function(client, bufnr)
-					default_on_attach(client, bufnr)
-				end,
-			},
-			lua_ls = {
-				on_attach = default_on_attach,
-				settings = {
-					Lua = {
-						diagnostics = {
-							globals = { "vim" },
-						},
-						workspace = {
-							library = {
-								[vim.fn.expand("$VIMRUNTIME/lua")] = true,
-								[vim.fn.stdpath("config") .. "/lua"] = true,
+			servers = {
+				pylsp = {
+					on_attach = default_on_attach,
+					settings = {
+						pylsp = {
+							plugins = {
+								pyflakes = { enabled = false },
+								pylint = { enabled = false },
+								pycodestyle = { enabled = false },
 							},
 						},
-						semantic = {
-							enable = false,
+					},
+				},
+				ruff_lsp = {
+					on_attach = function(client, bufnr)
+						default_on_attach(client, bufnr)
+					end,
+				},
+				lua_ls = {
+					on_attach = default_on_attach,
+					settings = {
+						Lua = {
+							diagnostics = {
+								globals = { "vim" },
+							},
+							workspace = {
+								library = {
+									[vim.fn.expand("$VIMRUNTIME/lua")] = true,
+									[vim.fn.stdpath("config") .. "/lua"] = true,
+								},
+							},
+							semantic = {
+								enable = false,
+							},
+						},
+					},
+				},
+				yamlls = {
+					on_attach = default_on_attach,
+					settings = {
+						yaml = {
+							schemaStore = {
+								-- You must disable built-in schemaStore support if you want to use
+								-- this plugin and its advanced options like `ignore`.
+								enable = false,
+								-- Avoid TypeError: Cannot read properties of undefined (reading 'length')
+								url = "",
+							},
+							schemas = require("schemastore").yaml.schemas(),
+							format = {
+								enable = true,
+							},
+						},
+					},
+				},
+				rust_analyzer = {
+					on_attach = default_on_attach,
+					settings = {
+						["rust-analyzer"] = {
+							cargo = {
+								allFeatures = true,
+							},
 						},
 					},
 				},
 			},
-			rust_analyzer = {
-				on_attach = default_on_attach,
-				settings = {
-					["rust-analyzer"] = {
-						cargo = {
-							allFeatures = true,
-						},
-					},
-				},
-			},
-		},
-	},
+		}
+	end,
 	config = function(_, opts)
 		require("neodev").setup({})
 		local lspconfig = require("lspconfig")
