@@ -134,6 +134,9 @@ return {
 					on_attach = default_on_attach,
 					settings = {
 						["rust-analyzer"] = {
+							checkOnSave = {
+								command = "clippy",
+							},
 							cargo = {
 								allFeatures = true,
 							},
