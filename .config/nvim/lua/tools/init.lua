@@ -11,6 +11,7 @@ tool_utils.tools_table = {
 	},
 	yaml = {
 		formatters = { "prettier" },
+		lsp = { "yamlls" },
 	},
 	rust = {
 		formatters = { "rustfmt" },
