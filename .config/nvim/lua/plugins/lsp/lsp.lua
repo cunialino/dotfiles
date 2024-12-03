@@ -78,9 +78,11 @@ return {
 			servers = {
 				pylsp = {
 					on_attach = default_on_attach,
+					cmd = { "uvx", "--from", "python-lsp-server[rope]", "pylsp" },
 					settings = {
 						pylsp = {
 							plugins = {
+								rope_autoimport = { enabled = true },
 								pyflakes = { enabled = false },
 								pylint = { enabled = false },
 								pycodestyle = { enabled = false },
@@ -88,10 +90,11 @@ return {
 						},
 					},
 				},
-				ruff_lsp = {
+				ruff = {
 					on_attach = function(client, bufnr)
 						default_on_attach(client, bufnr)
 					end,
+					cmd = { "uvx", "ruff", "server" },
 				},
 				lua_ls = {
 					on_attach = default_on_attach,
@@ -151,12 +154,23 @@ return {
 		local lspconfig = require("lspconfig")
 		local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
-		local installed_mslp_servers = require("mason-lspconfig").get_installed_servers()
+		local servers = require("mason-lspconfig").get_installed_servers()
 		local server_configs = vim.tbl_keys(opts.servers)
 
-		local all_servers = vim.tbl_deep_extend("keep", installed_mslp_servers, server_configs)
+		for i = 1, #server_configs do
+			local is_present = false
+			for _, server in ipairs(servers) do
+        if server == server_configs[i] then
+          is_present = true
+          break
+        end
+			end
+			if not is_present then
+				servers[#servers + 1] = server_configs[i]
+			end
+		end
 
-		for _, server in pairs(all_servers) do
+		for _, server in pairs(servers) do
 			local server_opts = opts.servers[server] or { on_attach = default_on_attach }
 			server_opts.capabilities = vim.tbl_deep_extend(
 				"force",
