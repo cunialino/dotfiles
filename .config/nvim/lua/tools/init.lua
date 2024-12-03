@@ -2,7 +2,6 @@ local tool_utils = {}
 tool_utils.tools_table = {
 	python = {
 		dap = { "debugpy" },
-		lsp = { "ruff_lsp", "pylsp" },
 		linters = { "mypy" },
 	},
 	lua = {
