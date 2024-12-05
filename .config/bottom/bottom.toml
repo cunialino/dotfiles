@@ -2,11 +2,13 @@
 enable_gpu_memory = true
 [[row]]
   ratio=30
-  [[row.child]]
+[[row.child]]
   type="cpu"
-  [[row.child]]
-    type="mem"
+[[row]]
+ratio=30
+[[row.child]]
+type="mem"
 [[row]]
   ratio=30
-  [[row.child]]
-    type="proc"
+[[row.child]]
+  type="proc"
