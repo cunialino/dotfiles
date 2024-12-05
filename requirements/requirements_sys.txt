@@ -13,3 +13,10 @@ wofi
 pulseaudio
 pamixer
 wezterm
+seatd
+turnstile
+mesa
+Waybar
+socklog-void
+ufw
+wayvnc
