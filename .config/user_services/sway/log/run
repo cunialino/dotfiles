@@ -1,0 +1,3 @@
+#! /bin/bash
+
+exec svlogd -tt ~/.local/state/log/sway

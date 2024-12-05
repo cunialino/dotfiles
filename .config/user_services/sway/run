@@ -1,0 +1,5 @@
+#! /bin/sh
+
+export WLR_BACKENDS=headless
+export WLR_LIBINPUT_NODEVICE=1 
+exec chpst -e "$TURNSTILE_ENV_DIR" sway --config ~/.config/sway/headless  2>&1
