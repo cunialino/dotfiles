@@ -1,2 +1,2 @@
-pynvim
 pipx
+pynvim

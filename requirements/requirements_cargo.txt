@@ -1,10 +1,10 @@
 bat
+bottom
 cargo-nextest
 difftastic
 eza
 fd-find
+nu
+ripgrep
 starship
 zellij
-nu
-bottom
-ripgrep
