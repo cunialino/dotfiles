@@ -27,3 +27,5 @@ Ohara/
 .config/neofetch
 .config/dvc
 .aws
+.config/**/supervise
+.config/service
