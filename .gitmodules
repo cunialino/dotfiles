@@ -13,3 +13,6 @@
 [submodule "builds/void-packages"]
 	path = builds/void-packages
 	url = https://github.com/void-linux/void-packages.git
+[submodule ".config/yazi/plugins/starship.yazi"]
+	path = .config/yazi/plugins/starship.yazi
+	url = https://github.com/Rolv-Apneseth/starship.yazi.git
