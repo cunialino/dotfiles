@@ -2,6 +2,7 @@ bat
 bottom
 cargo-nextest
 difftastic
+du-dust
 eza
 fd-find
 nu
