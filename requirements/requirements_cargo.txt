@@ -7,4 +7,6 @@ fd-find
 nu
 ripgrep
 starship
+yazi-cli
+yazi-fm
 zellij
