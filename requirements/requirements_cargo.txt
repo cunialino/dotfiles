@@ -5,6 +5,7 @@ difftastic
 du-dust
 eza
 fd-find
+just
 nu
 ripgrep
 starship
