@@ -14,39 +14,6 @@ local function format_diagnostic(diagnostic)
 	return diagnostic.message
 end
 
-local function default_on_attach(client, bufnr)
-	local keys = {
-		{ "<leader>l", group = "+LSP" },
-		{ "<leader>li", ":LspInfo<cr>", desc = "Connected Language Servers" },
-		{ "<leader>lK", "<cmd>lua vim.lsp.buf.hover()<CR>", desc = "Hover" },
-		{ "<leader>lw", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", desc = "Add workspace folder" },
-		{ "<leader>lW", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", desc = "Remove workspace folder" },
-		{
-			"<leader>ll",
-			"<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>",
-			desc = "List workspace folder",
-		},
-		{ "<leader>lt", "<cmd>lua vim.lsp.buf.type_definition()<CR>", desc = "Type definition" },
-		{ "<leader>ld", "<cmd>lua vim.lsp.buf.definition()<CR>", desc = "Go to definition" },
-		{ "<leader>lD", "<cmd>lua vim.lsp.buf.delaration()<CR>", desc = "Go to declaration" },
-		{ "<leader>lr", "<cmd>lua vim.lsp.buf.references()<cr>", desc = "References" },
-		{ "<leader>lR", "<cmd>lua vim.lsp.buf.rename()<CR>", desc = "Rename" },
-		{ "<leader>la", "<cmd>lua vim.lsp.buf.code_action()<CR>", desc = "Code actions" },
-	}
-	local bufname = vim.api.nvim_buf_get_name(bufnr)
-	local wk = require("which-key")
-	wk.add(keys)
-	if string.match(bufname, "conjure") then
-		vim.diagnostic.enable(false, bufnr)
-		vim.diagnostic.hide(nil, bufnr)
-		vim.diagnostic.reset(nil, bufnr)
-		if not vim.lsp.buf_is_attached(bufnr, client.id) then
-			vim.lsp.buf_detach_client(bufnr, client.id)
-		end
-		return
-	end
-end
-
 return {
 	"neovim/nvim-lspconfig",
 	event = { "BufReadPre", "BufNewFile" },
@@ -76,9 +43,12 @@ return {
 				},
 			},
 			servers = {
+				typos_lsp = {
+					install_with_mason = true,
+				},
 				pylsp = {
-					on_attach = default_on_attach,
-					cmd = { "uvx", "--from", "python-lsp-server[rope]", "pylsp" },
+					install_with_mason = false,
+					cmd = { "pylsp" },
 					settings = {
 						pylsp = {
 							plugins = {
@@ -91,13 +61,11 @@ return {
 					},
 				},
 				ruff = {
-					on_attach = function(client, bufnr)
-						default_on_attach(client, bufnr)
-					end,
-					cmd = { "uvx", "ruff", "server" },
+					install_with_mason = false,
+					cmd = { "ruff", "server" },
 				},
 				lua_ls = {
-					on_attach = default_on_attach,
+					install_with_mason = true,
 					settings = {
 						Lua = {
 							diagnostics = {
@@ -116,7 +84,7 @@ return {
 					},
 				},
 				yamlls = {
-					on_attach = default_on_attach,
+					install_with_mason = true,
 					settings = {
 						yaml = {
 							schemaStore = {
@@ -134,7 +102,7 @@ return {
 					},
 				},
 				rust_analyzer = {
-					on_attach = default_on_attach,
+					install_with_mason = false,
 					settings = {
 						["rust-analyzer"] = {
 							checkOnSave = {
@@ -160,10 +128,10 @@ return {
 		for i = 1, #server_configs do
 			local is_present = false
 			for _, server in ipairs(servers) do
-        if server == server_configs[i] then
-          is_present = true
-          break
-        end
+				if server == server_configs[i] then
+					is_present = true
+					break
+				end
 			end
 			if not is_present then
 				servers[#servers + 1] = server_configs[i]
@@ -171,7 +139,7 @@ return {
 		end
 
 		for _, server in pairs(servers) do
-			local server_opts = opts.servers[server] or { on_attach = default_on_attach }
+			local server_opts = opts.servers[server] or {}
 			server_opts.capabilities = vim.tbl_deep_extend(
 				"force",
 				vim.lsp.protocol.make_client_capabilities(),
@@ -182,6 +150,24 @@ return {
 		end
 		vim.diagnostic.config(vim.deepcopy(opts.diagnostics))
 	end,
+	keys = {
+		{ "<leader>l", desc = "+LSP" },
+		{ "<leader>li", ":LspInfo<cr>", desc = "Connected Language Servers" },
+		{ "<leader>lK", "<cmd>lua vim.lsp.buf.hover()<CR>", desc = "Hover" },
+		{ "<leader>lw", "<cmd>lua vim.lsp.buf.add_workspace_folder()<CR>", desc = "Add workspace folder" },
+		{ "<leader>lW", "<cmd>lua vim.lsp.buf.remove_workspace_folder()<CR>", desc = "Remove workspace folder" },
+		{
+			"<leader>ll",
+			"<cmd>lua print(vim.inspect(vim.lsp.buf.list_workspace_folders()))<CR>",
+			desc = "List workspace folder",
+		},
+		{ "<leader>lt", "<cmd>lua vim.lsp.buf.type_definition()<CR>", desc = "Type definition" },
+		{ "<leader>ld", "<cmd>lua vim.lsp.buf.definition()<CR>", desc = "Go to definition" },
+		{ "<leader>lD", "<cmd>lua vim.lsp.buf.delaration()<CR>", desc = "Go to declaration" },
+		{ "<leader>lr", "<cmd>lua vim.lsp.buf.references()<cr>", desc = "References" },
+		{ "<leader>lR", "<cmd>lua vim.lsp.buf.rename()<CR>", desc = "Rename" },
+		{ "<leader>la", "<cmd>lua vim.lsp.buf.code_action()<CR>", desc = "Code actions" },
+	},
 	dependencies = {
 		{ "b0o/schemastore.nvim" },
 		{ "hrsh7th/cmp-nvim-lsp" },
