@@ -1,12 +1,23 @@
 local function conv(names, mapping)
 	local res = {}
-	for _, name in ipairs(names) do
-		if mapping[name] ~= nil then
+	for k, v in pairs(names) do
+		local name
+		local install_with_mason = nil
+		if tonumber(k) then
+			name = v
+		else
+			name = k
+			if names[name] ~= nil then
+				install_with_mason = names[name].install_with_mason
+			end
+		end
+		if mapping[name] ~= nil and (install_with_mason == nil or install_with_mason) then
 			table.insert(res, mapping[name])
 		end
 	end
 	return res
 end
+
 return {
 	"williamboman/mason.nvim",
 	dependencies = {
@@ -34,7 +45,7 @@ return {
 		})
 
 		local lsp_to_mason = require("mason-lspconfig").get_mappings().lspconfig_to_mason
-		local lspconfig_names = tools.parse_table("lsp")
+		local lspconfig_names = require("plugins.lsp.lsp").opts()["servers"]
 
 		local mason_names = conv(lspconfig_names, lsp_to_mason)
 
@@ -52,9 +63,7 @@ return {
 		vim.list_extend(mason_names, tools.parse_table("dap"))
 		vim.list_extend(mason_names, tools.parse_table("linters"))
 
-		mason_tool_installer.setup({
-			ensure_installed = mason_names, -- auto-install configured servers (with lspconfig)
-		})
+		mason_tool_installer.setup({ ensure_installed = mason_names })
 	end,
 	keys = {
 		{ "<leader>lI", "<cmd>Mason<cr>", desc = "Install language server" },

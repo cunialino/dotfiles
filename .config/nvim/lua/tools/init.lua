@@ -5,16 +5,10 @@ tool_utils.tools_table = {
 		linters = { "mypy" },
 	},
 	lua = {
-		lsp = { "lua_ls" },
 		formatters = { "stylua" },
 	},
-	yaml = {
-		formatters = { "prettier" },
-		lsp = { "yamlls" },
-	},
 	rust = {
-		formatters = { "rustfmt" },
-		lsp = { "rust_analyzer" },
+		formatters = { rustfmt = { install_with_mason = false } },
 	},
 	markdown = {
 		linters = { "proselint" },
@@ -22,9 +16,6 @@ tool_utils.tools_table = {
 	json = {
 		formatters = { "jq" },
 		linters = { "jq" },
-	},
-	["*"] = {
-		lsp = { "typos_lsp" },
 	},
 }
 
