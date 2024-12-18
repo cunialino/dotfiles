@@ -94,7 +94,25 @@ return {
 								-- Avoid TypeError: Cannot read properties of undefined (reading 'length')
 								url = "",
 							},
-							schemas = require("schemastore").yaml.schemas(),
+							schemas = require("schemastore").yaml.schemas({
+								replace = {
+									["AWS CloudFormation"] = {
+										name = "AWS CloudFormation",
+										description = "AWS CloudFormation provides a common language for you to describe and provision all the infrastructure resources in your cloud environment",
+										fileMatch = {
+											"*.cf.json",
+											"*.cf.yml",
+											"*.cf.yaml",
+											"cloudformation.json",
+											"cloudformation.yml",
+											"cloudformation.yaml",
+											"iac/*.yaml",
+											"iac/*.yml",
+										},
+										url = "https://raw.githubusercontent.com/awslabs/goformation/master/schema/cloudformation.schema.json",
+									},
+								},
+							}),
 							format = {
 								enable = true,
 							},
