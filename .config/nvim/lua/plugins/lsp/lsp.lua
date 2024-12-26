@@ -43,6 +43,9 @@ return {
 				},
 			},
 			servers = {
+				nushell = {
+					install_with_mason = false,
+				},
 				typos_lsp = {
 					install_with_mason = true,
 				},
@@ -138,7 +141,6 @@ return {
 	config = function(_, opts)
 		require("neodev").setup({})
 		local lspconfig = require("lspconfig")
-		local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
 		local servers = require("mason-lspconfig").get_installed_servers()
 		local server_configs = vim.tbl_keys(opts.servers)
@@ -161,7 +163,7 @@ return {
 			server_opts.capabilities = vim.tbl_deep_extend(
 				"force",
 				vim.lsp.protocol.make_client_capabilities(),
-				cmp_nvim_lsp.default_capabilities(),
+				require("blink.cmp").get_lsp_capabilities(),
 				server_opts.capabilities or {}
 			)
 			lspconfig[server].setup(server_opts)
@@ -188,7 +190,7 @@ return {
 	},
 	dependencies = {
 		{ "b0o/schemastore.nvim" },
-		{ "hrsh7th/cmp-nvim-lsp" },
+		{ "saghen/blink.cmp" },
 		{ "folke/neodev.nvim" },
 		{ "williamboman/mason.nvim" },
 	},
