@@ -1,9 +1,9 @@
 keybinds clear-defaults=true {
-  shared_except "normal"{
-    bind "Ctrl g" "Esc" { SwitchToMode "Normal"; }
-  }
-  normal {
+  shared_except "tmux"{
     bind "Ctrl g" { SwitchToMode "Tmux"; }
+  }
+  tmux {
+    bind "Ctrl g" { SwitchToMode "Normal"; }
   }
   tmux {
     bind "p" { SwitchToMode "Pane"; }
@@ -12,11 +12,10 @@ keybinds clear-defaults=true {
     bind "m" { SwitchToMode "Move"; }
     bind "S" { SwitchToMode "Scroll"; }
     bind "s" { SwitchToMode "Session"; }
-    bind "M" {
-      LaunchOrFocusPlugin "file:~/.local/share/zellij/plugins/multitask.wasm" {
-        floating true
-      };
-      SwitchToMode "Normal";
+    bind "z" { 
+      Run "zellij" "run" "-cf" "--" "zellij_sessionizer.sh" {
+        close_on_exit true
+      }; SwitchToMode "Normal"
     }
     bind "q" { Quit; }
     bind "]" { NextSwapLayout; SwitchToMode "Normal"; }
@@ -107,12 +106,46 @@ keybinds clear-defaults=true {
   }
 }
 
-pane_frames true
+pane_frames false
 
 theme "catppuccin-mocha"
 
 mouse_mode true
-session_serialization false
+session_serialization true
 copy_command "wl-copy"
 
-default_layout "welcome"
+default_layout "simple"
+
+plugins {
+  sessionizer location="https://github.com/cunialino/zellij-sessionizer/releases/download/v0.1.0/sessionizer.wasm" {
+    cwd "/home/elia"
+  }
+  zjstatus location="https://github.com/dj95/zjstatus/releases/download/v0.19.1/zjstatus.wasm" {
+            format_left  "{mode}{tabs}"
+
+            hide_frame_for_single_pane "true"
+
+            tab_normal   "#[fg=#6C7086] {name} "
+            tab_active   "#[fg=#9399B2,bold,italic] {name} "
+
+            command_git_branch_command     "git rev-parse --abbrev-ref HEAD"
+            command_git_branch_format      "#[fg=blue] {stdout} "
+            command_git_branch_interval    "10"
+            command_git_branch_rendermode  "static"
+
+            mode_locked        "#[fg=red] {name} "
+            mode_normal        "#[fg=black] {name} "
+            mode_resize        "#[fg=orange] {name} "
+            mode_pane          "#[fg=blue] {name} "
+            mode_tab           "#[fg=blue] {name} "
+            mode_scroll        "#[fg=blue] {name} "
+            mode_enter_search  "#[fg=black] {name} "
+            mode_search        "#[fg=black] {name} "
+            mode_rename_tab    "#[fg=black] {name} "
+            mode_rename_pane   "#[fg=black] {name} "
+            mode_session       "#[fg=black] {name} "
+            mode_move          "#[fg=black] {name} "
+            mode_prompt        "#[fg=black] {name} "
+            mode_tmux          "#[fg=black] {name} "
+  }
+}
