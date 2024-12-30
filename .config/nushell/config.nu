@@ -322,6 +322,7 @@ alias cat = bat
 alias diff = delta
 alias find = fd
 alias ag = overlay use git_config.nu
+alias z = zellij_sessionizer.sh
 
 source aliases/arch.nu
 
