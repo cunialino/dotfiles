@@ -6,6 +6,7 @@ dhcp
 dhcpcd
 dosfstools
 efibootmgr
+foot
 light
 mesa
 pamixer
@@ -18,5 +19,4 @@ turnstile
 ufw
 wayland
 wayvnc
-wezterm
 wofi
