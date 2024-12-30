@@ -139,7 +139,6 @@ return {
 		}
 	end,
 	config = function(_, opts)
-		require("neodev").setup({})
 		local lspconfig = require("lspconfig")
 
 		local servers = require("mason-lspconfig").get_installed_servers()
@@ -191,7 +190,6 @@ return {
 	dependencies = {
 		{ "b0o/schemastore.nvim" },
 		{ "saghen/blink.cmp" },
-		{ "folke/neodev.nvim" },
 		{ "williamboman/mason.nvim" },
 	},
 }
