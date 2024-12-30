@@ -10,7 +10,7 @@
 # Please see http://i3wm.org/docs/userguide.html for a complete reference!
 
 set $opacity 0.8
-set $pip_op 0.4
+set $pip_op 0.2
 set $mod Mod4
 
 # Font for window titles. Will also be used by the bar unless a different font
