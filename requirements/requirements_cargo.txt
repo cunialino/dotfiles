@@ -6,6 +6,7 @@ du-dust
 eza
 fd-find
 just
+mdcat
 nu
 ripgrep
 starship
