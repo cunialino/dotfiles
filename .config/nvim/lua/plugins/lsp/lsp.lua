@@ -49,6 +49,10 @@ return {
 				typos_lsp = {
 					install_with_mason = true,
 				},
+				zk = {
+          install_with_mason = false,
+          autostart = false,
+				},
 				pylsp = {
 					install_with_mason = false,
 					cmd = { "pylsp" },
