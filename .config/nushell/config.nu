@@ -310,6 +310,15 @@ def --env y [...args] {
 	rm -fp $tmp
 }
 
+def add_dep [dep, type] {
+  if $type not-in ["cargo", "sys"] {
+    echo $"Type should be cargo or sys, found ($type)"
+  } else {
+    let file = $"~/requirements/requirements_($type).txt"
+    open $"requirements/requirements_($type).txt" | split row "\n" | append $dep | sort | str join "\n" | collect | save -f $"requirements/requirements_($type).txt"
+  }
+}
+
 alias grep = rg
 alias cat = bat
 alias diff = delta
