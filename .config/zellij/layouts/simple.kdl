@@ -6,7 +6,9 @@ layout {
     }
   }
   tab focus=true name="Edit" {
-    pane name="Neovim" borderless=true edit="." 
+    pane name="Neovim" borderless=true command="nu" {
+      args "-c 'nvim .'"
+    } 
   }
   tab name="Terminal"{
     pane name="" borderless=true 
