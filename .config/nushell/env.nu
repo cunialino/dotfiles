@@ -39,6 +39,6 @@ $env.PATH = ($env.PATH | split row (char esep) | prepend ([$env.PYENV_ROOT, shim
 
 $env.PATH = ($env.PATH | split row (char esep) | prepend ([$env.HOME, .cargo/bin] | path join ))
 
-$env.PATH = ($env.PATH | split row (char esep) | prepend ~/.local/bin/)
+$env.PATH = ($env.PATH | split row (char esep) | prepend ~/.local/bin/ | prepend /opt/texlive/2024/bin/x86_64-linux/)
 
 $env.EDITOR = "nvim"
