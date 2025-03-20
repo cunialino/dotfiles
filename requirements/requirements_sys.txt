@@ -10,6 +10,7 @@ foot
 light
 mesa
 pamixer
+plantuml
 pulseaudio
 seatd
 socklog-void
