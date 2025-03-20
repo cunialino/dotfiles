@@ -65,8 +65,7 @@ vim.g.jupytext_fmt = "py:percent"
 
 local is_wsl = string.match(string.lower(vim.fn.system({ "uname", "-r" })), "wsl2") ~= nil
 if is_wsl then
-	local clip_cmd =
-		"/mnt/c/Windows/WinSxS/amd64_microsoft-windows-clip_31bf3856ad364e35_10.0.19041.1_none_5dccefa0bb5ef60b/clip.exe"
+	local clip_cmd = "/mnt/c/Windows/System32/clip.exe"
 
 	local powershell_cmd = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe "
 		.. '-c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))'
