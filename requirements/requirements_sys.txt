@@ -2,6 +2,7 @@ Waybar
 alsa-utils
 bemenu
 bluez
+chrony
 dhcp
 dhcpcd
 dosfstools
