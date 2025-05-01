@@ -25,3 +25,5 @@ lazy.setup({
 		notify = false,
 	},
 })
+
+vim.cmd("silent! Copilot disable")
