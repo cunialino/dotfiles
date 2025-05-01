@@ -17,6 +17,7 @@ neovim
 nodejs
 openssh
 openssl-devel
+podman
 rustup
 task
 unzip
