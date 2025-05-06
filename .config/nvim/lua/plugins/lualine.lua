@@ -1,6 +1,6 @@
 local function lsp_clients()
 	local curr_buffer = vim.fn.bufnr()
-	local clients = vim.lsp.get_active_clients({ bufnr = curr_buffer })
+	local clients = vim.lsp.get_clients({ bufnr = curr_buffer })
 	local clients_list = {}
 	for _, client in pairs(clients) do
 		table.insert(clients_list, client.name)
@@ -46,7 +46,7 @@ return {
 					{
 						lsp_clients,
 						cond = function()
-							return #vim.lsp.get_active_clients({ bufnr = vim.fn.bufnr() }) > 0
+							return #vim.lsp.get_clients({ bufnr = vim.fn.bufnr() }) > 0
 						end,
 					},
 					{
