@@ -12,6 +12,28 @@ keybinds clear-defaults=true {
     bind "m" { SwitchToMode "Move"; }
     bind "S" { SwitchToMode "Scroll"; }
     bind "s" { SwitchToMode "Session"; }
+    bind "y" { 
+      Run "yazi" {
+          close_on_exit true
+          floating true
+          x "10%"
+          y "15%"
+          width "80%"
+          height "70%"
+      };
+      SwitchToMode "Normal"
+    }
+    bind "g" { 
+      Run "lazygit" {
+          close_on_exit true
+          floating true
+          x "10%"
+          y "15%"
+          width "80%"
+          height "70%"
+      };
+      SwitchToMode "Normal"
+    }
     bind "z" { 
       Run "zellij" "run" "-cf" "--" "zellij_sessionizer.sh" {
         close_on_exit true
