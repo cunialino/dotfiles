@@ -326,3 +326,6 @@ source aliases/arch.nu
 
 use starship.nu
 source carapace.nu
+
+mkdir ($nu.data-dir | path join "vendor/autoload")
+tv init nu | save -f ($nu.data-dir | path join "vendor/autoload/tv.nu")
