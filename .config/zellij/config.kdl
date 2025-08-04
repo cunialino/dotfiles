@@ -137,7 +137,7 @@ mouse_mode true
 session_serialization true
 copy_command "wl-copy"
 
-default_layout "simple"
+default_layout "terminal"
 
 plugins {
   sessionizer location="https://github.com/cunialino/zellij-sessionizer/releases/download/v0.1.1/sessionizer.wasm" {

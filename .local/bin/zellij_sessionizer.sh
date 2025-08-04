@@ -2,7 +2,7 @@
 
 LOG_FILE=$HOME/sessionizer.log
 
-LAYOUT=simple
+LAYOUT=terminal
 
 if [ $# -eq 1 ]; then 
   CWD="$1"
