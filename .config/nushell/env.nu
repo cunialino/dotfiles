@@ -41,6 +41,8 @@ $env.PATH = ($env.PATH | split row (char esep) | prepend ([$env.HOME, .cargo/bin
 
 $env.PATH = ($env.PATH | split row (char esep) | prepend ~/.local/bin/ | prepend /opt/texlive/2024/bin/x86_64-linux/)
 
+$env.PATH = ($env.PATH | split row (char esep) | prepend ~/.nix-profile/bin)
+
 $env.EDITOR = "nvim"
 
 $env.ZK_NOTEBOOK_DIR = ($env.HOME | path join "builds/Ohara/")
