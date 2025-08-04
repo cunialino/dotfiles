@@ -6,6 +6,7 @@ mouse = false
 gutters = ["diff", "diagnostics", "line-numbers", "spacer"]
 bufferline = "multiple"
 true-color = true
+shell = ["nu", "--stdin", "-c"]
 
 [editor.cursor-shape]
 insert = "bar"
@@ -18,8 +19,29 @@ hidden = false
 [editor.statusline]
 left = ["mode", "spinner"]
 center = ["file-name"]
-right = ["diagnostics", "selections", "position", "file-encoding", "file-line-ending", "file-type"]
+right = [
+  "diagnostics",
+  "selections",
+  "position",
+  "file-encoding",
+  "file-line-ending",
+  "file-type",
+]
 separator = "│"
-mode.normal = "NORMAL"
-mode.insert = "INSERT"
-mode.select = "SELECT"
+mode.normal = "N"
+mode.insert = "I"
+mode.select = "S"
+
+[keys.normal]
+C-Y = [
+  ':sh rm -f /tmp/unique-file',
+  ':insert-output yazi %{buffer_name} --chooser-file=/tmp/unique-file',
+  ':open %sh{cat /tmp/unique-file}',
+  ':redraw',
+]
+C-y = [
+  ':sh rm -f /tmp/unique-file',
+  ':insert-output yazi --chooser-file=/tmp/unique-file',
+  ':open %sh{cat /tmp/unique-file}',
+  ':redraw',
+]
