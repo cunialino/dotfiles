@@ -1,19 +1,14 @@
 use-grammars = { except = [ "hare", "wren", "gemini" ] }
-[[language]]
-name = "python"
-scope = "source.python"
-injection-regex = "python"
-file-types = ["py","pyi","py3","pyw",".pythonstartup",".pythonrc"]
-shebangs = ["python"]
-roots = [".", "pyproject.toml"]
-comment-token = "#"
-language-servers = ["ruff", "pylsp"]
-indent = { tab-width = 4, unit = "    " }
-
-[language.formatter]
-command = "ruff"
-args = [ "format" ]
 
 [language-server.ruff]
 command = "ruff"
 args = ["server"]
+
+[[language]]
+name = "python"
+language-servers = ["ruff", "pylsp"]
+
+# [language.formatter]
+# command = "ruff"
+# args = [ "format" ]
+
