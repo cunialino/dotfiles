@@ -1,11 +1,12 @@
 local icons = require("icons")
 vim.lsp.enable({
+  "lua_ls",
+  "nil",
   "nushell",
-  "typos_lsp",
-  "zk",
   "pylsp",
   "ruff",
-  "lua_ls",
+  "typos_lsp",
+  "zk",
 })
 
 vim.diagnostic.config({
