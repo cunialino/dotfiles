@@ -64,25 +64,23 @@ vim.g.loaded_remote_plugins = 1
 vim.g.jupytext_fmt = "py:percent"
 
 local is_wsl = string.match(string.lower(vim.fn.system({ "uname", "-r" })), "wsl2") ~= nil
+local paste_cmd = "wl-paste"
 if is_wsl then
-	local clip_cmd = "/mnt/c/Windows/System32/clip.exe"
-
-	local powershell_cmd = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe "
+	local paste_cmd = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe "
 		.. '-c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))'
-
-	vim.g.clipboard = {
-		name = "WslClipboard",
-		copy = {
-			["+"] = clip_cmd,
-			["*"] = clip_cmd,
-		},
-		paste = {
-			["+"] = powershell_cmd,
-			["*"] = powershell_cmd,
-		},
-		cache_enabled = 0,
-	}
 end
+vim.g.clipboard = {
+  name = "WslClipboard",
+  copy = {
+    ['+'] = require('vim.ui.clipboard.osc52').copy('+'),
+    ['*'] = require('vim.ui.clipboard.osc52').copy('*'),
+  },
+  paste = {
+    ["+"] = paste_cmd,
+    ["*"] = paste_cmd,
+  },
+  cache_enabled = 0,
+}
 vim.opt.shell = "nu"
 vim.opt.shellcmdflag = "--login --stdin --no-newline -c"
 vim.opt.shellredir = "out+err> %s"
@@ -91,3 +89,8 @@ vim.opt.shelltemp = false
 vim.opt.shellxescape = ""
 vim.opt.shellxquote = ""
 vim.opt.shellquote = ""
+
+
+local termfeatures = vim.g.termfeatures or {}
+termfeatures.osc52 = false
+vim.g.termfeatures = termfeatures
