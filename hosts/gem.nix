@@ -7,6 +7,7 @@
   imports = [
     (modulesPath + "/core")
     (modulesPath + "/term")
+    (modulesPath + "/nvim")
   ];
 
   home.username = "elia";
