@@ -5,7 +5,6 @@
 
 {
   imports = [
-    (modulesPath + "/common")
     (modulesPath + "/core")
     (modulesPath + "/term")
     (modulesPath + "/nvim")

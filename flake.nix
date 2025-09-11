@@ -23,6 +23,8 @@
         };
       };
 
+      mod_dir = ./modules;
+
       mkHostAttr =
         name:
         { system, file }:
@@ -30,9 +32,9 @@
           name = name;
           value = home-manager.lib.homeManagerConfiguration {
             pkgs = nixpkgs.legacyPackages.${system};
-            modules = [ file ];
+            modules = [ (mod_dir + "/common") file ];
             extraSpecialArgs = {
-              modulesPath = ./modules;
+              modulesPath = mod_dir;
             };
           };
         };
