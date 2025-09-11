@@ -1,13 +1,13 @@
-{ pkgs }:
-
-let
-  nvimPkgs = with pkgs; [
-    neovim
-    lua-language-server
-  ];
-
-in
+{ pkgs, ... }:
 {
-  name = "nvim";
-  packages = nvimPkgs;
+  programs.neovim = {
+    enable = true;
+    defaultEditor = true;
+    extraPackages = with pkgs; [
+      lua-language-server
+      nil
+      nixfmt
+    ];
+
+  };
 }
