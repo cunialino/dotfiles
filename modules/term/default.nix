@@ -5,7 +5,6 @@
 
 {
   home.packages = with pkgs; [
-    bat
     bottom
     difftastic
     du-dust
@@ -20,4 +19,6 @@
     yazi
     zellij
   ];
+
+  programs.bat.enable = true;
 }
