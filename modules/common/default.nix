@@ -4,6 +4,6 @@
   catppuccin.flavor = "mocha";
   catppuccin.accent = "blue";
   programs.home-manager.enable = true;
-
+  nixpkgs.config.allowUnfree = true;
 }
 
