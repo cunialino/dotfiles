@@ -8,6 +8,7 @@
     (modulesPath + "/core")
     (modulesPath + "/term")
     (modulesPath + "/nvim")
+    (modulesPath + "/gui")
   ];
 
   home.username = "elia";
