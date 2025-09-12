@@ -231,4 +231,14 @@
 
   home.file.".config/zellij".source = ./zellij;
 
+
+  programs.nushell = {
+    enable = true;
+    configFile.source = ./nushell/config.nu;
+    envFile.source = ./nushell/env.nu;
+    loginFile.source = ./nushell/login.nu;
+  };
+
+  home.file.".config/nushell/scripts".source = ./nushell/scripts;
+
 }

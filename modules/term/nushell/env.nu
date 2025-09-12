@@ -1,11 +1,3 @@
-# Nushell Environment Config File
-#
-# version = "0.88.1"
-
-# Specifies how environment variables are:
-# - converted from a string to a value on Nushell startup (from_string)
-# - converted from a value back to a string when running external commands (to_string)
-# Note: The conversions happen *after* config.nu is loaded
 $env.ENV_CONVERSIONS = {
     "PATH": {
         from_string: { |s| $s | split row (char esep) | path expand --no-symlink }
@@ -31,16 +23,7 @@ $env.NU_PLUGIN_DIRS = [
 
 
 
-$env.PYENV_ROOT = ([$env.HOME, builds/pyenv] | path join)
-
-$env.PATH = ($env.PATH | split row (char esep) | prepend ([$env.PYENV_ROOT, bin] | path join))
-
-$env.PATH = ($env.PATH | split row (char esep) | prepend ([$env.PYENV_ROOT, shims] | path join))
-
-$env.PATH = ($env.PATH | split row (char esep) | prepend ([$env.HOME, .cargo/bin] | path join ))
-
-$env.PATH = ($env.PATH | split row (char esep) | prepend ~/.local/bin/ | prepend /opt/texlive/2024/bin/x86_64-linux/)
-
+$env.PATH = ($env.PATH | split row (char esep) | prepend ~/.local/bin)
 $env.PATH = ($env.PATH | split row (char esep) | prepend ~/.nix-profile/bin)
 
 $env.EDITOR = "nvim"
