@@ -1,3 +1,4 @@
+local lock_path = vim.fn.expand("$HOME/builds/newdots/modules/nvim/conf/lazy-lock.json")
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
   vim.fn.system({
@@ -15,5 +16,5 @@ require("lazy").setup({
     { import = "plugins" },
   },
   checker = { enabled = true },
-  lockfile = vim.fn.expand("$HOME/builds/newdots/modules/nvim/conf/lazy-lock.json"),
+  lockfile = lock_path,
 })

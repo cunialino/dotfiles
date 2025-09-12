@@ -66,7 +66,7 @@ vim.g.jupytext_fmt = "py:percent"
 local is_wsl = string.match(string.lower(vim.fn.system({ "uname", "-r" })), "wsl2") ~= nil
 local paste_cmd = "wl-paste"
 if is_wsl then
-	local paste_cmd = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe "
+	paste_cmd = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe "
 		.. '-c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))'
 end
 vim.g.clipboard = {
