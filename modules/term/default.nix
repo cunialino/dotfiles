@@ -201,5 +201,28 @@
       };
     };
   };
+  programs.yazi = {
+    enable = true;
+
+    initLua = ./yazi/init.lua;
+    keymap = {
+      mgr.prepend_keymap = [
+        {
+          on = [
+            "z"
+            "s"
+          ];
+          run = "shell --block 'zellij_sessionizer.sh $0'";
+          desc = "Start New session in selected dir";
+        }
+      ];
+    };
+
+    plugins = {
+      "no-status" = pkgs.yaziPlugins.no-status;
+      "starship" = pkgs.yaziPlugins.starship;
+    };
+
+  };
 
 }
