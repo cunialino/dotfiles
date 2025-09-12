@@ -6,7 +6,6 @@
 
 {
   home.packages = with pkgs; [
-    bottom
     difftastic
     du-dust
     fd
@@ -14,11 +13,9 @@
     nushell
     ripgrep
     sd
-    starship
     television
     vulnix
     yazi
-    zellij
   ];
 
   programs.bat.enable = true;
