@@ -1,9 +1,6 @@
 [submodule ".config/waybar/themes/catppucin"]
 	path = .config/waybar/themes/catppucin
 	url = https://github.com/catppuccin/waybar.git
-[submodule ".config/nushell/nu_scripts"]
-	path = .config/nushell/nu_scripts
-	url = https://github.com/nushell/nu_scripts.git
 [submodule "builds/void-packages"]
 	path = builds/void-packages
 	url = https://github.com/void-linux/void-packages.git
