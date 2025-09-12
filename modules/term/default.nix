@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   ...
 }:
@@ -138,5 +139,70 @@
   };
 
   home.file.".config/zk/templates".source = ./zk/templates;
+
+  programs.starship = {
+    enable = true;
+
+    enableNushellIntegration = true;
+    settings = {
+      format = ''
+        [╭─ ](surface2)$directory$git_branch$git_status$git_state$package
+        [╰─ ](surface2)[❯](green) '';
+      right_format = "$aws$python$cmd_duration$lua";
+
+      aws = {
+        symbol = " ";
+        format = "[$symbol($profile )(\\($region\\) )(\\[$duration\\] )]($style)";
+        force_display = true;
+      };
+
+      directory = {
+        home_symbol = " ";
+        read_only = " 󰌾";
+        style = "bold sapphire";
+        substitutions = {
+          " /Downloads" = "";
+          " /Documents" = "󰈙";
+          " /Music" = "";
+          " /wallpapers" = "";
+          " /WORK/" = ": ";
+          " /WORK" = "";
+        };
+      };
+
+      docker_context.symbol = " ";
+
+      git_branch = {
+        symbol = " ";
+        style = "bold green";
+      };
+
+      git_status = {
+        format = ''$all_status$behind$ahead'';
+        behind = "[ \${behind_count}](green) ";
+        ahead = "[ \${ahead_count}](green) ";
+        conflicted = "[󰞇 \${count}](red) ";
+        untracked = "[ \${count}](blue) ";
+        modified = "[ \${count}](peach) ";
+        staged = "[ \${count}](yellow) ";
+        renamed = "[󰑕 \${count}](green) ";
+        deleted = "[󰚃 \${count}](maroon) ";
+        stashed = "[ \${count}](green) ";
+      };
+
+      hostname.ssh_symbol = " ";
+      lua.symbol = " ";
+
+      package = {
+        symbol = "󰏗 ";
+        style = "bold maroon";
+      };
+
+      python = {
+        symbol = " ";
+        format = "[\${symbol}\${pyenv_prefix}(\${version} )(\\($virtualenv\\) )]($style)";
+      };
+    };
+  };
 
 }
