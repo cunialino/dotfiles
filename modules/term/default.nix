@@ -29,4 +29,35 @@
       externalDiffCommand = "difft --color=always";
     };
   };
+  programs.bottom = {
+    enable = true;
+
+    settings = {
+      flags = {
+        enable_gpu_memory = true;
+      };
+
+      row = [
+        {
+          ratio = 30;
+          child = [
+            { type = "cpu"; }
+          ];
+        }
+        {
+          ratio = 30;
+          child = [
+            { type = "mem"; }
+          ];
+        }
+        {
+          ratio = 30;
+          child = [
+            { type = "proc"; }
+          ];
+        }
+      ];
+    };
+  };
+
 }
