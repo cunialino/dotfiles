@@ -241,4 +241,9 @@
 
   home.file.".config/nushell/scripts".source = ./nushell/scripts;
 
+  programs.carapace = {
+    enable = true;
+    enableNushellIntegration = true;
+  };
+
 }
