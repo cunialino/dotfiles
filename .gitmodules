@@ -1,6 +1,3 @@
-[submodule ".config/bat/themes"]
-	path = .config/bat/themes
-	url = https://github.com/catppuccin/bat.git
 [submodule ".config/lazygit/themes/catppuccin"]
 	path = .config/lazygit/themes/catppuccin
 	url = https://github.com/catppuccin/lazygit.git
