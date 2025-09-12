@@ -44,4 +44,18 @@
       };
     };
   };
+
+  gtk = {
+    enable = true;
+
+    font = {
+      name = "monospace";
+      size = 11;
+    };
+
+    gtk3.extraConfig = {
+      gtk-application-prefer-dark-theme = true;
+    };
+  };
+
 }
