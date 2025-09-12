@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   ...
 }:
@@ -10,12 +9,10 @@
     du-dust
     fd
     just
-    nushell
     ripgrep
     sd
     television
     vulnix
-    yazi
   ];
 
   programs.bat.enable = true;
