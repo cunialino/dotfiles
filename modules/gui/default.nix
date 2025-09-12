@@ -30,4 +30,18 @@
       ${pkgs.fontconfig}/bin/fc-cache -f -v
     '';
   };
+
+  programs.foot = {
+    enable = true;
+    settings = {
+      main = {
+        term = "xterm-256color";
+        font = "monospace:size=12";
+      };
+
+      mouse = {
+        hide-when-typing = "yes";
+      };
+    };
+  };
 }
