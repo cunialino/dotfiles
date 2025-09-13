@@ -3,7 +3,8 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    catppuccin.url = "github:catppuccin/nix";              # pulls the nixpkgs-style Catppuccin flake
+    catppuccin.url = "github:catppuccin/nix"; # pulls the nixpkgs-style Catppuccin flake
+    nixgl.url = "github:nix-community/nixGL";
     home-manager = {
       url = "github:nix-community/home-manager/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -14,6 +15,7 @@
     {
       nixpkgs,
       catppuccin,
+      nixgl,
       home-manager,
       ...
     }:
@@ -33,10 +35,21 @@
         {
           name = name;
           value = home-manager.lib.homeManagerConfiguration {
-            pkgs = nixpkgs.legacyPackages.${system};
-            modules = [ (mod_dir + "/common") file catppuccin.homeModules.catppuccin];
+
+            pkgs = import nixpkgs {
+              system = system;
+              overlays = [
+                nixgl.overlay
+              ];
+            };
+            modules = [
+              (mod_dir + "/common")
+              file
+              catppuccin.homeModules.catppuccin
+            ];
             extraSpecialArgs = {
               modulesPath = mod_dir;
+              nixgl = nixgl;
             };
           };
         };
