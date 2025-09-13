@@ -11,9 +11,13 @@
     with pkgs;
     [
       google-chrome
+      pipewire
+      wireplumber
       noto-fonts-color-emoji
     ]
     ++ (with pkgs.nerd-fonts; [ sauce-code-pro ]);
+
+  home.file.".config/pipewire".source = ./pipewire;
 
   home.file.".local/share/applications/gc.desktop".source = ./google-chrome.desktop;
 
