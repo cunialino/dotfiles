@@ -1,5 +1,0 @@
-include ~/.config/sway/config
-
-output "HEADLESS-1" resolution 1920x1080
-
-exec WAYLAND_DISPLAY=wayland-1 wayvnc --keyboard it 127.0.0.1 &
