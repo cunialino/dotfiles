@@ -1,9 +1,0 @@
-#!/bin/sh
-
-staged_files=$(git diff --name-only --cached)
-tox
-res=$?
-git add requirements.txt
-git add $staged_files
-
-exit $res
