@@ -13,6 +13,7 @@
       google-chrome
       pipewire
       wireplumber
+      wl-clipboard
       noto-fonts-color-emoji
     ]
     ++ (with pkgs.nerd-fonts; [ sauce-code-pro ]);
