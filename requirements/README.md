@@ -1,12 +1,17 @@
-# Requirements
+# System Requirements
 
-In this directory I keep track of the requirements for my dotfiles.
+Here I keep my system level requirments.
 
-Unless otherwise states, the names refer to the ones found in the [xbps package manager](https://docs.voidlinux.org/xbps/index.html).
+As of now, I am working on Void Linux, hence the package manager is [xbps package manager](https://docs.voidlinux.org/xbps/index.html).
 
-I diveded them into the following files:
-- **requirements_term:** here are the ones for the terminal (tty, wsl whatever), xbps
-- **requirements:** here are the ones for running my sway setup on bare metal.
-- **requirements_pyenv_build:** additional deps for building python with [pyenv](https://github.com/pyenv/pyenv)
-- **requirements_cargo:** rust tools I use -> these are for meant to go into `cargo install --locked <pkg>`
-- **requirements_python:** pyhton packages I need -> `pip install <pkg>`
+- bluez: bluetooth stuff, needs service
+- chrony: time sync utils, needs service
+- dhcp
+- dhcpcd
+- dosfstools: honestly... only god nkows what this is for
+- efibootmgr
+- light: wayland light (maybe can be moved to hm)
+- seatd
+- socklog-void
+- turnstile: this is useful to set a bunch of vars we need everywhere
+- ufw: firewall (use this to allow only machines in the same vpn to get in)

@@ -1,33 +1,25 @@
 # Dotfiles
 
-My dotfiles.
+My dotfiles. I just switched them to [home-manager](https://nix-community.github.io/home-manager/).
 
-I organized them so that they are usable both from a Void-Linux distribution and from wsl (using wezterm from Windows host).
+As of now, home-manager does everything except for:
+
+- nix: I need this to get home-manager in first place
+- docker: would be a nightmare due to systemd/runit stuff
+- [system requirments](./requirements/README.md)
 
 ## Install repo 
 
 ```bash
-git clone --bare git@github.com:cunialino/dotfiles.git $HOME/builds/dotfiles
-git --git-dir=$HOME/dotfiles/dotfiles/ --work-tree=$HOME checkout
+git clone git@github.com:cunialino/dotfiles.git $HOME/builds/dotfiles
+cd $HOME/builds/dotfiles
+nix run github:nix-community/home-manager/release-25.05 -- switch --flake .#gem
 ```
 
-Install requirements.
+The only pain point I found with home-manager/nix, is the immutability of lazy-lock.json for nvim.
 
-## Mold
-
-[mold](https://github.com/rui314/mold) is a much faster linter, to always use it, link it to ~/.local/bin/ld:
-```bash
-sudo ln -s /usr/bin/mold ~/.local/bin/ld
-```
-
-Make also use ~/.local/bin/ld is in your PATH before /use/bin/.
-
-## NUSHELL
-
-change default shell
-```bash
-chsh -s /usr/bin/nu
-```
+My workaround was to set lock path in [lazy-settings](./modules/nvim/conf/lua/core/lazy.lua). 
+If repo not at that path, change it accordingly.
 
 ## Void-Linux
 
@@ -35,11 +27,8 @@ Session setup:
 ```bash
 sudo usermod -aG _seatd elia
 sudo ln -s /etc/sv/seatd/ /var/service
-sudo sv start seatd
-```
-
-To run sway:
-```bash
-mkdir /tmp/sway
-with-env { XDG_RUNTIME_DIR:"/tmp/sway"} {sway}
+sudo ln -s /etc/sv/chronyd/ /var/service
+sudo ln -s /etc/sv/turnstiled/ /var/service
+sudo ln -s /etc/sv/bluetoothd/ /var/service
+sudo ln -s /etc/sv/ufw/ /var/service
 ```
