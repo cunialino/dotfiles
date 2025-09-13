@@ -17,6 +17,8 @@
 
   programs.bat.enable = true;
 
+  home.file.".local/bin/zellij_sessionizer.sh".source = ./local_bin/zellij_sessionizer.sh;
+
   programs.lazygit = {
     enable = true;
     settings.git.paging = {
