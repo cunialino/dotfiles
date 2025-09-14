@@ -106,7 +106,7 @@
       };
 
       output."*" = {
-        background = "${config.home.homeDirectory}/.wallpaper fill";
+        background = "${./wallpapers/rufy.jpg} fill";
       };
 
       keybindings = lib.mkOptionDefault {
