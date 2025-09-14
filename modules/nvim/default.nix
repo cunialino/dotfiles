@@ -3,7 +3,14 @@
   programs.neovim = {
     enable = true;
     defaultEditor = true;
-    extraPackages = with pkgs; [ lua-language-server nil nixfmt ];
+    extraPackages = with pkgs; [
+      lua-language-server
+      nil
+      nixfmt
+      gcc
+      cmake
+      gnumake
+    ];
     extraLuaConfig = ''
 
     ${builtins.readFile ./conf/init.lua}
