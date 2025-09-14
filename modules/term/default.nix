@@ -8,6 +8,7 @@
     difftastic
     du-dust
     fd
+    fzf
     just
     ripgrep
     sd
