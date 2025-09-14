@@ -15,25 +15,30 @@ return {
 					key_hl = "@function",
 					key = "u",
 				},
-				{
-					icon = " ",
-					icon_hl = "@constant",
-					desc_hl = "@comment",
-					key_hl = "@function",
-					desc = "Search within gitfiles",
-					group = "Number",
-					action = 'lua require("telescope.builtin").git_files()',
-					key = "d",
-				},
-				{
-					icon = " ",
-					icon_hl = "@constant",
-					desc = "Search Old File",
-					desc_hl = "@comment",
-					action = 'lua require("telescope.builtin").oldfiles()',
-					key_hl = "@function",
-					key = "o",
-				},
+        {
+          icon = " ",
+          icon_hl = "@constant",
+          desc_hl = "@comment",
+          key_hl = "@function",
+          desc = "Search within gitfiles",
+          group = "Number",
+          action = function() require("fzf-lua").git_files() end,
+          -- if the plugin requires string actions instead of functions, use:
+          -- action = 'lua require("fzf-lua").git_files()',
+          key = "d",
+        },
+
+        {
+          icon = " ",
+          icon_hl = "@constant",
+          desc = "Search Old File",
+          desc_hl = "@comment",
+          action = function() require("fzf-lua").oldfiles() end,
+          -- alternative string form:
+          -- action = 'lua require("fzf-lua").oldfiles()',
+          key_hl = "@function",
+          key = "o",
+        },
 			},
 			footer = {
 				" ",
@@ -50,5 +55,5 @@ return {
 		-- 	file_width = 30,
 		-- },
 	},
-	dependencies = { { "nvim-tree/nvim-web-devicons" }, { "nvim-telescope/telescope.nvim"} },
+	dependencies = { { "nvim-tree/nvim-web-devicons" }, { "ibhagwan/fzf-lua" } },
 }
