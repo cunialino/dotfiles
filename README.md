@@ -16,11 +16,6 @@ cd $HOME/builds/dotfiles
 nix run github:nix-community/home-manager/release-25.05 -- switch --flake .#gem
 ```
 
-The only pain point I found with home-manager/nix, is the immutability of lazy-lock.json for nvim.
-
-My workaround was to set lock path in [lazy-settings](./modules/nvim/conf/lua/core/lazy.lua). 
-If repo not at that path, change it accordingly.
-
 ## Void-Linux
 
 Session setup:

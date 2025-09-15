@@ -1,8 +1,5 @@
 return {
 	"mfussenegger/nvim-lint",
-	dependencies = {
-		"williamboman/mason.nvim",
-	},
 	event = "BufRead",
 	opts = {
 		linters_by_ft = require("tools").tool_by_type("linters"),

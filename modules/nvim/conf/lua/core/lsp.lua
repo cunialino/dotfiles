@@ -36,7 +36,6 @@ vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
     vim.bo[args.buf].formatexpr = nil
     vim.bo[args.buf].omnifunc = nil
-    vim.keymap.del("n", "K", { buffer = args.buf })
     vim.keymap.set("n", "<leader>lK", vim.lsp.buf.hover, { buffer = args.buf, desc = "Docs" })
     vim.keymap.set("n", "<leader>l", "", { buffer = args.buf, desc = "+LSP" })
 

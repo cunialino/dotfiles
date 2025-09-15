@@ -8,7 +8,6 @@ return {
 		require("nvim-treesitter.query_predicates")
 	end,
 	dependencies = {
-		{ "nushell/tree-sitter-nu" },
 		{
 			"nvim-treesitter/nvim-treesitter-textobjects",
 			config = function()
@@ -41,33 +40,8 @@ return {
 	opts = {
 		highlight = { enable = true },
 		indent = { enable = true },
-		ensure_installed = {
-			"bash",
-			"c",
-			"diff",
-			"html",
-			"javascript",
-			"jsdoc",
-			"json",
-			"jsonc",
-			"lua",
-			"luadoc",
-			"luap",
-			"markdown",
-			"markdown_inline",
-			"python",
-			"query",
-			"regex",
-			"toml",
-			"tsx",
-			"typescript",
-			"vim",
-			"vimdoc",
-			"yaml",
-			"dockerfile",
-			"nu",
-			"rust",
-		},
+    auto_install = false,
+		ensure_installed = {},
 		incremental_selection = {
 			enable = true,
 			keymaps = {

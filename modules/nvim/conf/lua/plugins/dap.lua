@@ -1,4 +1,3 @@
-local base_daps_dir = vim.fn.stdpath("data") .. "/mason/bin/"
 return {
 	"mfussenegger/nvim-dap",
 	init = function()
@@ -8,7 +7,6 @@ return {
 		)
 	end,
 	dependencies = {
-		{ "jay-babu/mason-nvim-dap.nvim" },
 		{ "nvim-neotest/nvim-nio" },
 		{ "rcarriga/nvim-dap-ui", config = true },
 	},
@@ -29,7 +27,7 @@ return {
 				else
 					cb({
 						type = "executable",
-						command = base_daps_dir .. "debugpy-adapter",
+						command = "debugpy-adapter",
 						options = {
 							source_filetype = "python",
 						},
