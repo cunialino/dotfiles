@@ -25,6 +25,10 @@
           system = "x86_64-linux";
           file = ./hosts/gem.nix;
         };
+        wsl2 = {
+          system = "x86_64-linux";
+          file = ./hosts/wsl2.nix;
+        };
       };
 
       mod_dir = ./modules;
