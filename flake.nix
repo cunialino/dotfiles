@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    catppuccin.url = "github:catppuccin/nix"; # pulls the nixpkgs-style Catppuccin flake
+    catppuccin.url = "github:catppuccin/nix";
     nixgl.url = "github:nix-community/nixGL";
     home-manager = {
       url = "github:nix-community/home-manager/release-25.05";
@@ -18,8 +18,14 @@
       nixgl,
       home-manager,
       ...
-    }:
+    }@inputs:
     let
+      hosts_os = {
+        asus-laptop = {
+          system = "x86_64-linux";
+          file = ./hosts/asus-laptop;
+        };
+      };
       hosts = {
         gem = {
           system = "x86_64-linux";
@@ -57,10 +63,46 @@
             };
           };
         };
+
+      mkNixos =
+        name:
+        let
+          h = hosts_os.${name};
+          system = h.system;
+        in
+
+        nixpkgs.lib.nixosSystem {
+          system = system;
+          modules = [
+            home-manager.nixosModules.home-manager
+            {
+              home-manager = {
+                extraSpecialArgs = {
+                  inherit inputs;
+                  inherit catppuccin;
+                  nixgl = nixgl;
+                };
+              };
+            }
+            (./hosts + "/${name}")
+          ];
+
+          specialArgs = {
+            inherit inputs;
+            inherit catppuccin;
+          };
+        };
+
     in
     {
       homeConfigurations = builtins.listToAttrs (
         map (name: mkHostAttr name hosts.${name}) (builtins.attrNames hosts)
+      );
+      nixosConfigurations = builtins.listToAttrs (
+        map (n: {
+          name = n;
+          value = mkNixos n;
+        }) (builtins.attrNames hosts_os)
       );
     };
 }
