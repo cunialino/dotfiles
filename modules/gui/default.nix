@@ -10,7 +10,7 @@
   home.packages =
     with pkgs;
     [
-      google-chrome
+      firefox
       pipewire
       wireplumber
       wl-clipboard
@@ -20,7 +20,7 @@
 
   home.file.".config/pipewire".source = ./pipewire;
 
-  home.file.".local/share/applications/gc.desktop".source = ./google-chrome.desktop;
+  home.file.".local/share/applications/firefox.desktop".source = ./firefox.desktop;
 
   fonts.fontconfig = {
     enable = true;
@@ -208,7 +208,7 @@
           }
           {
             criteria = {
-              app_id = "google-chrome";
+              app_id = "firefox";
             };
             command = "move to workspace number 2";
           }
