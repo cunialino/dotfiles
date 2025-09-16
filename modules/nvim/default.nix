@@ -103,22 +103,22 @@ in
     ];
     extraLuaConfig = ''
 
-      ${builtins.readFile ./conf/init.lua}
-      require("lazy").setup({
-        spec = {
-          { import = "plugins" },
-        },
-        performance = {
-          reset_packpath = false,
-          rtp = { reset = false },
-        },
-        dev = {
-          path = "${lazyPath}",
-          patterns = { "" },
-        },
-        install = { missing = false },
-      })
-    vim.cmd("silent! Copilot disable")
+        ${builtins.readFile ./conf/init.lua}
+        require("lazy").setup({
+          spec = {
+            { import = "plugins" },
+          },
+          performance = {
+            reset_packpath = false,
+            rtp = { reset = false },
+          },
+          dev = {
+            path = "${lazyPath}",
+            patterns = { "" },
+          },
+          install = { missing = false },
+        })
+      vim.cmd("silent! Copilot disable")
     '';
 
   };
