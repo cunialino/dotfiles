@@ -97,7 +97,6 @@ in
       lua-language-server
       nil
       nixfmt
-      gcc
     ];
     plugins = with pkgs.vimPlugins; [
       lazy-nvim
@@ -119,6 +118,7 @@ in
         },
         install = { missing = false },
       })
+    vim.cmd("silent! Copilot disable")
     '';
 
   };
