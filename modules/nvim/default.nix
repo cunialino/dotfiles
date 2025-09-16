@@ -27,28 +27,6 @@ let
     nvim-nio
     nvim-notify
     nvim-treesitter
-    nvim-treesitter-parsers.bash
-    nvim-treesitter-parsers.c
-    nvim-treesitter-parsers.diff
-    nvim-treesitter-parsers.dockerfile
-    nvim-treesitter-parsers.html
-    nvim-treesitter-parsers.jsdoc
-    nvim-treesitter-parsers.json
-    nvim-treesitter-parsers.jsonc
-    nvim-treesitter-parsers.lua
-    nvim-treesitter-parsers.luadoc
-    nvim-treesitter-parsers.luap
-    nvim-treesitter-parsers.markdown
-    nvim-treesitter-parsers.markdown_inline
-    nvim-treesitter-parsers.nu
-    nvim-treesitter-parsers.python
-    nvim-treesitter-parsers.query
-    nvim-treesitter-parsers.regex
-    nvim-treesitter-parsers.rust
-    nvim-treesitter-parsers.toml
-    nvim-treesitter-parsers.vim
-    nvim-treesitter-parsers.vimdoc
-    nvim-treesitter-parsers.yaml
     nvim-treesitter-textobjects
     nvim-ts-context-commentstring
     nvim-web-devicons
@@ -101,6 +79,31 @@ in
     ];
     plugins = with pkgs.vimPlugins; [
       lazy-nvim
+
+      (nvim-treesitter.withPlugins (p: [
+        p.bash
+        p.c
+        p.diff
+        p.dockerfile
+        p.html
+        p.jsdoc
+        p.json
+        p.jsonc
+        p.lua
+        p.luadoc
+        p.luap
+        p.markdown
+        p.markdown_inline
+        p.nu
+        p.python
+        p.query
+        p.regex
+        p.rust
+        p.toml
+        p.vim
+        p.vimdoc
+        p.yaml
+      ]))
     ];
     extraLuaConfig = ''
 
