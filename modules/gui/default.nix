@@ -254,7 +254,7 @@
 
   programs.rofi = {
     enable = true;
-    package = pkgs.rofi-wayland;
+    package = pkgs.rofi;
   };
 
   programs.waybar = {
