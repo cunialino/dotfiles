@@ -90,6 +90,7 @@ in
   home.sessionVariables = {
     EDITOR = "nvim";
   };
+  home.packages = with pkgs; [ python313Packages.debugpy ];
   programs.neovim = {
     enable = true;
     defaultEditor = true;
