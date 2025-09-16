@@ -43,3 +43,4 @@ There are a couple of things I would still like to improve:
 - [ ] make nixgl optional, so that nixos doesn't import that and I only have it on home-manager only gui setups
 - [ ] reduce code repetitions for home-manager between hm-only and nixos.
 - [ ] abstract common system level stuff for nixos, there are some things I always need and that will be in common between most systems.
+- [ ] study a way to make debugpy work when adding it to extraPackages
