@@ -8,6 +8,13 @@ As of now, home-manager does everything except for:
 - docker: would be a nightmare due to systemd/runit stuff
 - [system requirments](./requirements/README.md)
 
+## Nixos 
+
+I just switched my first machine to nix-os, now the flake manages two things:
+
+- home-manager: I want to keep this for flexibility, so that I can have my dotfiles on non-nixos machines
+- nixos: a full on system, which also relies on home-manager for dotfiles.
+
 ## Install repo 
 
 ```bash
@@ -27,3 +34,12 @@ sudo ln -s /etc/sv/turnstiled/ /var/service
 sudo ln -s /etc/sv/bluetoothd/ /var/service
 sudo ln -s /etc/sv/ufw/ /var/service
 ```
+
+
+## TODO 
+
+There are a couple of things I would still like to improve:
+
+- [ ] make nixgl optional, so that nixos doesn't import that and I only have it on home-manager only gui setups
+- [ ] reduce code repetitions for home-manager between hm-only and nixos.
+- [ ] abstract common system level stuff for nixos, there are some things I always need and that will be in common between most systems.
