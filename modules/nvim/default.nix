@@ -70,6 +70,10 @@ let
       name = "surround.nvim";
       path = surround-nvim;
     }
+    {
+      name = "snacks.nvim";
+      path = snacks-nvim;
+    }
   ];
   mkEntryFromDrv =
     drv:
