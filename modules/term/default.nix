@@ -143,7 +143,7 @@
     enableNushellIntegration = true;
     settings = {
       format = ''
-        [╭─ ](surface2)$directory$git_branch$git_status$git_state$package
+        [╭─ ](surface2)$hostname$directory$git_branch$git_status$git_state$package
         [╰─ ](surface2)[❯](green) '';
       right_format = "$aws$python$cmd_duration$lua";
 
