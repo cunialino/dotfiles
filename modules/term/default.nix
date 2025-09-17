@@ -31,6 +31,16 @@
     enable = true;
 
     settings = {
+      processes.columns = [
+        "cpu%"
+        "mem%"
+        "gmem%"
+        "gpu%"
+        "name"
+        "state"
+        "user"
+        "time"
+      ];
       flags = {
         enable_gpu_memory = true;
       };
@@ -230,7 +240,6 @@
   };
 
   home.file.".config/zellij".source = ./zellij;
-
 
   programs.nushell = {
     enable = true;
