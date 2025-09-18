@@ -25,6 +25,11 @@
           system = "x86_64-linux";
           file = ./hosts/asus-laptop;
         };
+        gemos = {
+          system = "x86_64-linux";
+          file = ./hosts/gem;
+        };
+
       };
       hosts = {
         gem = {

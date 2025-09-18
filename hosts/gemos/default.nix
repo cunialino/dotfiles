@@ -1,7 +1,5 @@
 {
-  config,
   pkgs,
-  lib,
   catppuccin,
   ...
 }:
@@ -65,14 +63,4 @@ in
     font = "Lat2-Terminus16";
     keyMap = "it";
   };
-
-  services.openssh = {
-    enable = true;
-    ports = [ 22 ];
-    settings = {
-      PasswordAuthentication = true;
-      AllowUsers = null;
-    };
-  };
-
 }
