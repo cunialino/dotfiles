@@ -55,7 +55,7 @@ in
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  networking.hostName = "elcun";
+  networking.hostName = "elcungem";
   networking.wireless.enable = true;
   time.timeZone = "Europe/Rome";
 
