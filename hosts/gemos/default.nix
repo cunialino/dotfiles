@@ -74,7 +74,10 @@ in
     ];
     interfaces = {
       cni0 = {
-        allowedTCPPorts = [ 6443 ];
+        allowedTCPPorts = [
+          6443 # kubelet stuff
+          10250 # metrics server
+        ];
       };
     };
   };
