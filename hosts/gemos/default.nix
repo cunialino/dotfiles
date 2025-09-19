@@ -72,6 +72,11 @@ in
     trustedInterfaces = [
       "tailscale0"
     ];
+    interfaces = {
+      cni0 = {
+        allowedTCPPorts = [ 6443 ];
+      };
+    };
   };
   services.openssh = {
     enable = true;
