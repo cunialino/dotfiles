@@ -54,6 +54,7 @@ in
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
   nix.settings.experimental-features = [
     "nix-command"
     "flakes"
