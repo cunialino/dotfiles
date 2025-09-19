@@ -29,6 +29,10 @@
           system = "x86_64-linux";
           file = ./hosts/gem;
         };
+        opizero3 = {
+          system = "aarch64-linux";
+          file = ./hosts/opizero3;
+        };
 
       };
       hosts = {
