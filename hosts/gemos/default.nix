@@ -36,10 +36,16 @@ in
     fi
   '';
 
+  users.groups = {
+    k3s = { };
+  };
   users.users.${username} = {
     isNormalUser = true;
     createHome = true;
-    extraGroups = [ "wheel" ];
+    extraGroups = [
+      "wheel"
+      "k3s"
+    ];
     home = homedir;
     shell = pkgs.nushell;
   };
@@ -63,7 +69,17 @@ in
     allowPing = false;
     allowedTCPPorts = [ ];
     allowedUDPPorts = [ ];
-    trustedInterfaces = [ "tailscale0" ];
+    trustedInterfaces = [
+      "tailscale0"
+    ];
+    interfaces = {
+      cni0 = {
+        allowedTCPPorts = [
+          6443 # kubelet stuff
+          10250 # metrics server
+        ];
+      };
+    };
   };
   services.openssh = {
     enable = true;
@@ -76,6 +92,15 @@ in
   };
   services.tailscale.enable = true;
   time.timeZone = "Europe/Rome";
+
+  services.k3s = {
+    enable = true;
+    role = "server";
+    extraFlags = [
+      "--write-kubeconfig-mode=640"
+      "--write-kubeconfig-group=k3s"
+    ];
+  };
 
   console = {
     font = "Lat2-Terminus16";
