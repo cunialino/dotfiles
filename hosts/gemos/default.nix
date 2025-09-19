@@ -57,6 +57,24 @@ in
 
   networking.hostName = "elcungem";
   networking.wireless.enable = true;
+  networking.nftables.enable = true;
+  networking.firewall = {
+    enable = true;
+    allowPing = false;
+    allowedTCPPorts = [ ];
+    allowedUDPPorts = [ ];
+    trustedInterfaces = [ "tailscale0" ];
+  };
+  services.openssh = {
+    enable = true;
+    settings = {
+      PasswordAuthentication = true;
+      AllowUsers = [ "elia" ];
+      PermitRootLogin = "no";
+      X11Forwarding = false;
+    };
+  };
+  services.tailscale.enable = true;
   time.timeZone = "Europe/Rome";
 
   console = {
