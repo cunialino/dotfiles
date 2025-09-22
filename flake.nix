@@ -95,6 +95,7 @@
           specialArgs = {
             inherit inputs;
             inherit catppuccin;
+            mod_dir = mod_dir;
           };
         };
 
