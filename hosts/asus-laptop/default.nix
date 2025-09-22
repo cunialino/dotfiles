@@ -1,7 +1,5 @@
 {
-  config,
   pkgs,
-  lib,
   catppuccin,
   mod_dir,
   ...
