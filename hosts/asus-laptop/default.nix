@@ -3,6 +3,7 @@
   pkgs,
   lib,
   catppuccin,
+  mod_dir,
   ...
 }:
 
@@ -22,11 +23,11 @@ in
 
   home-manager.users.${username} = {
     imports = [
-      ../../modules/common
-      ../../modules/gui
-      ../../modules/core
-      ../../modules/term
-      ../../modules/nvim
+      (mod_dir + "/common")
+      (mod_dir + "/gui")
+      (mod_dir + "/core")
+      (mod_dir + "/term")
+      (mod_dir + "/nvim")
       catppuccin.homeModules.catppuccin
     ];
     home.stateVersion = stateVersion;
