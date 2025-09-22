@@ -43,6 +43,7 @@
       };
 
       mod_dir = ./modules;
+      sys_dir = ./sys_mods;
 
       mkHostAttr =
         name:
@@ -96,6 +97,7 @@
             inherit inputs;
             inherit catppuccin;
             mod_dir = mod_dir;
+            sys_dir = sys_dir;
           };
         };
 

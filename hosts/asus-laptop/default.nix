@@ -2,19 +2,18 @@
   pkgs,
   catppuccin,
   mod_dir,
+  sys_dir,
   ...
 }:
-
 let
   username = "elia";
-  homedir = "/home/${username}";
-  stateVersion = "25.05";
 in
 {
-  environment.systemPackages = with pkgs; [ git ];
-
   imports = [
     ./hardware-config.nix
+    (import (sys_dir + "/common") {
+      username = username;
+    })
   ];
 
   programs.dconf.enable = true;
@@ -28,7 +27,6 @@ in
       (mod_dir + "/nvim")
       catppuccin.homeModules.catppuccin
     ];
-    home.stateVersion = stateVersion;
   };
 
   programs.bash.interactiveShellInit = ''
@@ -37,32 +35,14 @@ in
     fi
   '';
 
-  users.users.${username} = {
-    isNormalUser = true;
-    createHome = true;
-    extraGroups = [ "wheel" ];
-    home = homedir;
-    shell = pkgs.nushell;
-  };
-
-  system.stateVersion = stateVersion;
+  users.users.${username}.shell = pkgs.nushell;
 
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  nix.settings.experimental-features = [
-    "nix-command"
-    "flakes"
-  ];
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  networking.hostName = "elcun";
+  networking.hostName = "elcunal";
   networking.wireless.enable = true;
-  time.timeZone = "Europe/Rome";
-
-  console = {
-    font = "Lat2-Terminus16";
-    keyMap = "it";
-  };
-
 }
+
