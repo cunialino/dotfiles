@@ -44,5 +44,18 @@ in
 
   networking.hostName = "elcunal";
   networking.wireless.enable = true;
+  networking.interfaces = {
+    enp0s20u2 = {
+      useDHCP = false;
+      ipv4.addresses = [
+        {
+          address = "192.168.0.3";
+          prefixLength = 24;
+        }
+      ];
+    };
+
+  };
+
 }
 
