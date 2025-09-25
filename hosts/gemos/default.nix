@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   catppuccin,
   mod_dir,
@@ -7,13 +8,17 @@
 }:
 let
   username = "elia";
+  eth = "enp3s0";
 in
 {
   imports = [
     ./hardware-config.nix
     (import (sys_dir + "/k3s") {
+      inherit lib;
+      inherit pkgs;
       main_user = username;
       k3s_role = "server";
+      eth = eth;
     })
     (import (sys_dir + "/common") {
       username = username;
@@ -58,9 +63,15 @@ in
     trustedInterfaces = [
       "tailscale0"
     ];
+    interfaces = {
+      ${eth} = {
+        allowedTCPPorts = [ 123 ];
+        allowedUDPPorts = [ 123 ];
+      };
+    };
   };
   networking.interfaces = {
-    eno1 = {
+    ${eth} = {
       useDHCP = false;
       ipv4.addresses = [
         {
@@ -80,4 +91,12 @@ in
     };
   };
   services.tailscale.enable = true;
+
+  services.ntp.enable = true;
+  services.ntp.servers = [
+    "0.pool.ntp.org"
+    "1.pool.ntp.org"
+    "2.pool.ntp.org"
+  ];
+
 }
