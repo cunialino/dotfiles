@@ -135,7 +135,6 @@ theme "catppuccin-mocha"
 
 mouse_mode true
 session_serialization true
-copy_command "wl-copy"
 
 default_layout "terminal"
 
