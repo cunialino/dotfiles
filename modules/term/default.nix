@@ -17,6 +17,7 @@
   ];
 
   programs.bat.enable = true;
+  programs.k9s.enable = true;
 
   home.file.".local/bin/zellij_sessionizer.sh".source = ./local_bin/zellij_sessionizer.sh;
 
