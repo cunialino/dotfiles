@@ -27,6 +27,7 @@ in
       main_user = username;
       eth = eth;
     })
+    (sys_dir + "/sshd")
 
   ];
 
@@ -76,16 +77,6 @@ in
           10250
         ];
       };
-    };
-  };
-
-  services.openssh = {
-    enable = true;
-    openFirewall = false;
-    settings = {
-      PasswordAuthentication = true;
-      PermitRootLogin = "no";
-      X11Forwarding = false;
     };
   };
 

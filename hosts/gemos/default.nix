@@ -23,6 +23,7 @@ in
     (import (sys_dir + "/common") {
       username = username;
     })
+    (sys_dir + "/sshd")
   ];
 
   programs.dconf.enable = true;
@@ -88,15 +89,6 @@ in
       ];
     };
 
-  };
-  services.openssh = {
-    enable = true;
-    openFirewall = false;
-    settings = {
-      PasswordAuthentication = true;
-      PermitRootLogin = "no";
-      X11Forwarding = false;
-    };
   };
   services.tailscale.enable = true;
 

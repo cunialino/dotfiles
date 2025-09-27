@@ -25,6 +25,7 @@ in
         disk = "ok";
       };
     })
+    (sys_dir + "/sshd")
   ];
 
   programs.dconf.enable = true;
@@ -64,16 +65,6 @@ in
           prefixLength = 24;
         }
       ];
-    };
-  };
-
-  services.openssh = {
-    enable = true;
-    openFirewall = false;
-    settings = {
-      PasswordAuthentication = true;
-      PermitRootLogin = "no";
-      X11Forwarding = false;
     };
   };
 
