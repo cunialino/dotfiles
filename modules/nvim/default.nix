@@ -1,9 +1,13 @@
 {
+  config,
   lib,
   pkgs,
   ...
 }:
+with lib;
 let
+
+  cfg = config.modules.nvim;
 
   myPlugins = with pkgs.vimPlugins; [
     CopilotChat-nvim
@@ -65,67 +69,77 @@ let
   lazyPath = pkgs.linkFarm "lazy-plugins" (builtins.map mkEntryFromDrv myPlugins);
 in
 {
-  home.sessionVariables = {
-    EDITOR = "nvim";
+  options.modules.nvim = {
+    enable = mkEnableOption "nvim";
+    useTreesitter = mkOption {
+      default = false;
+      description = "Enable Nvim Treesitter";
+      type = types.bool;
+    };
   };
-  home.packages = with pkgs; [ python313Packages.debugpy ];
-  programs.neovim = {
-    enable = true;
-    defaultEditor = true;
-    extraPackages = with pkgs; [
-      lua-language-server
-      nil
-      nixfmt
-    ];
-    plugins = with pkgs.vimPlugins; [
-      lazy-nvim
+  config = mkIf cfg.enable {
+    home.sessionVariables = {
+      EDITOR = "nvim";
+    };
+    home.packages = with pkgs; [ python313Packages.debugpy ];
+    programs.neovim = {
+      enable = true;
+      defaultEditor = true;
+      extraPackages = with pkgs; [
+        lua-language-server
+        nil
+        nixfmt
+      ];
+      plugins = with pkgs.vimPlugins; [
+        lazy-nvim
 
-      (nvim-treesitter.withPlugins (p: [
-        p.bash
-        p.c
-        p.diff
-        p.dockerfile
-        p.html
-        p.jsdoc
-        p.json
-        p.jsonc
-        p.lua
-        p.luadoc
-        p.luap
-        p.markdown
-        p.markdown_inline
-        p.nu
-        p.python
-        p.query
-        p.regex
-        p.rust
-        p.toml
-        p.vim
-        p.vimdoc
-        p.yaml
-      ]))
-    ];
-    extraLuaConfig = ''
+        (nvim-treesitter.withPlugins (p: [
+          p.bash
+          p.c
+          p.diff
+          p.dockerfile
+          p.html
+          p.jsdoc
+          p.json
+          p.jsonc
+          p.lua
+          p.luadoc
+          p.luap
+          p.markdown
+          p.markdown_inline
+          p.nu
+          p.python
+          p.query
+          p.regex
+          p.rust
+          p.toml
+          p.vim
+          p.vimdoc
+          p.yaml
+        ]))
+      ];
+      extraLuaConfig = ''
 
-        ${builtins.readFile ./conf/init.lua}
-        require("lazy").setup({
-          spec = {
-            { import = "plugins" },
-          },
-          performance = {
-            reset_packpath = false,
-            rtp = { reset = false },
-          },
-          dev = {
-            path = "${lazyPath}",
-            patterns = { "" },
-          },
-          install = { missing = false },
-        })
-      vim.cmd("silent! Copilot disable")
-    '';
+          ${builtins.readFile ./conf/init.lua}
+          require("lazy").setup({
+            spec = {
+              { import = "plugins" },
+            },
+            performance = {
+              reset_packpath = false,
+              rtp = { reset = false },
+            },
+            dev = {
+              path = "${lazyPath}",
+              patterns = { "" },
+            },
+            install = { missing = false },
+          })
+        vim.cmd("silent! Copilot disable")
+      '';
 
+    };
+    home.file.".config/nvim/lua".source = ./conf/lua;
+    home.file.".config/nvim/lsp".source = ./conf/lsp;
   };
-  home.file.".config/nvim/lua".source = ./conf/lua;
-  home.file.".config/nvim/lsp".source = ./conf/lsp;
 }
