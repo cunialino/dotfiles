@@ -5,13 +5,18 @@
 
 {
   imports = [
-    (modulesPath + "/core")
-    (modulesPath + "/term")
-    (modulesPath + "/nvim")
+    modulesPath
   ];
 
-  home.username = "elia";
-  home.homeDirectory = "/home/elia";
-
-  home.stateVersion = "25.05";
+  config = {
+    modules = {
+      nvim.enable = true;
+      core.enable = true;
+      term.enable = true;
+      gui.enable = false;
+    };
+    home.username = "elia";
+    home.homeDirectory = "/home/elia";
+    home.stateVersion = "25.05";
+  };
 }
