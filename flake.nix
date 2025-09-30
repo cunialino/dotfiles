@@ -20,32 +20,7 @@
       ...
     }@inputs:
     let
-      hosts_os = {
-        asus-laptop = {
-          system = "x86_64-linux";
-          file = ./hosts/asus-laptop;
-        };
-        gemos = {
-          system = "x86_64-linux";
-          file = ./hosts/gem;
-        };
-        opizero3 = {
-          system = "aarch64-linux";
-          file = ./hosts/opizero3;
-        };
-
-      };
-      hosts = {
-        gem = {
-          system = "x86_64-linux";
-          file = ./hosts/gem.nix;
-        };
-        wsl2 = {
-          system = "x86_64-linux";
-          file = ./hosts/wsl2.nix;
-        };
-      };
-
+      hosts = (import ./hosts);
       mod_dir = ./modules;
       sys_dir = ./sys_mods;
 
@@ -63,7 +38,6 @@
               ];
             };
             modules = [
-              (mod_dir + "/common")
               file
               catppuccin.homeModules.catppuccin
             ];
@@ -77,29 +51,29 @@
       mkNixos =
         name:
         let
-          h = hosts_os.${name};
+          h = hosts.hosts_os.${name};
           system = h.system;
         in
 
         nixpkgs.lib.nixosSystem {
           system = system;
           modules = [
+            { networking.hostName = h.hostname; }
             home-manager.nixosModules.home-manager
             {
               home-manager = {
                 extraSpecialArgs = {
-                  inherit inputs;
                   inherit catppuccin;
+                  modulesPath = mod_dir;
                   nixgl = nixgl;
                 };
               };
             }
-            (./hosts + "/${name}")
+            (h.file)
           ];
 
           specialArgs = {
-            inherit inputs;
-            inherit catppuccin;
+            inherit inputs catppuccin;
             mod_dir = mod_dir;
             sys_dir = sys_dir;
           };
@@ -108,13 +82,13 @@
     in
     {
       homeConfigurations = builtins.listToAttrs (
-        map (name: mkHostAttr name hosts.${name}) (builtins.attrNames hosts)
+        map (name: mkHostAttr name hosts.hosts_hm.${name}) (builtins.attrNames hosts.hosts_hm)
       );
       nixosConfigurations = builtins.listToAttrs (
         map (n: {
           name = n;
           value = mkNixos n;
-        }) (builtins.attrNames hosts_os)
+        }) (builtins.attrNames hosts.hosts_os)
       );
     };
 }
