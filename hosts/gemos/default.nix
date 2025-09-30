@@ -1,8 +1,6 @@
 {
   lib,
   pkgs,
-  catppuccin,
-  mod_dir,
   sys_dir,
   ...
 }:
@@ -26,18 +24,9 @@ in
     (sys_dir + "/sshd")
   ];
 
-  programs.dconf.enable = true;
+  home-manager.users.${username} = (import ./home.nix);
 
-  home-manager.users.${username} = {
-    imports = [
-      (mod_dir + "/common")
-      (mod_dir + "/gui")
-      (mod_dir + "/core")
-      (mod_dir + "/term")
-      (mod_dir + "/nvim")
-      catppuccin.homeModules.catppuccin
-    ];
-  };
+  programs.dconf.enable = true;
 
   programs.bash.interactiveShellInit = ''
     if ! [ "$TERM" = "dumb" ]; then
@@ -60,7 +49,6 @@ in
     ];
   };
 
-  networking.hostName = "elcungem";
   networking.wireless.enable = true;
   networking.nftables.enable = true;
   networking.firewall = {

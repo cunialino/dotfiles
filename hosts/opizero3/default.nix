@@ -31,7 +31,6 @@ in
 
   ];
 
-  networking.hostName = "opizero3";
 
   # kernel / firmware
   boot.kernelPackages = kernelPkgs;

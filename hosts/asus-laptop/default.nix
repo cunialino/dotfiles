@@ -28,6 +28,8 @@ in
     (sys_dir + "/sshd")
   ];
 
+  home-manager.users.${username} = (import ./home.nix);
+
   programs.dconf.enable = true;
 
   programs.bash.interactiveShellInit = ''
@@ -48,7 +50,6 @@ in
 
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  networking.hostName = "elcunal";
   networking.firewall = {
     enable = true;
     allowedTCPPorts = [ ];
