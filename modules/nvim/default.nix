@@ -89,6 +89,7 @@ in
         lua-language-server
         nil
         nixfmt
+        terraform-ls
       ];
       plugins = with pkgs.vimPlugins; [
         lazy-nvim
@@ -112,6 +113,7 @@ in
           p.query
           p.regex
           p.rust
+          p.terraform
           p.toml
           p.vim
           p.vimdoc
