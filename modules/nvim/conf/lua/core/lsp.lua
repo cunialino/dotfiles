@@ -5,6 +5,7 @@ vim.lsp.enable({
   "nushell",
   "pylsp",
   "ruff",
+  "rust-analyzer",
   "typos_lsp",
   "zk",
 })
