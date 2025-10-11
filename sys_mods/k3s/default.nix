@@ -56,6 +56,7 @@ in
             [
               registryPort
               5001
+              5002
             ]
           else
             [ ]
@@ -73,6 +74,10 @@ in
       ghcr.io:
         endpoint:
           - "http://${server_ip}:5001"
+      quay.io:
+        endpoint:
+          - "http://${server_ip}:5002"
+
   '';
 
   services.k3s = {
@@ -124,6 +129,19 @@ in
           "/var/lib/registry:/var/lib/registry:Z"
         ];
       };
+      quayRegistry = {
+        image = "docker.io/library/registry:3";
+        autoStart = true;
+        ports = [ "5002:5000" ];
+        environment = {
+          REGISTRY_HTTP_ADDR = ":5000";
+          REGISTRY_PROXY_REMOTEURL = "https://quay.io";
+        };
+        volumes = [
+          "/var/lib/registry:/var/lib/registry:Z"
+        ];
+      };
+
     };
   };
 }
