@@ -12,6 +12,14 @@ let
   kernelPkgs = pkgs.linuxPackages_latest; # change if you want to pin/build a specific kernel
   username = "elia";
   eth = "end0";
+
+  filesystems = pkgs.lib.mkForce [
+    "vfat"
+    "ntfs"
+    "cifs"
+    "ext4"
+    "vfat"
+  ];
 in
 {
   imports = [
@@ -30,7 +38,6 @@ in
     (sys_dir + "/sshd")
 
   ];
-
 
   # kernel / firmware
   boot.kernelPackages = kernelPkgs;
@@ -63,6 +70,9 @@ in
       ];
     };
   };
+
+  boot.initrd.supportedFilesystems = filesystems;
+  boot.supportedFilesystems = filesystems;
 
   networking.firewall = {
     enable = true;
