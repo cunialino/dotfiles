@@ -16,6 +16,7 @@
       core.enable = true;
       term.enable = true;
       gui.enable = true;
+      tmux.enable = true;
     };
   };
 }
