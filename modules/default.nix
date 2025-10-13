@@ -7,5 +7,6 @@
     ./term
     ./common
     ./gui
+    ./tmux
   ];
 }
