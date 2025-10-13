@@ -45,6 +45,6 @@ There are a couple of things I would still like to improve:
 
 Some improvments strictly related to terminal workflow:
 
-- [ ] make use of [nvim remote](https://neovim.io/doc/user/remote.html) to use terminal yazi to open files
+- [x] make use of [nvim remote](https://neovim.io/doc/user/remote.html) to use terminal yazi to open files
 - [ ] remove vim-slime and implement lua logic myself with tmux send
 - [ ] switch to fish shell, I'm tired of incompatibilities of nushell, I don't even use nushell features so much
