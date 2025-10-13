@@ -38,7 +38,6 @@ let
     undotree
     vim-slime
     which-key-nvim
-    yazi-nvim
     zk-nvim
     {
       name = "LuaSnip";
