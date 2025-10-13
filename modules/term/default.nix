@@ -27,6 +27,7 @@ in
     programs.k9s.enable = true;
 
     home.file.".local/bin/zellij_sessionizer.sh".source = ./local_bin/zellij_sessionizer.sh;
+    home.file.".local/bin/nvim_tmux_opener.sh".source = ./local_bin/nvim_tmux_opener.sh;
 
     programs.lazygit = {
       enable = true;
@@ -233,6 +234,17 @@ in
             run = "shell --block 'zellij_sessionizer.sh $0'";
             desc = "Start New session in selected dir";
           }
+          {
+            on = [
+              "t"
+            ];
+            run = [
+              "shell 'nvim_tmux_opener.sh -o $1'"
+              "quit"
+            ];
+            desc = "Open with neovim server";
+          }
+
         ];
       };
 
