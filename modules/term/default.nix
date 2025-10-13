@@ -31,10 +31,19 @@ in
 
     programs.lazygit = {
       enable = true;
-      settings.git.paging = {
-        colorArg = "always";
-        externalDiffCommand = "difft --color=always";
+      settings = {
+        keybinding = {
+          commits = {
+            moveDownCommit = "J";
+            moveUpCommit = "K";
+          };
+        };
+        git.paging = {
+          colorArg = "always";
+          externalDiffCommand = "difft --color=always";
+        };
       };
+
     };
     programs.bottom = {
       enable = true;
