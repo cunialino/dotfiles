@@ -45,10 +45,6 @@ let
       path = luasnip;
     }
     {
-      name = "bufferline.nvim";
-      path = bufferline-nvim;
-    }
-    {
       name = "surround.nvim";
       path = surround-nvim;
     }
