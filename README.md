@@ -39,4 +39,12 @@ There are a couple of things I would still like to improve:
 - [x] abstract common system level stuff for nixos, there are some things I always need and that will be in common between most systems.
 - [ ] study a way to make debugpy work when adding it to extraPackages
 - [ ] what i did for nvim-treesitter feels really wrong...
-- [ ] make use of lib.mkIf instead of imports, this way it's much easier to modularize stuff
+- [x] make use of lib.mkIf instead of imports, this way it's much easier to modularize stuff
+
+### Workflow
+
+Some improvments strictly related to terminal workflow:
+
+- [ ] make use of [nvim remote](https://neovim.io/doc/user/remote.html) to use terminal yazi to open files
+- [ ] remove vim-slime and implement lua logic myself with tmux send
+- [ ] switch to fish shell, I'm tired of incompatibilities of nushell, I don't even use nushell features so much
