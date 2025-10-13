@@ -11,6 +11,10 @@ tool_utils.tools_table = {
   nix = {
     formatters = { "nixfmt" }
   },
+  sql = {
+    formatters = { "sqlfluff" },
+    linters = { "sqlfluff" }
+  },
   rust = {
     formatters = { rustfmt = { install_with_mason = false } },
   },
