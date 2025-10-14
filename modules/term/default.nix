@@ -14,8 +14,8 @@ in
     home.packages = with pkgs; [
       difftastic
       du-dust
+      eza
       fd
-      fzf
       just
       ripgrep
       sd
@@ -248,8 +248,7 @@ in
               "t"
             ];
             run = [
-              "shell 'nvim_tmux_opener.sh -o $1'"
-              "quit"
+              "shell 'nvim_tmux_opener.sh -o $1 && ya emit quit'"
             ];
             desc = "Open with neovim server";
           }
