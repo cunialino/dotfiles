@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   k3s_role,
   main_user,
@@ -144,5 +145,19 @@ in
       };
 
     };
+  };
+
+  systemd.tmpfiles.rules = [
+    "L /usr/bin/mount - - - - /run/current-system/sw/bin/mount"
+    "L /usr/bin/nsenter - - - - /run/current-system/sw/bin/nsenter"
+  ];
+
+  services.openiscsi = {
+    enable = true;
+    name = "${config.networking.hostName}-initiatorhost";
+  };
+  systemd.services.iscsid.serviceConfig = {
+    PrivateMounts = "yes";
+    BindPaths = "/run/current-system/sw/bin:/bin";
   };
 }
