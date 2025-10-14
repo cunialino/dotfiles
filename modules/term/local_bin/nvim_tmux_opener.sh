@@ -34,26 +34,23 @@ if [[ -n "$OPENER" ]]; then
   NVIM_MODE="--server"
   NVIM_OPTS="--remote"
 elif [[ -n "$LAUNCHER" ]]; then
-  echo "[$(date)] STARTING LAUCHER WITH ARGS: $@" | tee $LOGS
+  echo "[$(date)] STARTING LAUCHER WITH ARGS: $@" | tee -a $LOGS
   NVIM_MODE="--listen"
-  NVIM_OPTS=""
 else
-  echo "[$(date)] WRONG" | tee $LOGS
+  echo "[$(date)] WRONG" | tee -a $LOGS
+  exit 1
 fi
 
-
 if [[ -z "$TMUX" ]]; then 
-  echo "[$(date)] NOT IN TMUX" | tee $LOGS
-  nvim "$@"
+  echo "[$(date)] NOT IN TMUX" | tee -a $LOGS
+  nvim "$NVIM_OPTS"
 else
   session_id=$(echo "$TMUX" | cut -d "," -f 3)
   if [[ -z "$session_id" ]]; then
-    echo "[$(date)] cannot find session"
+    echo "[$(date)] cannot find session" | tee -a $LOGS
     exit 1
   else
-    nvim "$NVIM_MODE" ~/.cache/nvim/nvim_tmux_"$session_id".pipe "$NVIM_OPTS" "$@"
-    if [[ -n "$LAUNCHER" ]]; then
-      rm ~/.cache/nvim/nvim_tmux_"$session_id".pipe
-    fi
+    file=~/.cache/nvim/nvim_tmux_"$session_id".pipe
+    nvim $NVIM_MODE $file $NVIM_OPTS "$@"
   fi
 fi
