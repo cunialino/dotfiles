@@ -66,8 +66,8 @@ vim.g.jupytext_fmt = "py:percent"
 local is_wsl = string.match(string.lower(vim.fn.system({ "uname", "-r" })), "wsl2") ~= nil
 local paste_cmd = "wl-paste"
 if is_wsl then
-	paste_cmd = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe "
-		.. '-c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))'
+  paste_cmd = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe "
+      .. '-c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))'
 end
 vim.g.clipboard = {
   name = "WslClipboard",
@@ -84,7 +84,8 @@ vim.g.clipboard = {
 vim.opt.shell = "nu"
 vim.opt.shellcmdflag = "--login --stdin --no-newline -c"
 vim.opt.shellredir = "out+err> %s"
-vim.opt.shellpipe = "| complete | update stderr { ansi strip } | tee { get stderr | save --force --raw %s } | into record"
+vim.opt.shellpipe =
+"| complete | update stderr { ansi strip } | tee { get stderr | save --force --raw %s } | into record"
 vim.opt.shelltemp = false
 vim.opt.shellxescape = ""
 vim.opt.shellxquote = ""
@@ -94,3 +95,11 @@ vim.opt.shellquote = ""
 local termfeatures = vim.g.termfeatures or {}
 termfeatures.osc52 = false
 vim.g.termfeatures = termfeatures
+
+vim.api.nvim_set_keymap("n", "<leader>t", "", { desc = "+Tmux Send", noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<leader>t", "", { desc = "+Tmux Send", noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>tt", ":lua require('tmux_send').send_line()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<leader>tt", ":lua require('tmux_send').send_visual()<CR>", { noremap = true, silent = true })
+
+vim.api.nvim_set_keymap("n", "<leader>tl", ":lua require('tmux_send').send_line_livy()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<leader>tl", ":lua require('tmux_send').send_visual_livy()<CR>", { noremap = true, silent = true })
