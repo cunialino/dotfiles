@@ -23,6 +23,7 @@ in
       k3s_labels = {
         llm = "small";
         disk = "ok";
+        "node.longhorn.io/create-default-disk" = "true";
       };
     })
     (sys_dir + "/sshd")
