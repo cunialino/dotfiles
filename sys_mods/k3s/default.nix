@@ -12,9 +12,12 @@ let
   server_ip = "192.168.0.2";
   token_file = "/etc/k3s/token";
 
+  attrToStr = name: "--node-label=${name}=${toString (k3s_labels.${name})}";
+  labels_list = builtins.map attrToStr (builtins.attrNames k3s_labels);
+
   extra_flags_common = [
     "--flannel-iface=${eth}"
-  ];
+  ] ++ labels_list;
 
   extra_flags_server = [
     "--write-kubeconfig-mode=640"
@@ -27,9 +30,7 @@ let
   ++ extra_flags_common;
   registryPort = 5000;
   registryAddr = "${server_ip}:${toString registryPort}";
-  attrToStr = name: "--node-label=${name}=${toString (k3s_labels.${name})}";
-  labels_list = builtins.map attrToStr (builtins.attrNames k3s_labels);
-  extra_flags_agent = extra_flags_common ++ labels_list;
+  extra_flags_agent = extra_flags_common;
 in
 {
 

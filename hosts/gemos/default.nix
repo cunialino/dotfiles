@@ -17,6 +17,10 @@ in
       main_user = username;
       k3s_role = "server";
       eth = eth;
+      k3s_labels = {
+        "node.longhorn.io/create-default-disk" = "true";
+      };
+
     })
     (import (sys_dir + "/common") {
       username = username;
