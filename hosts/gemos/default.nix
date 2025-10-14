@@ -1,5 +1,6 @@
 {
   lib,
+  config,
   pkgs,
   sys_dir,
   ...
@@ -14,6 +15,7 @@ in
     (import (sys_dir + "/k3s") {
       inherit lib;
       inherit pkgs;
+      inherit config;
       main_user = username;
       k3s_role = "server";
       eth = eth;

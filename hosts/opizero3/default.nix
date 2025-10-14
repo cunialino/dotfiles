@@ -1,5 +1,6 @@
 {
   lib,
+  config,
   pkgs,
   inputs,
   sys_dir,
@@ -31,6 +32,7 @@ in
     (import (sys_dir + "/k3s") {
       inherit lib;
       inherit pkgs;
+      inherit config;
       k3s_role = "agent";
       main_user = username;
       eth = eth;
