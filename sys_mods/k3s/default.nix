@@ -18,7 +18,8 @@ let
 
   extra_flags_common = [
     "--flannel-iface=${eth}"
-  ] ++ labels_list;
+  ]
+  ++ labels_list;
 
   extra_flags_server = [
     "--write-kubeconfig-mode=640"
@@ -59,6 +60,7 @@ in
               registryPort
               5001
               5002
+              5003
             ]
           else
             [ ]
@@ -72,14 +74,16 @@ in
     mirrors:
       docker.io:
         endpoint:
-          - "http://${server_ip}:5000"
+          - "http://${server_ip}:5001"
       ghcr.io:
         endpoint:
-          - "http://${server_ip}:5001"
+          - "http://${server_ip}:5002"
       quay.io:
         endpoint:
-          - "http://${server_ip}:5002"
-
+          - "http://${server_ip}:5003"
+      custom.io:
+        endpoint:
+          - "http://${server_ip}:5000"
   '';
 
   services.k3s = {
@@ -105,10 +109,24 @@ in
     };
     oci-containers.backend = "podman";
     oci-containers.containers = {
+
       registry = {
         image = "docker.io/library/registry:3";
         autoStart = true;
         ports = [ "5000:5000" ];
+
+        environment = {
+          REGISTRY_HTTP_ADDR = ":5000";
+        };
+        volumes = [
+          "/var/lib/registry:/var/lib/registry:Z"
+        ];
+      };
+
+      dockerRegistry = {
+        image = "docker.io/library/registry:3";
+        autoStart = true;
+        ports = [ "5001:5000" ];
 
         environment = {
           REGISTRY_HTTP_ADDR = ":5000";
@@ -122,7 +140,7 @@ in
       ghcrRegistry = {
         image = "docker.io/library/registry:3";
         autoStart = true;
-        ports = [ "5001:5000" ];
+        ports = [ "5002:5000" ];
         environment = {
           REGISTRY_HTTP_ADDR = ":5000";
           REGISTRY_PROXY_REMOTEURL = "https://ghcr.io";
@@ -134,7 +152,7 @@ in
       quayRegistry = {
         image = "docker.io/library/registry:3";
         autoStart = true;
-        ports = [ "5002:5000" ];
+        ports = [ "5003:5000" ];
         environment = {
           REGISTRY_HTTP_ADDR = ":5000";
           REGISTRY_PROXY_REMOTEURL = "https://quay.io";
