@@ -93,4 +93,14 @@ in
     "2.pool.ntp.org"
   ];
 
+  services.k3s = {
+
+    extraKubeletConfig = {
+      systemReserved = {
+        cpu = "4";
+        memory = "16Gi";
+      };
+    };
+  };
+
 }
