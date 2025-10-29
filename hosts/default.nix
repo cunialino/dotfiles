@@ -5,6 +5,12 @@
       file = ./asus-laptop;
       hostname = "elcunal";
     };
+    hp_1 = {
+      system = "x86_64-linux";
+      file = ./hp_1;
+      hostname = "elcunhp1";
+    };
+
     gemos = {
       system = "x86_64-linux";
       file = ./gemos;
