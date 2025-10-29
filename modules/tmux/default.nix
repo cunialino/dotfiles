@@ -27,6 +27,7 @@ in
         sensible
         vim-tmux-navigator
         yank
+        fingers
         {
           plugin = resurrect;
           extraConfig = ''
