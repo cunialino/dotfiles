@@ -13,7 +13,7 @@ in
   config = mkIf cfg.enable {
     home.packages = with pkgs; [
       difftastic
-      du-dust
+      dust
       eza
       fd
       just
@@ -38,10 +38,9 @@ in
             moveUpCommit = "K";
           };
         };
-        git.paging = {
-          colorArg = "always";
-          externalDiffCommand = "difft --color=always";
-        };
+        git.pagers = [
+          { useExternalDiffGitConfig = true; }
+        ];
       };
 
     };
