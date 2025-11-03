@@ -75,6 +75,10 @@ in
       docker.io:
         endpoint:
           - "http://${server_ip}:5001"
+      docker.redpanda.com:
+        endpoint:
+          - "http://${server_ip}:5001"
+
       ghcr.io:
         endpoint:
           - "http://${server_ip}:5002"
