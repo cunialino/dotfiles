@@ -1,185 +1,220 @@
 {
   config,
   lib,
-  k3s_role,
-  main_user,
-  eth,
-  k3s_labels ? { },
   ...
 }:
+with lib;
 let
+  cfg = config.modules.k3s_node;
   newGroup = "k3s";
 
-  server_ip = "192.168.0.2";
   token_file = "/etc/k3s/token";
 
-  attrToStr = name: "--node-label=${name}=${toString (k3s_labels.${name})}";
-  labels_list = builtins.map attrToStr (builtins.attrNames k3s_labels);
-
   extra_flags_common = [
-    "--flannel-iface=${eth}"
-  ]
-  ++ labels_list;
+    "--flannel-iface=${cfg.eth}"
+  ];
 
   extra_flags_server = [
     "--write-kubeconfig-mode=640"
     "--write-kubeconfig-group=k3s"
-    "--node-ip=${server_ip}"
-    "--advertise-address=${server_ip}"
+    "--node-ip=${cfg.server_ip}"
+    "--advertise-address=${cfg.server_ip}"
     "--disable=traefik"
 
   ]
   ++ extra_flags_common;
-  registryPort = 5000;
-  registryAddr = "${server_ip}:${toString registryPort}";
   extra_flags_agent = extra_flags_common;
+  extra_flags = if cfg.role == "server" then extra_flags_server else extra_flags_agent;
 in
 {
 
-  users.users.${main_user}.extraGroups = [ newGroup ];
+  options.modules.k3s_node = {
+    enable = mkEnableOption "k3s_node";
+    main_user = mkOption {
+      default = "elia";
+      description = "Main user of k3s";
+      type = types.str;
+    };
+    role = lib.mkOption {
+      type = types.enum [
+        "server"
+        "agent"
+      ];
+      default = "agent";
+      description = "Role of this node: either \"server\" (control-plane) or \"agent\" (worker).";
+    };
 
-  networking.firewall = {
+    cluster_init = lib.mkOption {
+      type = types.bool;
+      default = false;
+      description = "Only set true on the bootstrap server to start k3s with --cluster-init for embedded etcd HA.";
+    };
+    eth = lib.mkOption {
+      type = types.str;
+      default = "eth0";
+      description = "Network interface used by flannel / firewall rules.";
+    };
 
-    interfaces = {
+    server_ip = lib.mkOption {
+      type = types.str;
+      default = "192.168.0.2";
+    };
 
-      "cni0" = {
-        allowedTCPPorts = [
-          6443
-          10250
-        ];
-      };
+    is_registry = lib.mkOption {
+      type = types.bool;
+      default = false;
+      description = "If true will setup container registries on this machine";
+    };
 
-      ${eth} = {
-        allowedTCPPorts = [
-          6443
-          10250
-        ]
-        ++ (
-          if k3s_role == "server" then
-            [
-              registryPort
-              5001
-              5002
-              5003
-            ]
-          else
-            [ ]
-        );
-        allowedUDPPorts = [ 8472 ];
+  };
+  config = mkIf config.modules.k3s_node.enable {
+
+    users.users.${cfg.main_user}.extraGroups = [ newGroup ];
+
+    networking.firewall = {
+
+      interfaces = {
+
+        "cni0" = {
+          allowedTCPPorts = [
+            6443
+            10250
+          ];
+        };
+
+        ${cfg.eth} = {
+          allowedTCPPorts = [
+            6443
+            10250
+          ]
+          ++ (
+            if cfg.role == "server" then
+              [
+                5000
+                5001
+                5002
+                5003
+              ]
+            else
+              [ ]
+          );
+          allowedUDPPorts = [ 8472 ];
+        };
       };
     };
-  };
 
-  environment.etc."rancher/k3s/registries.yaml".text = ''
-    mirrors:
-      docker.io:
-        endpoint:
-          - "http://${server_ip}:5001"
-      docker.redpanda.com:
-        endpoint:
-          - "http://${server_ip}:5001"
+    environment.etc."rancher/k3s/registries.yaml".text = ''
+      mirrors:
+        docker.io:
+          endpoint:
+            - "http://${cfg.server_ip}:5001"
+        docker.redpanda.com:
+          endpoint:
+            - "http://${cfg.server_ip}:5001"
 
-      ghcr.io:
-        endpoint:
-          - "http://${server_ip}:5002"
-      quay.io:
-        endpoint:
-          - "http://${server_ip}:5003"
-      custom.io:
-        endpoint:
-          - "http://${server_ip}:5000"
-  '';
+        ghcr.io:
+          endpoint:
+            - "http://${cfg.server_ip}:5002"
+        quay.io:
+          endpoint:
+            - "http://${cfg.server_ip}:5003"
+        custom.io:
+          endpoint:
+            - "http://${cfg.server_ip}:5000"
+    '';
 
-  services.k3s = {
-    enable = true;
-    clusterInit = lib.mkIf (k3s_role == "server") true;
-    role = k3s_role;
-    extraFlags = if k3s_role == "server" then extra_flags_server else extra_flags_agent;
-    serverAddr = lib.mkIf (k3s_role == "agent") "https://${server_ip}:6443";
-    tokenFile = lib.mkIf (k3s_role == "agent") token_file;
-  };
-
-  users.groups.${newGroup} = { };
-
-  virtualisation = lib.mkIf (k3s_role == "server") {
-    containers = {
+    services.k3s = {
       enable = true;
+      clusterInit = cfg.cluster_init;
+      role = cfg.role;
+      extraFlags = extra_flags;
+      serverAddr = lib.mkIf (!cfg.cluster_init) "https://${cfg.server_ip}:6443";
+      tokenFile = lib.mkIf (!cfg.cluster_init) token_file;
     };
-    podman = {
+
+    users.groups.${newGroup} = { };
+
+    virtualisation = lib.mkIf (cfg.is_registry) {
+      containers = {
+        enable = true;
+      };
+      podman = {
+        enable = true;
+
+        dockerCompat = true;
+        defaultNetwork.settings.dns_enabled = true;
+      };
+      oci-containers.backend = "podman";
+      oci-containers.containers = {
+
+        registry = {
+          image = "docker.io/library/registry:3";
+          autoStart = true;
+          ports = [ "5000:5000" ];
+
+          environment = {
+            REGISTRY_HTTP_ADDR = ":5000";
+          };
+          volumes = [
+            "/var/lib/registry:/var/lib/registry:Z"
+          ];
+        };
+
+        dockerRegistry = {
+          image = "docker.io/library/registry:3";
+          autoStart = true;
+          ports = [ "5001:5000" ];
+
+          environment = {
+            REGISTRY_HTTP_ADDR = ":5000";
+            REGISTRY_PROXY_REMOTEURL = "https://registry-1.docker.io";
+          };
+          volumes = [
+            "/var/lib/registry:/var/lib/registry:Z"
+          ];
+        };
+
+        ghcrRegistry = {
+          image = "docker.io/library/registry:3";
+          autoStart = true;
+          ports = [ "5002:5000" ];
+          environment = {
+            REGISTRY_HTTP_ADDR = ":5000";
+            REGISTRY_PROXY_REMOTEURL = "https://ghcr.io";
+          };
+          volumes = [
+            "/var/lib/registry:/var/lib/registry:Z"
+          ];
+        };
+        quayRegistry = {
+          image = "docker.io/library/registry:3";
+          autoStart = true;
+          ports = [ "5003:5000" ];
+          environment = {
+            REGISTRY_HTTP_ADDR = ":5000";
+            REGISTRY_PROXY_REMOTEURL = "https://quay.io";
+          };
+          volumes = [
+            "/var/lib/registry:/var/lib/registry:Z"
+          ];
+        };
+
+      };
+    };
+
+    systemd.tmpfiles.rules = [
+      "L /usr/bin/mount - - - - /run/current-system/sw/bin/mount"
+      "L /usr/bin/nsenter - - - - /run/current-system/sw/bin/nsenter"
+      "L /usr/bin/fstrim - - - - /run/current-system/sw/bin/fstrim"
+    ];
+
+    services.openiscsi = {
       enable = true;
-
-      dockerCompat = true;
-      defaultNetwork.settings.dns_enabled = true;
+      name = "${config.networking.hostName}-initiatorhost";
     };
-    oci-containers.backend = "podman";
-    oci-containers.containers = {
-
-      registry = {
-        image = "docker.io/library/registry:3";
-        autoStart = true;
-        ports = [ "5000:5000" ];
-
-        environment = {
-          REGISTRY_HTTP_ADDR = ":5000";
-        };
-        volumes = [
-          "/var/lib/registry:/var/lib/registry:Z"
-        ];
-      };
-
-      dockerRegistry = {
-        image = "docker.io/library/registry:3";
-        autoStart = true;
-        ports = [ "5001:5000" ];
-
-        environment = {
-          REGISTRY_HTTP_ADDR = ":5000";
-          REGISTRY_PROXY_REMOTEURL = "https://registry-1.docker.io";
-        };
-        volumes = [
-          "/var/lib/registry:/var/lib/registry:Z"
-        ];
-      };
-
-      ghcrRegistry = {
-        image = "docker.io/library/registry:3";
-        autoStart = true;
-        ports = [ "5002:5000" ];
-        environment = {
-          REGISTRY_HTTP_ADDR = ":5000";
-          REGISTRY_PROXY_REMOTEURL = "https://ghcr.io";
-        };
-        volumes = [
-          "/var/lib/registry:/var/lib/registry:Z"
-        ];
-      };
-      quayRegistry = {
-        image = "docker.io/library/registry:3";
-        autoStart = true;
-        ports = [ "5003:5000" ];
-        environment = {
-          REGISTRY_HTTP_ADDR = ":5000";
-          REGISTRY_PROXY_REMOTEURL = "https://quay.io";
-        };
-        volumes = [
-          "/var/lib/registry:/var/lib/registry:Z"
-        ];
-      };
-
+    systemd.services.iscsid.serviceConfig = {
+      PrivateMounts = "yes";
+      BindPaths = "/run/current-system/sw/bin:/bin";
     };
-  };
-
-  systemd.tmpfiles.rules = [
-    "L /usr/bin/mount - - - - /run/current-system/sw/bin/mount"
-    "L /usr/bin/nsenter - - - - /run/current-system/sw/bin/nsenter"
-  ];
-
-  services.openiscsi = {
-    enable = true;
-    name = "${config.networking.hostName}-initiatorhost";
-  };
-  systemd.services.iscsid.serviceConfig = {
-    PrivateMounts = "yes";
-    BindPaths = "/run/current-system/sw/bin:/bin";
   };
 }
