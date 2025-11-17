@@ -1,5 +1,6 @@
-{ username, ... }:
+{ ... }:
 let
+  username = "elia";
   homedir = "/home/${username}";
   stateVersion = "25.05";
 in
