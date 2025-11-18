@@ -90,7 +90,7 @@ in
 
       settings = {
         notebook = {
-          dir = "~/builds/Ohara/";
+          dir = "~/builds/ohara/";
         };
 
         note = {
@@ -131,7 +131,7 @@ in
           markdown = {
             hashtags = true;
             colon-tags = true;
-            multi-word-tags = true;
+            multi-word-tags = false;
           };
         };
 

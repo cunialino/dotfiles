@@ -28,4 +28,4 @@ $env.PATH = ($env.PATH | split row (char esep) | prepend ~/.nix-profile/bin)
 
 $env.EDITOR = "nvim"
 
-$env.ZK_NOTEBOOK_DIR = ($env.HOME | path join "builds/Ohara/")
+$env.ZK_NOTEBOOK_DIR = ($env.HOME | path join "builds/ohara/")
