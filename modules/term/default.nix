@@ -26,7 +26,6 @@ in
     programs.bat.enable = true;
     programs.k9s.enable = true;
 
-    home.file.".local/bin/zellij_sessionizer.sh".source = ./local_bin/zellij_sessionizer.sh;
     home.file.".local/bin/nvim_tmux_opener.sh".source = ./local_bin/nvim_tmux_opener.sh;
 
     programs.lazygit = {
@@ -236,14 +235,6 @@ in
         mgr.prepend_keymap = [
           {
             on = [
-              "z"
-              "s"
-            ];
-            run = "shell --block 'zellij_sessionizer.sh $0'";
-            desc = "Start New session in selected dir";
-          }
-          {
-            on = [
               "<Enter>"
             ];
             run = [
@@ -270,12 +261,6 @@ in
       };
 
     };
-
-    programs.zellij = {
-      enable = true;
-    };
-
-    home.file.".config/zellij".source = ./zellij;
 
     programs.nushell = {
       enable = true;
