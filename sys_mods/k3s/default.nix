@@ -17,8 +17,8 @@ let
   extra_flags_server = [
     "--write-kubeconfig-mode=640"
     "--write-kubeconfig-group=k3s"
-    "--node-ip=${cfg.server_ip}"
-    "--advertise-address=${cfg.server_ip}"
+    "--node-ip=${cfg.ip}"
+    "--advertise-address=${cfg.ip}"
     "--disable=traefik"
 
   ]
@@ -66,6 +66,11 @@ in
       description = "If true will setup container registries on this machine";
     };
 
+    ip = lib.mkOption {
+      type = types.str;
+      default = "192.168.0.2";
+    };
+
   };
   config = mkIf config.modules.k3s_node.enable {
 
@@ -85,10 +90,11 @@ in
         ${cfg.eth} = {
           allowedTCPPorts = [
             6443
+            10256
             10250
           ]
           ++ (
-            if cfg.role == "server" then
+            if cfg.cluster_init then
               [
                 5000
                 5001
@@ -97,8 +103,21 @@ in
               ]
             else
               [ ]
+          )
+          ++ (
+            if cfg.role == "server" then
+              [
+                2379
+                2380
+                10257
+                10259
+              ]
+            else
+              [ ]
           );
-          allowedUDPPorts = [ 8472 ];
+          allowedUDPPorts = [
+            8472
+          ];
         };
       };
     };
