@@ -61,12 +61,6 @@ in
       trustedInterfaces = [
         "tailscale0"
       ];
-      interfaces = {
-        ${eth} = {
-          allowedTCPPorts = [ 123 ];
-          allowedUDPPorts = [ 123 ];
-        };
-      };
     };
     networking.interfaces = {
       ${eth} = {

@@ -20,7 +20,8 @@ in
       k3s_node = {
         enable = true;
         eth = eth;
-        role = "agent";
+        role = "server";
+        ip = "192.168.0.3";
       };
     };
 
@@ -45,6 +46,8 @@ in
     boot.loader.efi.canTouchEfiVariables = true;
 
     boot.kernelPackages = pkgs.linuxPackages_latest;
+
+    networking.nftables.enable = true;
 
     networking.firewall = {
       enable = true;

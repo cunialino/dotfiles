@@ -21,7 +21,8 @@ in
       k3s_node = {
         enable = true;
         eth = eth;
-        role = "agent";
+        role = "server";
+        ip = "192.168.0.5";
       };
     };
     home-manager.users.${username} = (import ./home.nix);
@@ -46,6 +47,7 @@ in
 
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
+    networking.nftables.enable = true;
     networking.wireless.enable = true;
 
     networking.firewall = {
