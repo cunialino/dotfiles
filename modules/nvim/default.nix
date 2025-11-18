@@ -36,7 +36,6 @@ let
     nvim-web-devicons
     plenary-nvim
     undotree
-    vim-slime
     which-key-nvim
     zk-nvim
     {
