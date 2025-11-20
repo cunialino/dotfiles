@@ -1,42 +1,58 @@
-{ ... }:
+{ config, lib, ... }:
 let
-  username = "elia";
+  cfg = config.modules.common;
+  username = cfg.main_user;
   homedir = "/home/${username}";
-  stateVersion = "25.05";
+  stateVersion = cfg.state_version;
 in
 {
 
-  nix.settings.experimental-features = [
-    "nix-command"
-    "flakes"
-  ];
+  options.modules.common = {
+    main_user = lib.mkOption {
+      type = lib.types.str;
+      default = "elia";
+      description = "Main user";
+    };
+    state_version = lib.mkOption {
+      type = lib.types.str;
+      default = "25.05";
+      description = "stateVersion";
+    };
 
-  system.stateVersion = stateVersion;
-
-  home-manager.users.${username} = {
-    home.stateVersion = stateVersion;
   };
 
-  users.users.${username} = {
-    isNormalUser = true;
-    createHome = true;
-    extraGroups = [
-      "wheel"
+  config = {
+    nix.settings.experimental-features = [
+      "nix-command"
+      "flakes"
     ];
-    home = homedir;
-  };
 
-  services.openssh = {
-    settings = {
-      AllowUsers = [ username ];
+    system.stateVersion = stateVersion;
+
+    home-manager.users.${username} = {
+      home.stateVersion = stateVersion;
+    };
+
+    users.users.${username} = {
+      isNormalUser = true;
+      createHome = true;
+      extraGroups = [
+        "wheel"
+      ];
+      home = homedir;
+    };
+
+    services.openssh = {
+      settings = {
+        AllowUsers = [ username ];
+      };
+    };
+
+    time.timeZone = "Europe/Rome";
+
+    console = {
+      font = "Lat2-Terminus16";
+      keyMap = "it";
     };
   };
-
-  time.timeZone = "Europe/Rome";
-
-  console = {
-    font = "Lat2-Terminus16";
-    keyMap = "it";
-  };
-
 }
