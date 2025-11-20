@@ -34,6 +34,11 @@
     ];
   };
 
+  fileSystems."/var/lib/longhorn_second_part" = {
+    device = "/dev/disk/by-label/EXTRA_PART";
+    fsType = "ext4";
+  };
+
   swapDevices = [ ];
 
   networking.useDHCP = lib.mkDefault true;
