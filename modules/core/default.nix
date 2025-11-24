@@ -18,6 +18,7 @@ in
       wget
       gcc
       uv
+      blesh
     ];
 
     programs.bash = {
@@ -30,11 +31,24 @@ in
       sessionVariables = {
         PATH = "$HOME/.local/bin/:$PATH";
       };
+      initExtra = ''
+      if [ -f "${pkgs.blesh}/share/blesh/ble.sh" ]; then
+        source "${pkgs.blesh}/share/blesh/ble.sh"
+      fi
+
+      # Use ble.sh's fzf integration (these scripts are shipped in blesh contrib)
+      if [ -f "${pkgs.blesh}/share/blesh/contrib/integration/fzf-initialize.bash" ]; then
+        source "${pkgs.blesh}/share/blesh/contrib/integration/fzf-initialize.bash"
+      fi
+      if [ -f "${pkgs.blesh}/share/blesh/contrib/integration/fzf-key-bindings.bash" ]; then
+        source "${pkgs.blesh}/share/blesh/contrib/integration/fzf-key-bindings.bash"
+      fi
+      '';
     };
 
     programs.fzf = {
       enable = true;
-      enableBashIntegration = true;
+      enableBashIntegration = false;
     };
     programs.git = {
       enable = true;
