@@ -22,6 +22,11 @@ in
       vulnix
     ];
 
+    programs.direnv = {
+      enable = true;
+      enableBashIntegration = true;
+      nix-direnv.enable = true;
+    };
     programs.bat.enable = true;
     programs.k9s.enable = true;
 
