@@ -32,6 +32,10 @@ in
       };
     };
 
+    programs.fzf = {
+      enable = true;
+      enableBashIntegration = true;
+    };
     programs.git = {
       enable = true;
       userName = "Elia Cunial";
