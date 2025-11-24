@@ -22,6 +22,7 @@ in
   };
 
   config = {
+    environment.pathsToLink = [ "/share/bash-completion" ];
     nix.settings.experimental-features = [
       "nix-command"
       "flakes"

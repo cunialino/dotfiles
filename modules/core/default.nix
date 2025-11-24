@@ -20,6 +20,18 @@ in
       uv
     ];
 
+    programs.bash = {
+      enable = true;
+      enableCompletion = true;
+      shellAliases = {
+        n = "nvim_tmux_opener.sh -l";
+        s = "tmux_sessionizer.sh";
+      };
+      sessionVariables = {
+        PATH = "$HOME/.local/bin/:$PATH";
+      };
+    };
+
     programs.git = {
       enable = true;
       userName = "Elia Cunial";
