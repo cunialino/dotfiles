@@ -30,12 +30,6 @@ in
 
     programs.dconf.enable = true;
 
-    programs.bash.interactiveShellInit = ''
-      if ! [ "$TERM" = "dumb" ]; then
-        exec nu
-      fi
-    '';
-
     boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
     boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
