@@ -31,6 +31,10 @@ in
         PATH = "$HOME/.local/bin/:$PATH";
       };
     };
+    programs.carapace = {
+      enable = true;
+      enableBashIntegration = true;
+    };
 
     programs.fzf = {
       enable = true;
