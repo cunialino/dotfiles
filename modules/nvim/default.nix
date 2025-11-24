@@ -61,17 +61,36 @@ let
     else
       drv;
   lazyPath = pkgs.linkFarm "lazy-plugins" (builtins.map mkEntryFromDrv myPlugins);
+
+  treesitterLib = import ./treesitter-wrapper.nix { inherit pkgs; };
+  grammars = with pkgs.tree-sitter-grammars; [
+    tree-sitter-bash
+    tree-sitter-c
+    tree-sitter-dockerfile
+    tree-sitter-html
+    tree-sitter-jsdoc
+    tree-sitter-json
+    tree-sitter-lua
+    tree-sitter-markdown
+    tree-sitter-markdown-inline
+    tree-sitter-nu
+    tree-sitter-python
+    tree-sitter-query
+    tree-sitter-regex
+    tree-sitter-rust
+    tree-sitter-toml
+    tree-sitter-vim
+    tree-sitter-yaml
+  ];
+  treesitterGrammars = treesitterLib.mkTreesitterDir grammars;
 in
 {
+
   options.modules.nvim = {
     enable = mkEnableOption "nvim";
-    useTreesitter = mkOption {
-      default = false;
-      description = "Enable Nvim Treesitter";
-      type = types.bool;
-    };
   };
   config = mkIf cfg.enable {
+
     home.sessionVariables = {
       EDITOR = "nvim";
     };
@@ -87,32 +106,6 @@ in
       ];
       plugins = with pkgs.vimPlugins; [
         lazy-nvim
-
-        (nvim-treesitter.withPlugins (p: [
-          p.bash
-          p.c
-          p.diff
-          p.dockerfile
-          p.html
-          p.jsdoc
-          p.json
-          p.jsonc
-          p.lua
-          p.luadoc
-          p.luap
-          p.markdown
-          p.markdown_inline
-          p.nu
-          p.python
-          p.query
-          p.regex
-          p.rust
-          p.terraform
-          p.toml
-          p.vim
-          p.vimdoc
-          p.yaml
-        ]))
       ];
       extraLuaConfig = ''
 
@@ -132,6 +125,7 @@ in
             install = { missing = false },
           })
         vim.cmd("silent! Copilot disable")
+        vim.opt.runtimepath:append("${treesitterGrammars}")
       '';
 
     };
