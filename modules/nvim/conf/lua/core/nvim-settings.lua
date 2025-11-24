@@ -91,6 +91,11 @@ vim.opt.shellxescape = ""
 vim.opt.shellxquote = ""
 vim.opt.shellquote = ""
 
+vim.o.foldenable = true
+vim.o.foldlevel = 99
+vim.o.foldmethod = "expr"
+vim.o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
+
 
 local termfeatures = vim.g.termfeatures or {}
 termfeatures.osc52 = false
