@@ -18,5 +18,6 @@
       gui.enable = true;
       tmux.enable = true;
     };
+
   };
 }

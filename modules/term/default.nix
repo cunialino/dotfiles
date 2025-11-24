@@ -19,7 +19,6 @@ in
       just
       ripgrep
       sd
-      television
       vulnix
     ];
 
@@ -166,7 +165,7 @@ in
     programs.starship = {
       enable = true;
 
-      enableNushellIntegration = true;
+      enableBashIntegration = true;
       settings = {
         format = ''
           [╭─ ](surface2)$hostname$directory$git_branch$git_status$git_state$package
@@ -262,18 +261,5 @@ in
 
     };
 
-    programs.nushell = {
-      enable = true;
-      configFile.source = ./nushell/config.nu;
-      envFile.source = ./nushell/env.nu;
-      loginFile.source = ./nushell/login.nu;
-    };
-
-    home.file.".config/nushell/scripts".source = ./nushell/scripts;
-
-    programs.carapace = {
-      enable = true;
-      enableNushellIntegration = true;
-    };
   };
 }

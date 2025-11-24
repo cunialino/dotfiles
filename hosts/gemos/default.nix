@@ -37,7 +37,6 @@ in
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     users.users.${username} = {
-      shell = pkgs.nushell;
       openssh.authorizedKeys.keys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEfXbFJzHbBlJ6ZhoRoC61UJswWK72bpUA5Diuh1BXGB elia.cunial@gmail.com"
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFdiGofoKxe+4M7tE3E8MtIgJTfo12A3eYP29MSwXdTR elia@NWB005CD2037MQ5"
