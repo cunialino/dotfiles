@@ -57,6 +57,8 @@ return {
     { "<leader>fP", function() require("fzf-lua").builtin() end, desc = "Pickers" },
     { "<leader>fh", function() require("fzf-lua").help_tags() end, desc = "Help" },
     { "<leader>fo", function() require("fzf-lua").oldfiles() end, desc = "Old Files" },
+    { "<leader>fT", function() require("fzf-lua").tabs() end, desc = "Tabs" },
+
   },
 }
 
