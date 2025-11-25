@@ -7,8 +7,8 @@ return {
     local M = {}
 
     M.winopts = {
-      height = 0.8,
-      width  = 0.8,
+      height  = 0.8,
+      width   = 0.8,
       preview = {
         default = "bat",
         wrap    = "nowrap",
@@ -40,7 +40,9 @@ return {
   end,
 
   config = function(_, opts)
-    require("fzf-lua").setup(opts)
+    local fzf = require("fzf-lua")
+    fzf.setup(opts)
+    fzf.register_ui_select()
   end,
 
   keys = {
