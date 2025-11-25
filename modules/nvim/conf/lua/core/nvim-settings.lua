@@ -87,6 +87,8 @@ vim.o.foldlevel = 99
 vim.o.foldmethod = "expr"
 vim.o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 
+vim.opt.completeopt = { "menuone", "noselect", "popup" }
+
 
 local termfeatures = vim.g.termfeatures or {}
 termfeatures.osc52 = false
@@ -95,14 +97,16 @@ vim.g.termfeatures = termfeatures
 vim.api.nvim_set_keymap("n", "<leader>t", "", { desc = "+Tmux Send", noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<leader>t", "", { desc = "+Tmux Send", noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>tt", ":lua require('tmux_send').send_line()<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<leader>tt", ":lua require('tmux_send').send_visual()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<leader>tt", ":lua require('tmux_send').send_visual()<CR>",
+  { noremap = true, silent = true })
 
-vim.api.nvim_set_keymap("n", "<leader>tl", ":lua require('tmux_send').send_line_livy()<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<leader>tl", ":lua require('tmux_send').send_visual_livy()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>tl", ":lua require('tmux_send').send_line_livy()<CR>",
+  { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<leader>tl", ":lua require('tmux_send').send_visual_livy()<CR>",
+  { noremap = true, silent = true })
 
 vim.api.nvim_create_autocmd("FileType", {
-    callback = function(ev)
-        pcall(vim.treesitter.start, ev.buf)
-    end
+  callback = function(ev)
+    pcall(vim.treesitter.start, ev.buf)
+  end
 })
-
