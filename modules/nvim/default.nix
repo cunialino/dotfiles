@@ -11,28 +11,20 @@ let
 
   myPlugins = with pkgs.vimPlugins; [
     CopilotChat-nvim
-    blink-cmp
-    blink-cmp-copilot
     conform-nvim
     copilot-lua
     dashboard-nvim
     diffview-nvim
-    friendly-snippets
     fzf-lua
     gitsigns-nvim
     hardtime-nvim
     lazydev-nvim
-    lualine-nvim
-    mini-comment
     nvim-autopairs
     nvim-dap
     nvim-dap-ui
     nvim-lint
     nvim-nio
     nvim-notify
-    nvim-treesitter
-    nvim-treesitter-textobjects
-    nvim-ts-context-commentstring
     nvim-web-devicons
     plenary-nvim
     undotree
