@@ -7,7 +7,7 @@
 }:
 let
   username = "elia";
-  eth = "enp0s20u2";
+  eth = "enp0s20u3";
 in
 {
   imports = [
