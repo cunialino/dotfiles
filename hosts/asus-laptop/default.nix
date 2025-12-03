@@ -41,6 +41,7 @@ in
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     networking.nftables.enable = true;
+    networking.wireless.enable = true;
 
     networking.firewall = {
       enable = true;
