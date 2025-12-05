@@ -55,5 +55,5 @@ return {
 		-- 	file_width = 30,
 		-- },
 	},
-	dependencies = { { "nvim-tree/nvim-web-devicons" }, { "ibhagwan/fzf-lua" } },
+	dependencies = { { "ibhagwan/fzf-lua" } },
 }
