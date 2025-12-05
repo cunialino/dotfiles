@@ -25,7 +25,6 @@ let
     nvim-lint
     nvim-nio
     nvim-notify
-    nvim-web-devicons
     plenary-nvim
     undotree
     which-key-nvim
