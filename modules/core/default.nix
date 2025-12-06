@@ -40,29 +40,30 @@ in
       enable = true;
       enableBashIntegration = true;
     };
-    programs.git = {
+    programs.difftastic = {
       enable = true;
-      userName = "Elia Cunial";
-      userEmail = "elia.cunial@gmail.com";
-
-      difftastic = {
-        enable = true;
-        enableAsDifftool = true;
+      git.diffToolMode = true;
+      options = {
         background = "dark";
         color = "auto";
         display = "side-by-side";
       };
+    };
+    programs.git = {
+      enable = true;
+      settings = {
+        user = {
+          name = "Elia Cunial";
+          email = "elia.cunial@gmail.com";
+        };
 
-      extraConfig = {
         credential.helper = "cache";
-
         filter.lfs = {
           process = "git-lfs filter-process";
           required = true;
           clean = "git-lfs clean -- %f";
           smudge = "git-lfs smudge -- %f";
         };
-
         init.defaultBranch = "main";
       };
 
