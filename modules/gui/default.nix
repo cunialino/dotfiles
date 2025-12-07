@@ -19,6 +19,7 @@ in
         pipewire
         wireplumber
         wl-clipboard
+        noto-fonts
         noto-fonts-color-emoji
       ]
       ++ (with pkgs.nerd-fonts; [ sauce-code-pro ]);
