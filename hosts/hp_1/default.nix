@@ -25,6 +25,9 @@ in
         ip = "192.168.0.5";
       };
     };
+    environment.systemPackages = with pkgs; [
+      xfsprogs
+    ];
     home-manager.users.${username} = (import ./home.nix);
 
     programs.dconf.enable = true;

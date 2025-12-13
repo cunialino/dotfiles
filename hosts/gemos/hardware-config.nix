@@ -38,6 +38,10 @@
     device = "/dev/disk/by-label/EXTRA_PART";
     fsType = "ext4";
   };
+  fileSystems."/second_disk" = {
+    device = "/dev/disk/by-label/SECOND_DISK";
+    fsType = "xfs";
+  };
 
   swapDevices = [ ];
 

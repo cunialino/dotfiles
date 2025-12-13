@@ -34,7 +34,10 @@
       "dmask=0022"
     ];
   };
-
+  fileSystems."/second_disk" = {
+    device = "/dev/disk/by-label/SECOND_DISK";
+    fsType = "xfs";
+  };
   swapDevices = [ ];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
