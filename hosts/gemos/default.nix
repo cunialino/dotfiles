@@ -26,6 +26,9 @@ in
       };
 
     };
+    environment.systemPackages = with pkgs; [
+      xfsprogs
+    ];
     home-manager.users.${username} = (import ./home.nix);
 
     programs.dconf.enable = true;
