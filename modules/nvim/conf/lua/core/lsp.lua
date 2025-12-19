@@ -7,6 +7,7 @@ vim.lsp.enable({
   "rust-analyzer",
   "terraformls",
   "typos_lsp",
+  "yamlls",
   "zk",
 })
 

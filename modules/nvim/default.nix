@@ -92,6 +92,7 @@ in
       defaultEditor = true;
       extraPackages = with pkgs; [
         lua-language-server
+        yaml-language-server
         nil
         nixfmt
         terraform-ls
