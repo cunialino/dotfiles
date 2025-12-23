@@ -6,6 +6,10 @@ else
   CWD=$(fd -d 1 -t d . ~/.config/ ~/builds/ ~/WORK | fzf)
 fi
 
+if [[ $CWD == "" ]]; then
+  exit 0
+fi
+
 SESSION_NAME="$(basename $CWD)"
 
 if [[ -z $TMUX ]]; then
