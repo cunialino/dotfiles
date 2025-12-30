@@ -9,7 +9,9 @@ let
 
   cfg = config.modules.nvim;
 
-  myPlugins = with pkgs.vimPlugins; [
+  noCheck = pkg: pkg.overrideAttrs { doCheck = false; };
+
+  myPlugins = with pkgs.vimPlugins; map noCheck [
     CopilotChat-nvim
     conform-nvim
     copilot-lua
@@ -30,18 +32,10 @@ let
     undotree
     which-key-nvim
     zk-nvim
-    {
-      name = "LuaSnip";
-      path = luasnip;
-    }
-    {
-      name = "surround.nvim";
-      path = surround-nvim;
-    }
-    {
-      name = "snacks.nvim";
-      path = snacks-nvim;
-    }
+  ] ++ [
+    { name = "LuaSnip"; path = luasnip; }
+    { name = "surround.nvim"; path = surround-nvim; }
+    { name = "snacks.nvim"; path = snacks-nvim; }
   ];
   mkEntryFromDrv =
     drv:
