@@ -1,5 +1,6 @@
 {
   config,
+  pkgs,
   lib,
   ...
 }:
@@ -73,6 +74,14 @@ in
 
   };
   config = mkIf config.modules.k3s_node.enable {
+
+    environment.systemPackages =
+      with pkgs;
+      [
+      ]
+      ++ lib.optionals cfg.cluster_init [
+        kubernetes-helm
+      ];
 
     users.users.${cfg.main_user}.extraGroups = [ newGroup ];
 
