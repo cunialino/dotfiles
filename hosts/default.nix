@@ -1,8 +1,8 @@
 {
   hosts_os = {
-    asus-laptop = {
+    elcunal = {
       system = "x86_64-linux";
-      file = ./asus-laptop;
+      file = ./elcunal;
       hostname = "elcunal";
     };
     hp_1 = {
@@ -11,9 +11,9 @@
       hostname = "elcunhp1";
     };
 
-    gemos = {
+    elcungem = {
       system = "x86_64-linux";
-      file = ./gemos;
+      file = ./elcungem;
       hostname = "elcungem";
     };
     opizero3 = {
