@@ -20,9 +20,23 @@ in
     };
 
   };
-
   config = {
     environment.pathsToLink = [ "/share/bash-completion" ];
+    security.sudo.extraRules = [
+      {
+        users = [ cfg.main_user ];
+        commands = [
+          {
+            command = "/run/current-system/sw/bin/reboot";
+            options = [ "NOPASSWD" ];
+          }
+          {
+            command = "/run/current-system/sw/bin/nix-collect-garbage";
+            options = [ "NOPASSWD" ];
+          }
+        ];
+      }
+    ];
     nix.settings.experimental-features = [
       "nix-command"
       "flakes"
