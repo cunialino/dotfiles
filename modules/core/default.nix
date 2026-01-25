@@ -18,6 +18,7 @@ in
       wget
       gcc
       uv
+      jq
     ];
 
     programs.bash = {
