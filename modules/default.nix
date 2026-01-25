@@ -8,5 +8,6 @@
     ./common
     ./gui
     ./tmux
+    ./bw
   ];
 }
