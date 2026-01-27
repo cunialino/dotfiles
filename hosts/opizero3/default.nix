@@ -35,6 +35,7 @@ in
         enable = true;
         eth = eth;
         role = "agent";
+        ip = "192.168.0.4";
       };
     };
 
