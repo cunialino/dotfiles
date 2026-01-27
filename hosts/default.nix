@@ -5,7 +5,7 @@
       file = ./elcunal;
       hostname = "elcunal";
     };
-    hp_1 = {
+    elcunhp1 = {
       system = "x86_64-linux";
       file = ./hp_1;
       hostname = "elcunhp1";
