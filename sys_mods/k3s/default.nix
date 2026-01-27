@@ -8,24 +8,7 @@ with lib;
 let
   cfg = config.modules.k3s_node;
   newGroup = "k3s";
-
   token_file = "/etc/k3s/token";
-
-  extra_flags_common = [
-    "--flannel-iface=${cfg.eth}"
-  ];
-
-  extra_flags_server = [
-    "--write-kubeconfig-mode=640"
-    "--write-kubeconfig-group=k3s"
-    "--node-ip=${cfg.ip}"
-    "--advertise-address=${cfg.ip}"
-    "--disable=traefik"
-
-  ]
-  ++ extra_flags_common;
-  extra_flags_agent = extra_flags_common;
-  extra_flags = if cfg.role == "server" then extra_flags_server else extra_flags_agent;
 in
 {
 
@@ -71,6 +54,14 @@ in
       type = types.str;
       default = "192.168.0.2";
     };
+    dnsServers = lib.mkOption {
+      type = types.listOf types.str;
+      default = [
+        "1.1.1.1"
+        "1.0.0.1"
+      ];
+      description = "DNS servers for k3s pods to use";
+    };
 
   };
   config = mkIf config.modules.k3s_node.enable {
@@ -78,58 +69,66 @@ in
     environment.systemPackages =
       with pkgs;
       [
+        bpftools
+        bpftrace
       ]
       ++ lib.optionals cfg.cluster_init [
         kubernetes-helm
+        cilium-cli
       ];
 
     users.users.${cfg.main_user}.extraGroups = [ newGroup ];
-
     networking.firewall = {
+      interfaces."${cfg.eth}" = {
+        allowedTCPPorts = [
+          9100
+          6443
+          4240
+          4244
+          10250
+          10256
+        ]
+        ++ (
+          if cfg.cluster_init then
+            [
+              5000
+              5001
+              5002
+              5003
+              5004
+            ]
+          else
+            [ ]
+        )
+        ++ (
+          if cfg.role == "server" then
+            [
+              2379
+              2380
+              10257
+              10259
+            ]
+          else
+            [ ]
+        );
 
-      interfaces = {
-
-        "cni0" = {
-          allowedTCPPorts = [
-            6443
-            10250
-          ];
-        };
-
-        ${cfg.eth} = {
-          allowedTCPPorts = [
-            6443
-            10256
-            10250
-          ]
-          ++ (
-            if cfg.cluster_init then
-              [
-                5000
-                5001
-                5002
-                5003
-              ]
-            else
-              [ ]
-          )
-          ++ (
-            if cfg.role == "server" then
-              [
-                2379
-                2380
-                10257
-                10259
-              ]
-            else
-              [ ]
-          );
-          allowedUDPPorts = [
-            8472
-          ];
-        };
+        allowedUDPPorts = [
+          4240
+          8472
+        ];
       };
+
+      trustedInterfaces = [
+        "lxc*"
+        "cilium_host"
+        "cilium_net"
+      ];
     };
+
+    environment.etc."k3s-resolv.conf".text = ''
+      ${concatMapStringsSep "\n" (ns: "nameserver ${ns}") cfg.dnsServers}
+      options ndots:5
+    '';
 
     environment.etc."rancher/k3s/registries.yaml".text = ''
       mirrors:
@@ -146,22 +145,50 @@ in
         quay.io:
           endpoint:
             - "http://${cfg.server_ip}:5003"
+        registry.k8s.io:
+          endpoint:
+            - "http://${cfg.server_ip}:5004"
         custom.io:
           endpoint:
             - "http://${cfg.server_ip}:5000"
+    '';
+
+    environment.etc."rancher/k3s/config.yaml".text = ''
+      ${if cfg.cluster_init then "cluster-init: true" else ""}
+      ${if cfg.role == "server" then "write-kubeconfig-mode: 640" else ""}
+      ${if cfg.role == "server" then "write-kubeconfig-group: k3s" else ""}
+      ${if cfg.role == "server" then "flannel-backend: \"none\"" else ""}
+      ${if cfg.role == "server" then "disable-kube-proxy: true" else ""}
+      ${if cfg.role == "server" then "disable-network-policy: true" else ""}
+      kubelet-arg:
+        - "resolv-conf=/etc/k3s-resolv.conf"
+      node-ip: ${cfg.ip}
+      ${
+        if cfg.role == "server" then
+          ''
+            disable:
+              - servicelb
+              - traefik
+          ''
+        else
+          ""
+      }
     '';
 
     services.k3s = {
       enable = true;
       clusterInit = cfg.cluster_init;
       role = cfg.role;
-      extraFlags = extra_flags;
       serverAddr = lib.mkIf (!cfg.cluster_init) "https://${cfg.server_ip}:6443";
       tokenFile = lib.mkIf (!cfg.cluster_init) token_file;
     };
 
     users.groups.${newGroup} = { };
-
+    system.activationScripts.createRegistryDirs = ''
+      mkdir -p /var/lib/registry/{custom,docker,ghcr,quay,k8s}
+      chown -R root:root /var/lib/registry
+      chmod -R 755 /var/lib/registry
+    '';
     virtualisation = lib.mkIf (cfg.is_registry) {
       containers = {
         enable = true;
@@ -184,7 +211,7 @@ in
             REGISTRY_HTTP_ADDR = ":5000";
           };
           volumes = [
-            "/var/lib/registry:/var/lib/registry:Z"
+            "/var/lib/registry/custom:/var/lib/registry:Z"
           ];
         };
 
@@ -198,7 +225,7 @@ in
             REGISTRY_PROXY_REMOTEURL = "https://registry-1.docker.io";
           };
           volumes = [
-            "/var/lib/registry:/var/lib/registry:Z"
+            "/var/lib/registry/docker:/var/lib/registry:Z"
           ];
         };
 
@@ -211,7 +238,7 @@ in
             REGISTRY_PROXY_REMOTEURL = "https://ghcr.io";
           };
           volumes = [
-            "/var/lib/registry:/var/lib/registry:Z"
+            "/var/lib/registry/ghcr:/var/lib/registry:Z"
           ];
         };
         quayRegistry = {
@@ -223,7 +250,19 @@ in
             REGISTRY_PROXY_REMOTEURL = "https://quay.io";
           };
           volumes = [
-            "/var/lib/registry:/var/lib/registry:Z"
+            "/var/lib/registry/quay:/var/lib/registry:Z"
+          ];
+        };
+        k8sRegistry = {
+          image = "docker.io/library/registry:3";
+          autoStart = true;
+          ports = [ "5004:5000" ];
+          environment = {
+            REGISTRY_HTTP_ADDR = ":5000";
+            REGISTRY_PROXY_REMOTEURL = "https://registry.k8s.io";
+          };
+          volumes = [
+            "/var/lib/registry/k8s:/var/lib/registry:Z"
           ];
         };
 

@@ -52,7 +52,6 @@ in
     networking.nftables.enable = true;
     networking.firewall = {
       enable = true;
-      allowPing = false;
       allowedTCPPorts = [ ];
       allowedUDPPorts = [ ];
       trustedInterfaces = [
