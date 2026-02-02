@@ -90,6 +90,8 @@ in
         nil
         nixfmt
         terraform-ls
+        sqlfluff
+        mypy
       ];
       plugins = with pkgs.vimPlugins; [
         lazy-nvim
