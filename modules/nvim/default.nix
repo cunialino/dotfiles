@@ -92,6 +92,7 @@ in
         terraform-ls
         sqlfluff
         mypy
+        typos
       ];
       plugins = with pkgs.vimPlugins; [
         lazy-nvim
