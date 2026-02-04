@@ -3,7 +3,7 @@
 if [ $# -eq 1 ]; then 
   CWD="$1"
 else
-  CWD=$(fd -d 1 -t d . ~/.config/ ~/builds/ ~/WORK | fzf)
+  CWD=$(fd -d 1 -t d . ~/.config/ ~/builds/ ~/WORK ~/WORK_GITHUB | fzf)
 fi
 
 if [[ $CWD == "" ]]; then
