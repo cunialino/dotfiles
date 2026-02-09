@@ -40,7 +40,7 @@ else
   echo "[$(date)] WRONG" | tee -a $LOGS
   exit 1
 fi
-
+mkdir -p /tmp/nvim
 if [[ -z "$TMUX" ]]; then 
   echo "[$(date)] NOT IN TMUX" | tee -a $LOGS
   nvim "$NVIM_OPTS"
@@ -50,7 +50,7 @@ else
     echo "[$(date)] cannot find session" | tee -a $LOGS
     exit 1
   else
-    file=~/.cache/nvim/nvim_tmux_"$session_id".pipe
+    file=/tmp/nvim/nvim_tmux_"$session_id".pipe
     nvim $NVIM_MODE $file $NVIM_OPTS "$@"
   fi
 fi
