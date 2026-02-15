@@ -34,7 +34,7 @@
     ];
   };
 
-  fileSystems."/var/lib/longhorn_second_part" = {
+  fileSystems."/second_part" = {
     device = "/dev/disk/by-label/EXTRA_PART";
     fsType = "ext4";
   };
