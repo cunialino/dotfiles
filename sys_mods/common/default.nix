@@ -22,6 +22,13 @@ in
   };
   config = {
     environment.pathsToLink = [ "/share/bash-completion" ];
+    boot.kernel.sysctl = {
+      "net.core.nm_max" = 16777216;
+      "net.core.wmem_max" = 16777216;
+      "net.core.netdev_max_backlog" = 5000;
+      "kernel.watchdog_thresh" = 30;
+      "net.ipv4.neigh.default.gc_thresh3" = 8192;
+    };
     security.sudo.extraRules = [
       {
         users = [ cfg.main_user ];
