@@ -16,15 +16,12 @@ in
       with pkgs;
       [
         firefox
-        pipewire
         wireplumber
         wl-clipboard
         noto-fonts
         noto-fonts-color-emoji
       ]
       ++ (with pkgs.nerd-fonts; [ sauce-code-pro ]);
-
-    home.file.".config/pipewire".source = ./pipewire;
 
     home.file.".local/share/applications/firefox.desktop".source = ./firefox.desktop;
 
@@ -190,9 +187,9 @@ in
 
           "${config.wayland.windowManager.sway.config.modifier}+r" = "mode resize";
 
-          "XF86AudioLowerVolume" = "exec pamixer -d 5";
-          "XF86AudioRaiseVolume" = "exec pamixer -i 5";
-          "XF86AudioMute" = "exec pamixer -t";
+          "XF86AudioLowerVolume" = "exec wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%-";
+          "XF86AudioRaiseVolume" = "exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
+          "XF86AudioMute" = "exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
 
           "XF86MonBrightnessDown" = "exec light -U 5";
           "XF86MonBrightnessUp" = "exec light -A 5";
@@ -245,10 +242,6 @@ in
         };
 
         defaultWorkspace = "workspace number 1";
-        startup = [
-          { command = "pipewire"; }
-        ];
-
       };
 
       extraConfig = ''
@@ -278,7 +271,7 @@ in
           ];
           modules-right = [
             "network"
-            "pulseaudio"
+            "wireplumber"
             "backlight"
             "battery"
             "clock"
@@ -378,7 +371,7 @@ in
           };
 
           network = {
-            # interface = "wlp2*";
+            interface = "w*";
             format-wifi = "{essid} ({signalStrength}%) 󰖩";
             format-ethernet = "{ipaddr}/{cidr} 󰈁";
             tooltip-format = "{ifname} via {gwaddr} 󰊗";
@@ -387,8 +380,7 @@ in
             format-alt = "{ifname}: {ipaddr}/{cidr}";
           };
 
-          pulseaudio = {
-            # scroll-step = 1; # %, can be a float
+          wireplumber = {
             format = "{volume}% {icon} {format_source}";
             format-bluetooth = "{volume}% {icon}  {format_source}";
             format-bluetooth-muted = "󰝟 {icon}  {format_source}";

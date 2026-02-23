@@ -70,6 +70,12 @@ in
       };
 
     };
+    services.pipewire = {
+      enable = true;
+      alsa.enable = true;
+      alsa.support32Bit = true;
+      wireplumber.enable = true;
+    };
     services.tailscale.enable = true;
 
     services.ntp.enable = true;
