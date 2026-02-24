@@ -14,6 +14,8 @@ update-all:
 
 clean-all:
     #!/usr/bin/env bash
+    eval $(ssh-agent)
+    ssh-add ~/.ssh/id_rsa
     for pair in {{nodes}}; do
         IFS=':' read -r name ip <<< "$pair"
         just clean-node "$name" "$ip"
@@ -23,7 +25,7 @@ clean-all:
 cordon-and-drain name:
     kubectl cordon {{name}}
     kubectl drain {{name}} --ignore-daemonsets --delete-emptydir-data --timeout=60s \
-       --pod-selector='longhorn.io/component!=instance-manager,app.kubernetes.io/name!=nats,app!=csi-attacher,app!=csi-provisioner,app!=csi-resizer,app!=csi-snapshotter'
+       --pod-selector='longhorn.io/component!=instance-manager,app.kubernetes.io/name!=nats,app!=csi-attacher,app!=csi-provisioner,app!=csi-resizer,app!=csi-snapshotter' || true
 
 
 update-node name ip: ( cordon-and-drain name )
