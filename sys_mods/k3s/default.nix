@@ -33,6 +33,11 @@ in
       default = false;
       description = "Only set true on the bootstrap server to start k3s with --cluster-init for embedded etcd HA.";
     };
+    wlp = lib.mkOption {
+      type = types.str;
+      default = "wlp4s0";
+      description = "Network interface used to leave cluster.";
+    };
     eth = lib.mkOption {
       type = types.str;
       default = "eth0";
@@ -113,6 +118,8 @@ in
         );
 
         allowedUDPPorts = [
+          53
+          51820
           4240
           8472
         ];
@@ -282,6 +289,16 @@ in
     systemd.services.iscsid.serviceConfig = {
       PrivateMounts = "yes";
       BindPaths = "/run/current-system/sw/bin:/bin";
+    };
+    networking.nat = {
+      enable = true;
+      externalInterface = cfg.wlp;
+      internalIPs = [ "10.42.0.0/16" ];
+    };
+    boot.kernel.sysctl = {
+      "net.ipv4.ip_forward" = 1;
+      "net.ipv4.conf.all.rp_filter" = 2; # Loose filter prevents return packet drops
+      "net.ipv4.conf.${cfg.wlp}.rp_filter" = 2;
     };
   };
 }
