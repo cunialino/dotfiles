@@ -22,6 +22,7 @@ in
         eth = eth;
         role = "server";
         ip = "192.168.0.3";
+        wlp = "wlp2s0";
       };
     };
 

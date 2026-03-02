@@ -23,6 +23,7 @@ in
         eth = eth;
         role = "server";
         ip = "192.168.0.5";
+        wlp = "wlp0s20f0u13";
       };
     };
     environment.systemPackages = with pkgs; [

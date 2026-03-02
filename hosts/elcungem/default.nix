@@ -23,6 +23,7 @@ in
         role = "server";
         is_registry = true;
         cluster_init = true;
+        wlp = "wlp4s0";
       };
 
     };
