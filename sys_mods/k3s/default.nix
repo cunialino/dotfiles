@@ -191,6 +191,7 @@ in
 
         allowedUDPPorts = [
           53
+          123
           51820
           4240
           8472

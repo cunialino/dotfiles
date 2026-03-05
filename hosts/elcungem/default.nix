@@ -79,12 +79,19 @@ in
     };
     services.tailscale.enable = true;
 
-    services.ntp.enable = true;
-    services.ntp.servers = [
-      "0.pool.ntp.org"
-      "1.pool.ntp.org"
-      "2.pool.ntp.org"
-    ];
+    services.chrony = {
+      enable = true;
+      # List your upstream pools
+      servers = [
+        "0.pool.ntp.org"
+        "1.pool.ntp.org"
+        "2.pool.ntp.org"
+      ];
+      extraConfig = ''
+        # This is the magic line that lets other machines ask for time
+        allow 192.168.0.0/24 
+      '';
+    };
 
     services.k3s = {
 
