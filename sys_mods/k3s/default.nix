@@ -9,11 +9,82 @@ let
   cfg = config.modules.k3s_node;
   newGroup = "k3s";
   token_file = "/etc/k3s/token";
+  kubeVipRbac = pkgs.fetchurl {
+    url = "https://kube-vip.io/manifests/rbac.yaml";
+    sha256 = "sha256-aK1Jr2air67M4vXHWUzq39Un7Rrz3DkVjIKcZ6xvxkI=";
+  };
+
+  # Template the DaemonSet based on official documentation logic
+  kubeVipManifest = pkgs.writeText "kube-vip.yaml" ''
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      creationTimestamp: null
+      name: kube-vip
+      namespace: kube-system
+    spec:
+      containers:
+      - args:
+        - manager
+        env:
+        - name: vip_arp
+          value: "true"
+        - name: port
+          value: "6443"
+        - name: vip_interface
+          value: "${cfg.eth}"
+        - name: cp_enable
+          value: "true"
+        - name: cp_namespace
+          value: kube-system
+        - name: vip_ddns
+          value: "false"
+        - name: svc_enable
+          value: "true"
+        - name: vip_leaderelection
+          value: "true"
+        - name: vip_leaseduration
+          value: "5"
+        - name: vip_renewdeadline
+          value: "3"
+        - name: vip_retryperiod
+          value: "1"
+        - name: address
+          value: "${cfg.kube_vip_ip}"
+        image: ghcr.io/kube-vip/kube-vip:v0.8.0
+        imagePullPolicy: Always
+        name: kube-vip
+        resources: {}
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            - SYS_TIME
+        volumeMounts:
+        - mountPath: /etc/kubernetes/admin.conf
+          name: kubeconfig
+      hostAliases:
+      - hostnames:
+        - kubernetes
+        ip: 127.0.0.1
+      hostNetwork: true
+      volumes:
+      - hostPath:
+          path: /etc/rancher/k3s/k3s.yaml
+        name: kubeconfig
+    status: {}
+  '';
 in
 {
 
   options.modules.k3s_node = {
     enable = mkEnableOption "k3s_node";
+    kube_vip_ip = lib.mkOption {
+      type = types.str;
+      default = "192.168.0.100"; # Choose an IP in your range
+      description = "The Virtual IP for the K3s Control Plane.";
+    };
     main_user = mkOption {
       default = "elia";
       description = "Main user of k3s";
@@ -88,6 +159,7 @@ in
         allowedTCPPorts = [
           9100
           6443
+          2112
           4240
           4244
           10250
@@ -166,6 +238,7 @@ in
       ${if cfg.role == "server" then "write-kubeconfig-group: k3s" else ""}
       ${if cfg.role == "server" then "flannel-backend: \"none\"" else ""}
       ${if cfg.role == "server" then "disable-kube-proxy: true" else ""}
+      ${if cfg.role == "server" then "tls-san:\n  - ${cfg.kube_vip_ip}" else ""}
       ${if cfg.role == "server" then "disable-network-policy: true" else ""}
       kubelet-arg:
         - "resolv-conf=/etc/k3s-resolv.conf"
@@ -186,7 +259,7 @@ in
       enable = true;
       clusterInit = cfg.cluster_init;
       role = cfg.role;
-      serverAddr = lib.mkIf (!cfg.cluster_init) "https://${cfg.server_ip}:6443";
+      serverAddr = lib.mkIf (!cfg.cluster_init) "https://${cfg.kube_vip_ip}:6443";
       tokenFile = lib.mkIf (!cfg.cluster_init) token_file;
     };
 
@@ -277,10 +350,42 @@ in
     };
 
     systemd.tmpfiles.rules = [
+      (lib.mkIf (
+        cfg.role == "server" && cfg.cluster_init
+      ) "C /var/lib/rancher/k3s/server/manifests/kube-vip-rbac.yaml 0644 root root - ${kubeVipRbac}")
+
+      (lib.mkIf (
+        cfg.role == "server"
+      ) "C /var/lib/rancher/k3s/agent/pod-manifests/kube-vip.yaml 0644 root root - ${kubeVipManifest}")
       "L /usr/bin/mount - - - - /run/current-system/sw/bin/mount"
       "L /usr/bin/nsenter - - - - /run/current-system/sw/bin/nsenter"
       "L /usr/bin/fstrim - - - - /run/current-system/sw/bin/fstrim"
+      "d /home/${cfg.main_user}/.kube 0700 YOUR_USERNAME users - -"
     ];
+
+    systemd.services.user-kubeconfig-ha = {
+      description = "Copy K3s config to user home and set Virtual IP";
+      after = [ "k3s.service" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = ''
+        SRC="/etc/rancher/k3s/k3s.yaml"
+        DEST="/home/${cfg.main_user}/.kube/config"
+
+        # Wait for K3s to generate the source file
+        while [ ! -f "$SRC" ]; do sleep 1; done
+
+        # Create the HA version in the user's home
+        ${pkgs.gnused}/bin/sed "s/127.0.0.1/${cfg.kube_vip_ip}/g" "$SRC" > "$DEST"
+
+        # Set correct permissions so only your user can read it
+        chown ${cfg.main_user}:users "$DEST"
+        chmod 600 "$DEST"
+      '';
+    };
 
     services.openiscsi = {
       enable = true;
@@ -295,10 +400,10 @@ in
       externalInterface = cfg.wlp;
       internalIPs = [ "10.42.0.0/16" ];
     };
-    boot.kernel.sysctl = {
-      "net.ipv4.ip_forward" = 1;
-      "net.ipv4.conf.all.rp_filter" = 2; # Loose filter prevents return packet drops
-      "net.ipv4.conf.${cfg.wlp}.rp_filter" = 2;
-    };
+    networking.dhcpcd.denyInterfaces = [
+      "cilium_*"
+      "lxc*"
+      "veth*"
+    ];
   };
 }
