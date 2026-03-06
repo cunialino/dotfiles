@@ -92,17 +92,6 @@ in
         allow 192.168.0.0/24 
       '';
     };
-
-    services.k3s = {
-
-      extraKubeletConfig = {
-        systemReserved = {
-          cpu = "4";
-          memory = "16Gi";
-        };
-      };
-    };
-
   };
 
 }

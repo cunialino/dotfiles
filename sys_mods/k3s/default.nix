@@ -262,6 +262,36 @@ in
       role = cfg.role;
       serverAddr = lib.mkIf (!cfg.cluster_init) "https://${cfg.kube_vip_ip}:6443";
       tokenFile = lib.mkIf (!cfg.cluster_init) token_file;
+      extraKubeletConfig = {
+        kubeReserved = {
+          cpu = "200m";
+          memory = "256Mi";
+        };
+        systemReserved =
+          if cfg.cluster_init then
+            {
+              cpu = "4";
+              memory = "16Gi";
+            }
+          else
+            {
+              cpu = "200m";
+              memory = "256Mi";
+            };
+        evictionHard = {
+          "memory.available" = "200Mi";
+          "nodefs.available" = "10%";
+        };
+        evictionSoft = {
+          "memory.available" = "500Mi";
+          "nodefs.available" = "15%";
+        };
+        evictionSoftGracePeriod = {
+          "memory.available" = "1m30s";
+          "nodefs.available" = "1m30s";
+        };
+        failSwapOn = false;
+      };
     };
 
     users.groups.${newGroup} = { };
