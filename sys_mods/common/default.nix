@@ -56,6 +56,9 @@ in
       ];
       home = homedir;
     };
+    systemd.oomd.enable = true;
+    systemd.oomd.enableRootSlice = true;
+    systemd.oomd.enableUserSlices = true;
 
     services.openssh = {
       settings = {
