@@ -312,7 +312,16 @@ in
       };
       oci-containers.backend = "podman";
       oci-containers.containers = {
-
+        registryUi = {
+          image = "docker.io/joxit/docker-registry-ui:latest";
+          autoStart = true;
+          ports = [ "6789:80" ];
+          environment = {
+            SINGLE_REGISTRY = "false";
+            DELETE_IMAGES = "true";
+            REGISTRY_URL = "http://192.168.0.2:5000";
+          };
+        };
         registry = {
           image = "docker.io/library/registry:3";
           autoStart = true;
@@ -320,6 +329,7 @@ in
 
           environment = {
             REGISTRY_HTTP_ADDR = ":5000";
+            REGISTRY_STORAGE_DELETE_ENABLED = "true";
           };
           volumes = [
             "/var/lib/registry/custom:/var/lib/registry:Z"
