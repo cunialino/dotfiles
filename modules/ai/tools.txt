@@ -1,0 +1,11 @@
+fetch.sh
+ddg_search.sh
+ddg_fetch.sh
+mem_add_obs.sh
+mem_create_ent.sh
+mem_create_rel.sh
+mem_del_ent.sh
+mem_del_rel.sh
+mem_read_graph.sh
+mem_read_node.sh
+mem_search_nodes.sh
