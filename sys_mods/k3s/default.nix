@@ -436,11 +436,6 @@ in
       PrivateMounts = "yes";
       BindPaths = "/run/current-system/sw/bin:/bin";
     };
-    networking.nat = {
-      enable = true;
-      externalInterface = cfg.wlp;
-      internalIPs = [ "10.42.0.0/16" ];
-    };
     networking.dhcpcd.denyInterfaces = [
       "cilium_*"
       "lxc*"
