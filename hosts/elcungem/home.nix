@@ -18,6 +18,7 @@
       gui.enable = true;
       tmux.enable = true;
       bw.enable = true;
+      ai.enable = true;
     };
 
   };

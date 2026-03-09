@@ -9,5 +9,6 @@
     ./gui
     ./tmux
     ./bw
+    ./ai
   ];
 }
