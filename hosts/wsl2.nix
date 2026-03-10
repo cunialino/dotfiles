@@ -15,6 +15,7 @@
       term.enable = true;
       gui.enable = false;
       tmux.enable = true;
+      ai.enable = true;
     };
     home.username = "elia";
     home.homeDirectory = "/home/elia";
