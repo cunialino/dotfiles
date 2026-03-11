@@ -28,5 +28,9 @@
       system = "x86_64-linux";
       file = ./wsl2.nix;
     };
+    orgmac = {
+      system = "aarch64-darwin";
+      file = ./orgmac.nix;
+    };
   };
 }
