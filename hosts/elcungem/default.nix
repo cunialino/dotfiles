@@ -41,11 +41,12 @@ in
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     users.users.${username} = {
+      isNormalUser = true;
       openssh.authorizedKeys.keys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEfXbFJzHbBlJ6ZhoRoC61UJswWK72bpUA5Diuh1BXGB elia.cunial@gmail.com"
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFdiGofoKxe+4M7tE3E8MtIgJTfo12A3eYP29MSwXdTR elia@NWB005CD2037MQ5"
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAII0VDOZnoxcXnawqGPqO7OtReAwUZt4124xztbZp4r2c elia.cunial@gmail.com"
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEEd6dzfbpTTkSL/jFX8ImZKELjlVglhpxdPBtVUsVZ+ u0_a231@localhost"
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKVPpC5/rNBfc6h0x5+p9h94aAV8i4CNv05XUoC0T8/4 d00f192@MACITGQYW7FXH"
       ];
     };
 
