@@ -261,23 +261,18 @@ in
       clusterInit = cfg.cluster_init;
       role = cfg.role;
       serverAddr = lib.mkIf (!cfg.cluster_init) "https://${cfg.kube_vip_ip}:6443";
-      tokenFile = lib.mkIf (!cfg.cluster_init) token_file;
+      tokenFile = token_file;
       extraKubeletConfig = {
         kubeReserved = {
           cpu = "200m";
           memory = "256Mi";
         };
-        systemReserved =
-          if cfg.cluster_init then
+        systemReserved = lib.mkIf (cfg.cluster_init) (
             {
               cpu = "4";
               memory = "16Gi";
             }
-          else
-            {
-              cpu = "200m";
-              memory = "256Mi";
-            };
+        );
         evictionHard = {
           "memory.available" = "200Mi";
           "nodefs.available" = "10%";
@@ -290,7 +285,6 @@ in
           "memory.available" = "1m30s";
           "nodefs.available" = "1m30s";
         };
-        failSwapOn = false;
       };
     };
 
@@ -401,7 +395,6 @@ in
       "L /usr/bin/mount - - - - /run/current-system/sw/bin/mount"
       "L /usr/bin/nsenter - - - - /run/current-system/sw/bin/nsenter"
       "L /usr/bin/fstrim - - - - /run/current-system/sw/bin/fstrim"
-      "d /home/${cfg.main_user}/.kube 0700 YOUR_USERNAME users - -"
     ];
 
     systemd.services.user-kubeconfig-ha = {
