@@ -249,7 +249,6 @@ in
       node-ip: ${cfg.ip}
       kubelet-arg:
         - "resolv-conf=/etc/k3s-resolv.conf"
-      node-ip: ${cfg.ip}
       ${
         if cfg.role == "server" then
           ''
@@ -263,7 +262,6 @@ in
 
     services.k3s = {
       enable = true;
-      clusterInit = cfg.cluster_init;
       role = cfg.role;
       serverAddr = lib.mkIf (!cfg.cluster_init) "https://${cfg.kube_vip_ip}:6443";
       tokenFile = token_file;
