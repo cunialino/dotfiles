@@ -15,7 +15,7 @@ in
     };
     state_version = lib.mkOption {
       type = lib.types.str;
-      default = "25.05";
+      default = "26.05";
       description = "stateVersion";
     };
 
