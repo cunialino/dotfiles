@@ -29,6 +29,6 @@
     };
     home.username = "d00f192";
     home.homeDirectory = "/home/d00f192.linux";
-    home.stateVersion = "25.05";
+    home.stateVersion = "26.05";
   };
 }
