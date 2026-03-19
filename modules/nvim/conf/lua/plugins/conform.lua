@@ -15,6 +15,11 @@ return {
   opts = {
     formatters_by_ft = require("tools").tool_by_type("formatters"),
     formatters = {
+      sqlfluff = {
+        args = { "fix", "$FILENAME" },
+        stdin = false,
+        tmpfile_format = "$FILENAME",
+      },
       shfmt = {
         prepend_args = { "-i", "2" },
       },
