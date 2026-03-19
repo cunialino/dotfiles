@@ -13,6 +13,7 @@ in
 {
   options.modules.core.enable = mkEnableOption "core";
   config = mkIf cfg.enable {
+    home.shell.enableBashIntegration = true;
     home.packages = with pkgs; [
       curl
       wget
@@ -21,6 +22,7 @@ in
       jq
     ];
 
+    programs.atuin.enable = true;
     programs.bash = {
       enable = true;
       enableCompletion = true;
