@@ -97,7 +97,7 @@ in
       plugins = with pkgs.vimPlugins; [
         lazy-nvim
       ];
-      extraLuaConfig = ''
+      initLua = ''
 
           ${builtins.readFile ./conf/init.lua}
           require("lazy").setup({
