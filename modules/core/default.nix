@@ -22,7 +22,12 @@ in
       jq
     ];
 
-    programs.atuin.enable = true;
+    programs.atuin = {
+      enable = true;
+      settings = {
+        invert = true;
+      };
+    };
     programs.bash = {
       enable = true;
       enableCompletion = true;
