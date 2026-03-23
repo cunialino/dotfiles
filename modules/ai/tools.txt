@@ -9,3 +9,7 @@ mem_del_rel.sh
 mem_read_graph.sh
 mem_read_node.sh
 mem_search_nodes.sh
+get_current_time.sh
+fs_cat.sh
+fs_rg.sh
+fs_fd.sh

@@ -43,6 +43,7 @@ in
   options.modules.ai.enable = lib.mkEnableOption "ai";
   config = lib.mkIf cfg.enable {
     xdg.configFile."aichat/functions".source = functionsDir;
+    xdg.configFile."aichat/roles".source = ./roles;
     programs.aichat = {
       enable = true;
       settings = {
