@@ -150,15 +150,11 @@ in
       ]
       ++ lib.optionals cfg.cluster_init [
         kubernetes-helm
+        cilium-cli
       ];
 
     users.users.${cfg.main_user}.extraGroups = [ newGroup ];
     networking.firewall = {
-      trustedInterfaces = [
-        "cni0"
-        "flannel.1"
-      ];
-
       interfaces."${cfg.eth}" = {
         allowedTCPPorts = [
           9100
@@ -201,6 +197,12 @@ in
           8472
         ];
       };
+
+      trustedInterfaces = [
+        "lxc*"
+        "cilium_host"
+        "cilium_net"
+      ];
     };
 
     environment.etc."k3s-resolv.conf".text = ''
@@ -235,24 +237,17 @@ in
       ${if cfg.cluster_init then "cluster-init: true" else ""}
       ${if cfg.role == "server" then "write-kubeconfig-mode: 640" else ""}
       ${if cfg.role == "server" then "write-kubeconfig-group: k3s" else ""}
-      ${
-        if cfg.role == "server" then
-          ''
-            tls-san:
-              - ${cfg.kube_vip_ip} 
-            flannel-backend: vxlan
-          ''
-        else
-          ""
-      }
-      flannel-iface: ${cfg.eth}
-      node-ip: ${cfg.ip}
+      ${if cfg.role == "server" then "flannel-backend: \"none\"" else ""}
+      ${if cfg.role == "server" then "disable-kube-proxy: true" else ""}
+      ${if cfg.role == "server" then "tls-san:\n  - ${cfg.kube_vip_ip}" else ""}
+      ${if cfg.role == "server" then "disable-network-policy: true" else ""}
       kubelet-arg:
         - "resolv-conf=/etc/k3s-resolv.conf"
       ${
         if cfg.role == "server" then
           ''
             disable:
+              - servicelb
               - traefik
           ''
         else
@@ -433,7 +428,8 @@ in
       BindPaths = "/run/current-system/sw/bin:/bin";
     };
     networking.dhcpcd.denyInterfaces = [
-      "cni0"
+      "cilium_*"
+      "lxc*"
       "veth*"
     ];
   };
