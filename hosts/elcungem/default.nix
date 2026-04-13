@@ -78,7 +78,10 @@ in
       alsa.support32Bit = true;
       wireplumber.enable = true;
     };
-    services.tailscale.enable = true;
+    services.tailscale = {
+      enable = true;
+      useRoutingFeatures = "server";
+    };
 
     services.chrony = {
       enable = true;
