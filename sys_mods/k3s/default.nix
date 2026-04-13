@@ -241,6 +241,7 @@ in
       ${if cfg.role == "server" then "disable-kube-proxy: true" else ""}
       ${if cfg.role == "server" then "tls-san:\n  - ${cfg.kube_vip_ip}" else ""}
       ${if cfg.role == "server" then "disable-network-policy: true" else ""}
+      node-ip: ${cfg.ip}
       kubelet-arg:
         - "resolv-conf=/etc/k3s-resolv.conf"
       ${
