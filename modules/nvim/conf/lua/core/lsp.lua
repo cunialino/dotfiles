@@ -29,6 +29,12 @@ vim.diagnostic.config({
 
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
+    local client = assert(vim.lsp.get_client_by_id(args.data.client_id))
+    if client:supports_method('textDocument/completion') then
+      vim.lsp.completion.enable(true, args.data.client_id, args.buf, {
+        autotrigger = true,
+      })
+    end
     vim.bo[args.buf].formatexpr = nil
     vim.keymap.set("n", "<leader>lK", vim.lsp.buf.hover, { buffer = args.buf, desc = "Docs" })
     vim.keymap.set("n", "<leader>l", "", { buffer = args.buf, desc = "+LSP" })
@@ -38,12 +44,5 @@ vim.api.nvim_create_autocmd('LspAttach', {
     vim.keymap.set("n", "<leader>lR", vim.lsp.buf.rename, { buffer = args.buf, desc = "Rename" })
     vim.keymap.set("n", "<leader>la", vim.lsp.buf.code_action, { buffer = args.buf, desc = "Code actions" })
     vim.keymap.set("n", "<leader>la", vim.lsp.buf.code_action, { buffer = args.buf, desc = "Code actions" })
-
-    vim.lsp.completion.enable(true, args.data.client_id, args.buf, {
-      autotrigger = true,
-      convert = function(item)
-        return { abbr = item.label:gsub("%b()", "") }
-      end,
-    })
   end
 })
