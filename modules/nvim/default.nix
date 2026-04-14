@@ -17,7 +17,6 @@ let
     diffview-nvim
     fzf-lua
     gitsigns-nvim
-    hardtime-nvim
     lazydev-nvim
     nvim-autopairs
     nvim-dap
