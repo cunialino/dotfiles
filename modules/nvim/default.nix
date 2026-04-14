@@ -89,6 +89,8 @@ in
       ];
       plugins = with pkgs.vimPlugins; [
         lazy-nvim
+        luasnip
+        blink-cmp
       ];
       initLua = ''
 
