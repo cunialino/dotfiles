@@ -87,6 +87,7 @@ vim.o.foldmethod = "expr"
 vim.o.foldexpr = "v:lua.vim.treesitter.foldexpr()"
 
 vim.opt.completeopt = { "menuone", "noselect", "popup" }
+require('vim._core.ui2').enable()
 
 
 local termfeatures = vim.g.termfeatures or {}
