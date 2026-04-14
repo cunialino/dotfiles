@@ -12,9 +12,7 @@ let
   noCheck = pkg: pkg.overrideAttrs { doCheck = false; };
 
   myPlugins = with pkgs.vimPlugins; map noCheck [
-    CopilotChat-nvim
     conform-nvim
-    copilot-lua
     dashboard-nvim
     diffview-nvim
     fzf-lua
@@ -114,7 +112,6 @@ in
             },
             install = { missing = false },
           })
-        vim.cmd("silent! Copilot disable")
         vim.opt.runtimepath:append("${treesitterGrammars}")
       '';
 
