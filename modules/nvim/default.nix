@@ -28,9 +28,7 @@ let
     which-key-nvim
     zk-nvim
   ] ++ [
-    { name = "LuaSnip"; path = luasnip; }
     { name = "surround.nvim"; path = surround-nvim; }
-    { name = "snacks.nvim"; path = snacks-nvim; }
   ];
   mkEntryFromDrv =
     drv:
