@@ -25,7 +25,6 @@ let
     nvim-nio
     nvim-notify
     plenary-nvim
-    undotree
     which-key-nvim
     zk-nvim
   ] ++ [
