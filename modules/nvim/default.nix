@@ -13,7 +13,6 @@ let
 
   myPlugins = with pkgs.vimPlugins; map noCheck [
     conform-nvim
-    dashboard-nvim
     diffview-nvim
     fzf-lua
     gitsigns-nvim
