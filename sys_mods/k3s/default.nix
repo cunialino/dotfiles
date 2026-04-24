@@ -7,6 +7,11 @@
 with lib;
 let
   cfg = config.modules.k3s_node;
+  commonEnvRegistries = {
+    OTEL_TRACES_EXPORTER = "none";
+    OTEL_METRICS_EXPORTER = "none";
+    OTEL_LOGS_EXPORTER = "none";
+  };
   newGroup = "k3s";
   token_file = "/etc/k3s/token";
   kubeVipRbac = pkgs.fetchurl {
@@ -309,7 +314,7 @@ in
           image = "docker.io/joxit/docker-registry-ui:latest";
           autoStart = true;
           ports = [ "6789:80" ];
-          environment = {
+          environment = commonEnvRegistries // {
             SINGLE_REGISTRY = "false";
             DELETE_IMAGES = "true";
             REGISTRY_URL = "http://192.168.0.2:5000";
@@ -320,7 +325,7 @@ in
           autoStart = true;
           ports = [ "5000:5000" ];
 
-          environment = {
+          environment = commonEnvRegistries // {
             REGISTRY_HTTP_ADDR = ":5000";
             REGISTRY_STORAGE_DELETE_ENABLED = "true";
           };
@@ -334,7 +339,7 @@ in
           autoStart = true;
           ports = [ "5001:5000" ];
 
-          environment = {
+          environment = commonEnvRegistries // {
             REGISTRY_HTTP_ADDR = ":5000";
             REGISTRY_PROXY_REMOTEURL = "https://registry-1.docker.io";
           };
@@ -347,7 +352,7 @@ in
           image = "docker.io/library/registry:3";
           autoStart = true;
           ports = [ "5002:5000" ];
-          environment = {
+          environment = commonEnvRegistries // {
             REGISTRY_HTTP_ADDR = ":5000";
             REGISTRY_PROXY_REMOTEURL = "https://ghcr.io";
           };
@@ -371,7 +376,7 @@ in
           image = "docker.io/library/registry:3";
           autoStart = true;
           ports = [ "5004:5000" ];
-          environment = {
+          environment = commonEnvRegistries // {
             REGISTRY_HTTP_ADDR = ":5000";
             REGISTRY_PROXY_REMOTEURL = "https://registry.k8s.io";
           };
