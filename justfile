@@ -5,7 +5,7 @@ nodes := "opizero3:192.168.0.4 elcunal:192.168.0.3 elcunhp1:192.168.0.5"
 update-all:
     #!/usr/bin/env bash
     eval $(ssh-agent)
-    ssh-add ~/.ssh/id_rsa
+    ssh-add ~/.ssh/id_ed25519
     for pair in {{nodes}}; do
         IFS=':' read -r name ip <<< "$pair"
         just update-node "$name" "$ip"
