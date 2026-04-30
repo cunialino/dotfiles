@@ -11,24 +11,30 @@ let
 
   noCheck = pkg: pkg.overrideAttrs { doCheck = false; };
 
-  myPlugins = with pkgs.vimPlugins; map noCheck [
-    conform-nvim
-    diffview-nvim
-    fzf-lua
-    gitsigns-nvim
-    lazydev-nvim
-    nvim-autopairs
-    nvim-dap
-    nvim-dap-ui
-    nvim-lint
-    nvim-nio
-    nvim-notify
-    plenary-nvim
-    which-key-nvim
-    zk-nvim
-  ] ++ [
-    { name = "surround.nvim"; path = surround-nvim; }
-  ];
+  myPlugins =
+    with pkgs.vimPlugins;
+    map noCheck [
+      conform-nvim
+      diffview-nvim
+      fzf-lua
+      gitsigns-nvim
+      lazydev-nvim
+      nvim-autopairs
+      nvim-dap
+      nvim-dap-ui
+      nvim-lint
+      nvim-nio
+      nvim-notify
+      plenary-nvim
+      which-key-nvim
+      zk-nvim
+    ]
+    ++ [
+      {
+        name = "surround.nvim";
+        path = surround-nvim;
+      }
+    ];
   mkEntryFromDrv =
     drv:
     if lib.isDerivation drv then
@@ -72,7 +78,11 @@ in
     home.sessionVariables = {
       EDITOR = "nvim";
     };
-    home.packages = with pkgs; [ python313Packages.debugpy ];
+    home.packages = with pkgs.python313Packages; [
+      debugpy
+      python-lsp-server
+      pylsp-rope
+    ];
     programs.neovim = {
       enable = true;
       defaultEditor = true;
