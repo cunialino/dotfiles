@@ -19,6 +19,7 @@
       tmux.enable = true;
       bw.enable = true;
       ai.enable = true;
+      opencode.enable = true;
     };
 
   };

@@ -10,5 +10,6 @@
     ./tmux
     ./bw
     ./ai
+    ./opencode
   ];
 }
