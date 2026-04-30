@@ -267,10 +267,6 @@ in
       serverAddr = lib.mkIf (!cfg.cluster_init) "https://${cfg.kube_vip_ip}:6443";
       tokenFile = token_file;
       extraKubeletConfig = {
-        kubeReserved = {
-          cpu = "200m";
-          memory = "256Mi";
-        };
         systemReserved = lib.mkIf (cfg.cluster_init) (
             {
               cpu = "4";
