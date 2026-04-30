@@ -8,6 +8,7 @@
 let
   username = "elia";
   eth = "enp3s0";
+  wlp = "wlp4s0";
 in
 {
   imports = [
@@ -23,7 +24,7 @@ in
         role = "server";
         is_registry = true;
         cluster_init = true;
-        wlp = "wlp4s0";
+        wlp = wlp;
       };
 
     };
@@ -50,7 +51,22 @@ in
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKVPpC5/rNBfc6h0x5+p9h94aAV8i4CNv05XUoC0T8/4 d00f192@MACITGQYW7FXH"
       ];
     };
-
+    networking.nat = {
+      enable = true;
+      externalInterface = wlp;
+      internalInterfaces = [ eth ];
+      internalIPs = [ "192.168.0.0/24" ];
+    };
+    services.keepalived = {
+      enable = true;
+      vrrpInstances.gateway = {
+        interface = eth;
+        state = "MASTER";
+        virtualRouterId = 51;
+        priority = 100;
+        virtualIps = [ { addr = "192.168.0.111/24"; } ];
+      };
+    };
     networking.wireless.enable = true;
     networking.nftables.enable = true;
     networking.firewall = {

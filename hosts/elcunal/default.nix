@@ -8,6 +8,7 @@
 let
   username = "elia";
   eth = "enp0s20u3";
+  wlp = "wlp2s0";
 in
 {
   imports = [
@@ -22,7 +23,7 @@ in
         eth = eth;
         role = "server";
         ip = "192.168.0.3";
-        wlp = "wlp2s0";
+        wlp = wlp;
       };
     };
 
@@ -49,6 +50,22 @@ in
       allowedTCPPorts = [ ];
       allowedUDPPorts = [ ];
       interfaces.${eth}.allowedTCPPorts = [ 22 ];
+    };
+    networking.nat = {
+      enable = true;
+      externalInterface = wlp;
+      internalInterfaces = [ eth ];
+      internalIPs = [ "192.168.0.0/24" ];
+    };
+    services.keepalived = {
+      enable = true;
+      vrrpInstances.gateway = {
+        interface = eth;
+        state = "BACKUP";
+        virtualRouterId = 51;
+        priority = 90;
+        virtualIps = [ { addr = "192.168.0.111/24"; } ];
+      };
     };
 
     networking.interfaces = {
