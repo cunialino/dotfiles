@@ -45,8 +45,18 @@ in
     boot.kernelPackages = pkgs.linuxPackages_latest;
 
     networking.nftables.enable = true;
-    networking.wireless.enable = true;
+    networking.wireless.enable = false;
+    networking = {
+      defaultGateway = {
+        address = "192.168.0.111";
+        interface = eth;
+      };
 
+      nameservers = [
+        "1.1.1.1"
+        "8.8.8.8"
+      ];
+    };
     networking.firewall = {
       enable = true;
       allowedTCPPorts = [ ];
