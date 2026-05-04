@@ -17,6 +17,7 @@
       gui.enable = false;
       tmux.enable = true;
       ai.enable = true;
+      opencode.enable = true;
     };
     home.packages = with pkgs; [
       awscli2
