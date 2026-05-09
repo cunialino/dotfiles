@@ -10,6 +10,45 @@ let
   cfg = config.modules.nvim;
 
   noCheck = pkg: pkg.overrideAttrs { doCheck = false; };
+  jupynvim =
+    let
+      repo = "sheng-tse/jupynvim";
+      rev = "667d7c4018a7bbc72b88d68e96be59ab86f5b044";
+
+      # Using fetchFromGitHub is highly recommended over builtins.fetchGit here,
+      # as buildRustPackage requires a stable store path to calculate cargo dependencies.
+      src = pkgs.fetchFromGitHub {
+        owner = "sheng-tse";
+        repo = "jupynvim";
+        inherit rev;
+        # Update this to the correct source hash
+        hash = "sha256-jpReQW9tyOrSsBJLE3IPFNG/IwWZ051j+3gAI1xibj0=";
+      };
+
+      jupynvim-core = pkgs.rustPlatform.buildRustPackage {
+        pname = "jupynvim-core";
+        version = "main";
+        inherit src;
+
+        # Here is the crucial fix: pointing to the 'core' directory
+        sourceRoot = "source/core";
+
+        # Update this to the correct cargo dependencies hash
+        cargoHash = "sha256-sdmye61uTqHHbqlG2yj8lKZUu1q1Iir969t8MU2OJbM=";
+      };
+    in
+    pkgs.vimUtils.buildVimPlugin {
+      pname = "${lib.strings.sanitizeDerivationName repo}";
+      version = "main";
+      inherit src;
+
+      # The Lua script likely looks for the built binary in core/target/release/
+      # We recreate that path and link the compiled binary there so Neovim can find it.
+      postInstall = ''
+        mkdir -p $out/core/target/release
+        ln -s ${jupynvim-core}/bin/* $out/core/target/release/
+      '';
+    };
 
   myPlugins =
     with pkgs.vimPlugins;
@@ -100,6 +139,7 @@ in
         lazy-nvim
         luasnip
         blink-cmp
+        jupynvim
       ];
       initLua = ''
 
