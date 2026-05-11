@@ -20,6 +20,7 @@
       bw.enable = true;
       ai.enable = true;
       opencode.enable = true;
+      ghostty.enable = true;
     };
 
   };

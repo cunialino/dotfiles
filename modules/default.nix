@@ -11,5 +11,6 @@
     ./bw
     ./ai
     ./opencode
+    ./ghostty
   ];
 }
