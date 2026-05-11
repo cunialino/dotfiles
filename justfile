@@ -30,17 +30,19 @@ cordon-and-drain name:
 
 update-node name ip: ( cordon-and-drain name )
     @echo ">>> Updating {{name}} {{ip}}"
-    nixos-rebuild switch --flake .#{{name}} \
+    nixos-rebuild boot --flake .#{{name}} \
     --target-host elia@{{ip}} \
     --ask-sudo-password
 
     ssh elia@{{ip}} "sudo reboot" || true
-    
+
     @echo ">>> Waiting for {{name}} to reboot..."
     sleep 5s
     until $(ssh -o ConnectTimeout=2 elia@{{ip}} "exit 0" 2>/dev/null); do sleep 15s; done
     
+    kubectl wait --for=condition=Ready node/{{name}} --timeout=300s
     kubectl uncordon {{name}}
+    kubectl wait --for=condition=Ready pod --field-selector spec.nodeName={{name}} -A --timeout=300s
     @echo ">>> {{name}} updated and uncordoned"
 
 update-gem: ( cordon-and-drain "elcungem" )
