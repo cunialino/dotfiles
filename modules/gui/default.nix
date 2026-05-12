@@ -109,7 +109,7 @@ in
         };
 
         output."*" = {
-          background = "${./wallpapers/rufy.jpg} fill";
+          background = "${./wallpapers/wally.png} fill";
         };
 
         keybindings = lib.mkOptionDefault {
