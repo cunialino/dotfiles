@@ -427,7 +427,7 @@ in
             border-radius: 50px;
             border-style: solid;
             border-width: 1px;
-            border-color: @peach;
+            border-color: @accent;
             color: @text;
         }
         #workspaces button:not(:last-child),
@@ -436,7 +436,7 @@ in
         {
             border-right-style: solid;
             border-right-width: 1px;
-            border-right-color: @peach;
+            border-right-color: @accent;
         }
 
         #cpu, #memory, #temperature, #network,
@@ -453,7 +453,7 @@ in
         }
 
         #workspaces button.focused {
-            color: @peach;
+            color: @accent;
             animation-name: blink;
             animation-duration: 1s;
             animation-timing-function: linear;
