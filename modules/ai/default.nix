@@ -67,6 +67,9 @@ in
                 supports_function_calling = true;
               }
               {
+                name = "gemma4-uc";
+              }
+              {
                 name = "qwen3.5-0.8";
                 supports_function_calling = true;
               }
