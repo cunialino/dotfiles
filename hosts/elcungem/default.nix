@@ -67,10 +67,25 @@ in
         virtualIps = [ { addr = "192.168.0.111/24"; } ];
       };
     };
+    networking.nftables.tables."tailscale-gateway" = {
+      family = "ip";
+      content = ''
+        chain postrouting {
+          type nat hook postrouting priority 100; policy accept;
+
+          # This is the magic: masquerade LAN traffic leaving via Tailscale
+          ip saddr 192.168.0.0/24 oifname "tailscale0" masquerade
+          
+          # Keep your existing K3s/Cilium NAT if needed
+          ip saddr 10.42.0.0/16 oifname "tailscale0" masquerade
+        }
+      '';
+    };
     networking.wireless.enable = true;
     networking.nftables.enable = true;
     networking.firewall = {
       enable = true;
+      checkReversePath = "loose";
       allowedTCPPorts = [ ];
       allowedUDPPorts = [ ];
       trustedInterfaces = [
@@ -89,6 +104,10 @@ in
       };
 
     };
+    networking.localCommands = ''
+      ${pkgs.iproute2}/bin/ip rule add to 10.42.0.0/16 lookup main priority 2500 || true
+      ${pkgs.iproute2}/bin/ip rule add to 10.43.0.0/16 lookup main priority 2501 || true
+    '';
     services.pipewire = {
       enable = true;
       alsa.enable = true;
@@ -97,8 +116,10 @@ in
     };
     services.tailscale = {
       enable = true;
-      useRoutingFeatures = "server";
     };
+    systemd.services.tailscaled.serviceConfig.Environment = [
+      "TS_DEBUG_FIREWALL_MODE=nftables"
+    ];
 
     services.chrony = {
       enable = true;
