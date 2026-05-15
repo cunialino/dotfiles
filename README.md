@@ -30,6 +30,13 @@ nixos-install --flake github:cunialino/dotfiles#<system_name>
 
 `<system_name>` must be defined in the flake.nix `host_os` attrset.
 
+## Tailscale 
+
+I did not find a way to declare this with nix, but to use Tailscale exit nodes 
+and still be able to use the internal interfaces, I had to:
+
+`sudo tailscale set --exit-node-allow-lan-access=true --snat-subnet-routes=false --accept-routes=false`
+
 ## TODO 
 
 There are a couple of things I would still like to improve:
