@@ -131,6 +131,7 @@ in
         nil
         nixfmt
         terraform-ls
+        ruff
         sqlfluff
         typos
         ty
