@@ -2,7 +2,6 @@ local tool_utils = {}
 tool_utils.tools_table = {
   python = {
     dap = { "debugpy" },
-    linters = { "mypy" },
     formatters = { "ruff_fix", "ruff_format", "ruff_organize_import" }
   },
   lua = {
