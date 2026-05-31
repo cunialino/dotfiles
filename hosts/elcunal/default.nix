@@ -109,8 +109,22 @@ in
     ];
     nix.settings.trusted-users = [ "elia" ];
 
-    services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
+    services.logind.settings.Login = {
+      HandleLidSwitch = "ignore";
+      HandleLidSwitchExternalPower = "ignore";
+      HandleLidSwitchDocked = "ignore";
+    };
 
+    systemd.sleep.settings.Sleep = {
+      AllowSuspend = "no";
+      AllowHibernation = "no";
+      AllowHybridSleep = "no";
+      AllowSuspendThenHibernate = "no";
+    };
+    services.udev.extraRules = ''
+      ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="0b95", ATTR{power/control}="on", ATTR{power/autosuspend}="-1"
+    '';
+    powerManagement.enable = false;
   };
 
 }
