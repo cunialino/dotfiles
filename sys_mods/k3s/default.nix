@@ -85,6 +85,11 @@ in
 
   options.modules.k3s_node = {
     enable = mkEnableOption "k3s_node";
+    is_gw = lib.mkOption {
+      type = types.bool;
+      default = false;
+      description = "Toggling between gateway";
+    };
     kube_vip_ip = lib.mkOption {
       type = types.str;
       default = "192.168.0.100"; # Choose an IP in your range
@@ -267,12 +272,10 @@ in
       serverAddr = lib.mkIf (!cfg.cluster_init) "https://${cfg.kube_vip_ip}:6443";
       tokenFile = token_file;
       extraKubeletConfig = {
-        systemReserved = lib.mkIf (cfg.cluster_init) (
-            {
-              cpu = "4";
-              memory = "16Gi";
-            }
-        );
+        systemReserved = lib.mkIf (cfg.cluster_init) ({
+          cpu = "4";
+          memory = "16Gi";
+        });
         evictionHard = {
           "memory.available" = "200Mi";
           "nodefs.available" = "10%";
@@ -434,5 +437,24 @@ in
       "lxc*"
       "veth*"
     ];
+
+    services.keepalived = lib.mkIf cfg.is_gw {
+      enable = true;
+      vrrpInstances.gateway = {
+        interface = cfg.eth;
+        state = if cfg.cluster_init then "MASTER" else "BACKUP";
+        virtualRouterId = 51;
+        priority = if cfg.cluster_init then 100 else 90;
+        virtualIps = [ { addr = "192.168.0.111/24"; } ];
+      };
+    };
+    networking.nftables.ruleset = lib.mkIf cfg.is_gw ''
+      table ip gateway-masq {
+        chain POSTROUTING {
+          type nat hook postrouting priority srcnat; policy accept;
+          ip saddr { 192.168.0.4/32, 192.168.0.5/32 } oifname "${cfg.wlp}" masquerade
+        }
+      }
+    '';
   };
 }
