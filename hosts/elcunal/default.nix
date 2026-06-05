@@ -23,6 +23,7 @@ in
         eth = eth;
         role = "server";
         ip = "192.168.0.3";
+        is_gw = true;
         wlp = wlp;
       };
     };
@@ -51,27 +52,7 @@ in
       allowedTCPPorts = [ ];
       allowedUDPPorts = [ ];
       interfaces.${eth}.allowedTCPPorts = [ 22 ];
-      trustedInterfaces = [
-        "tailscale0"
-      ];
-    };
-    networking.nat = {
-      enable = true;
-      externalInterface = wlp;
-      internalInterfaces = [ eth ];
-      internalIPs = [
-        "192.168.0.0/24"
-      ];
-    };
-    services.keepalived = {
-      enable = true;
-      vrrpInstances.gateway = {
-        interface = eth;
-        state = "BACKUP";
-        virtualRouterId = 51;
-        priority = 90;
-        virtualIps = [ { addr = "192.168.0.111/24"; } ];
-      };
+      trustedInterfaces = [ ];
     };
     networking.interfaces = {
       ${eth} = {
@@ -84,18 +65,7 @@ in
         ];
       };
     };
-    networking.localCommands = ''
-      ${pkgs.iproute2}/bin/ip rule add to 10.42.0.0/16 lookup main priority 2500 || true
-      ${pkgs.iproute2}/bin/ip rule add to 10.43.0.0/16 lookup main priority 2501 || true
-      ${pkgs.iproute2}/bin/ip rule add from 10.42.0.0/16 lookup main priority 2502 || true
-      ${pkgs.iproute2}/bin/ip rule add from 192.168.0.0/24 lookup main priority 2503 || true
-    '';
-    services.tailscale = {
-      enable = true;
-    };
-    systemd.services.tailscaled.serviceConfig.Environment = [
-      "TS_DEBUG_FIREWALL_MODE=nftables"
-    ];
+
     nix.settings.trusted-users = [ "elia" ];
 
     services.logind.settings.Login = {

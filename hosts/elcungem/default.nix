@@ -24,6 +24,7 @@ in
         role = "server";
         is_registry = true;
         cluster_init = true;
+        is_gw = true;
         wlp = wlp;
       };
 
@@ -51,24 +52,6 @@ in
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKVPpC5/rNBfc6h0x5+p9h94aAV8i4CNv05XUoC0T8/4 d00f192@MACITGQYW7FXH"
       ];
     };
-    networking.nat = {
-      enable = true;
-      externalInterface = wlp;
-      internalInterfaces = [ eth ];
-      internalIPs = [
-        "192.168.0.0/24"
-      ];
-    };
-    services.keepalived = {
-      enable = true;
-      vrrpInstances.gateway = {
-        interface = eth;
-        state = "MASTER";
-        virtualRouterId = 51;
-        priority = 100;
-        virtualIps = [ { addr = "192.168.0.111/24"; } ];
-      };
-    };
     networking.wireless.enable = true;
     networking.nftables.enable = true;
     networking.firewall = {
@@ -76,9 +59,10 @@ in
       checkReversePath = "loose";
       allowedTCPPorts = [ ];
       allowedUDPPorts = [ ];
-      trustedInterfaces = [
-        "tailscale0"
-      ];
+      trustedInterfaces = [ ];
+      interfaces = {
+        "tailscale0".allowedTCPPorts = [ 22 443 ];
+      };
     };
     networking.interfaces = {
       ${eth} = {
@@ -92,6 +76,7 @@ in
       };
 
     };
+    # This part here is needed to skip tailscale routing table 
     networking.localCommands = ''
       ${pkgs.iproute2}/bin/ip rule add to 10.42.0.0/16 lookup main priority 2500 || true
       ${pkgs.iproute2}/bin/ip rule add to 10.43.0.0/16 lookup main priority 2501 || true
@@ -111,6 +96,7 @@ in
     systemd.services.tailscaled.serviceConfig.Environment = [
       "TS_DEBUG_FIREWALL_MODE=nftables"
     ];
+
 
     services.chrony = {
       enable = true;
