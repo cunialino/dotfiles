@@ -55,7 +55,9 @@ in
       enable = true;
       externalInterface = wlp;
       internalInterfaces = [ eth ];
-      internalIPs = [ "192.168.0.0/24" ];
+      internalIPs = [
+        "192.168.0.0/24"
+      ];
     };
     services.keepalived = {
       enable = true;
@@ -66,20 +68,6 @@ in
         priority = 100;
         virtualIps = [ { addr = "192.168.0.111/24"; } ];
       };
-    };
-    networking.nftables.tables."tailscale-gateway" = {
-      family = "ip";
-      content = ''
-        chain postrouting {
-          type nat hook postrouting priority 100; policy accept;
-
-          # This is the magic: masquerade LAN traffic leaving via Tailscale
-          ip saddr 192.168.0.0/24 oifname "tailscale0" masquerade
-          
-          # Keep your existing K3s/Cilium NAT if needed
-          ip saddr 10.42.0.0/16 oifname "tailscale0" masquerade
-        }
-      '';
     };
     networking.wireless.enable = true;
     networking.nftables.enable = true;
@@ -107,6 +95,9 @@ in
     networking.localCommands = ''
       ${pkgs.iproute2}/bin/ip rule add to 10.42.0.0/16 lookup main priority 2500 || true
       ${pkgs.iproute2}/bin/ip rule add to 10.43.0.0/16 lookup main priority 2501 || true
+      ${pkgs.iproute2}/bin/ip rule add from 10.42.0.0/16 lookup main priority 2502 || true
+      ${pkgs.iproute2}/bin/ip rule add from 192.168.0.0/24 lookup main priority 2503 || true
+
     '';
     services.pipewire = {
       enable = true;
