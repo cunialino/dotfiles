@@ -6,7 +6,30 @@ return {
     -- https://github.com/redhat-developer/vscode-redhat-telemetry#how-to-disable-telemetry-reporting
     redhat = { telemetry = { enabled = false } },
     -- formatting disabled by default in yaml-language-server; enable it
-    yaml = { format = { enable = true } },
+    yaml = {
+      format = { enable = true },
+      customTags = {
+        "!Ref scalar",
+        "!Sub scalar",
+        "!Sub sequence",
+        "!GetAtt scalar",
+        "!GetAtt sequence",
+        "!Join sequence",
+        "!Split sequence",
+        "!Select sequence",
+        "!FindInMap sequence",
+        "!Base64 scalar",
+        "!Cidr sequence",
+        "!ImportValue scalar",
+        "!ImportValue sequence",
+        "!If sequence",
+        "!Equals sequence",
+        "!And sequence",
+        "!Or sequence",
+        "!Not sequence",
+        "!Condition scalar",
+      },
+    },
   },
   on_init = function(client)
     --- https://github.com/neovim/nvim-lspconfig/pull/4016
