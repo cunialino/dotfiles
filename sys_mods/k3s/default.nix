@@ -56,7 +56,7 @@ let
           value: "1"
         - name: address
           value: "${cfg.kube_vip_ip}"
-        image: ghcr.io/kube-vip/kube-vip:v0.8.0
+        image: ghcr.io/kube-vip/kube-vip:v1.2.0
         imagePullPolicy: Always
         name: kube-vip
         resources: {}
