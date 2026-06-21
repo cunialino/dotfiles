@@ -45,6 +45,9 @@ in
               "gemma4" = {
                 name = "gemma4";
               };
+              "gemma4-heretic" = {
+                name = "gemma4-heretic";
+              };
               "gemma4-uc" = {
                 name = "gemma4-uc";
               };
