@@ -1,6 +1,7 @@
 local M = {}
 
 M.target = "{bottom}"
+M.strip_all_leading = false
 
 local cmd_template = "bash -c 'tmux load-buffer %s && tmux paste-buffer -t %s'"
 
@@ -79,6 +80,12 @@ local function prepare_lines(lines)
 
   lines = add_blank_lines(dedented)
 
+  if M.strip_all_leading then
+    for i, l in ipairs(lines) do
+      lines[i] = l:gsub("^%s+", "")
+    end
+  end
+
   return lines
 end
 
@@ -144,6 +151,12 @@ function M.send_visual_livy()
   local b = vim.fn.getpos("'>")[2]
   local lines = vim.api.nvim_buf_get_lines(0, a - 1, b, false)
   send_lines_livy(lines)
+end
+
+function M.toggle_strip_all_leading()
+  M.strip_all_leading = not M.strip_all_leading
+  local status = M.strip_all_leading and "ON" or "OFF"
+  vim.notify("tmux_send: strip all leading whitespace " .. status, vim.log.levels.INFO)
 end
 
 return M
