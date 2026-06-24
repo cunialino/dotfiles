@@ -105,6 +105,9 @@ vim.api.nvim_set_keymap("n", "<leader>tl", ":lua require('tmux_send').send_line_
 vim.api.nvim_set_keymap("v", "<leader>tl", ":lua require('tmux_send').send_visual_livy()<CR>",
   { noremap = true, silent = true })
 
+vim.api.nvim_set_keymap("n", "<leader>ts", ":lua require('tmux_send').toggle_strip_all_leading()<CR>",
+  { noremap = true, silent = true })
+
 vim.api.nvim_create_autocmd("FileType", {
   callback = function(ev)
     pcall(vim.treesitter.start, ev.buf)
