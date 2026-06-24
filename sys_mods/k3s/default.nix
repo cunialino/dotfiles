@@ -456,5 +456,11 @@ in
         }
       }
     '';
+    networking.hosts = lib.mkIf cfg.cluster_init {
+      "127.0.0.1" = [
+        "lakekeeper.lakekeeper.svc.cluster.local"
+        "garage-svc.garage.svc.cluster.local"
+      ];
+    };
   };
 }
