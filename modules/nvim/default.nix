@@ -133,7 +133,7 @@ in
         terraform-ls
         ruff
         sqlfluff
-        typos
+        typos-lsp
         ty
       ];
       plugins = with pkgs.vimPlugins; [
