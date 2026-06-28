@@ -26,7 +26,7 @@ clean-all:
 cordon-and-drain name:
     kubectl cordon {{name}}
     kubectl drain {{name}} --ignore-daemonsets --delete-emptydir-data --timeout=180s \
-       --pod-selector='longhorn.io/component!=instance-manager' || true
+       --force --pod-selector='longhorn.io/component!=instance-manager' || true
 
 
 update-node name ip: ( cordon-and-drain name )
