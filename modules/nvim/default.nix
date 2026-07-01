@@ -104,6 +104,7 @@ let
     tree-sitter-toml
     tree-sitter-vim
     tree-sitter-yaml
+    tree-sitter-diff
   ];
   treesitterGrammars = treesitterLib.mkTreesitterDir grammars;
 in
