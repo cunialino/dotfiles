@@ -2,7 +2,6 @@ vim.lsp.enable({
   "lua_ls",
   "nil",
   "nushell",
-  "pylsp",
   "ruff",
   "rust-analyzer",
   "terraformls",
