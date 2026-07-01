@@ -119,8 +119,6 @@ in
     };
     home.packages = with pkgs.python313Packages; [
       debugpy
-      python-lsp-server
-      pylsp-rope
     ];
     programs.neovim = {
       enable = true;
