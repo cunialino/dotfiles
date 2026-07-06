@@ -424,6 +424,21 @@ in
       '';
     };
 
+    systemd.services.nft-delete-mangle = {
+      description = "Delete nftables mangle table for Cilium compatibility";
+      after = [ "nftables.service" ];
+      before = [ "k3s.service" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = ''
+        ${pkgs.nftables}/bin/nft delete table inet mangle 2>/dev/null || true
+        ${pkgs.nftables}/bin/nft delete table ip mangle 2>/dev/null || true
+      '';
+    };
+
     services.openiscsi = {
       enable = true;
       name = "${config.networking.hostName}-initiatorhost";
