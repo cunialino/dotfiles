@@ -47,6 +47,7 @@ in
     programs.fzf = {
       enable = true;
       enableBashIntegration = true;
+      historyWidget.command = "";
     };
     programs.difftastic = {
       enable = true;
