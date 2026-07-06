@@ -11,6 +11,17 @@ update-all:
         IFS=':' read -r name ip <<< "$pair"
         just update-node "$name" "$ip"
     done
+    sudo nixos-rebuild boot --flake .#elcungem
+
+reboot-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    eval $(ssh-agent)
+    ssh-add ~/.ssh/id_ed25519
+    for pair in {{nodes}}; do
+        IFS=':' read -r name ip <<< "$pair"
+        just reboot-node "$name" "$ip"
+    done
 
 
 clean-all:
@@ -29,12 +40,13 @@ cordon-and-drain name:
        --force --pod-selector='longhorn.io/component!=instance-manager' || true
 
 
-update-node name ip: ( cordon-and-drain name )
+update-node name ip:
     @echo ">>> Updating {{name}} {{ip}}"
     nixos-rebuild boot --flake .#{{name}} \
     --target-host elia@{{ip}} \
     --ask-sudo-password
 
+reboot-node name ip: (cordon-and-drain name)
     ssh elia@{{ip}} "sudo reboot" || true
 
     @echo ">>> Waiting for {{name}} to reboot..."
