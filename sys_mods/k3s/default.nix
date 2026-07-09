@@ -210,8 +210,7 @@ in
 
       trustedInterfaces = [
         "lxc*"
-        "cilium_host"
-        "cilium_net"
+        "cilium_*"
       ];
     };
 
