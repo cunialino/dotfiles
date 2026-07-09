@@ -296,6 +296,12 @@ in
       chown -R root:root /var/lib/registry
       chmod -R 755 /var/lib/registry
     '';
+    system.activationScripts.kubeVipManifest = lib.mkIf (cfg.role == "server") ''
+      install -D -m 0644 ${kubeVipManifest} /var/lib/rancher/k3s/agent/pod-manifests/kube-vip.yaml
+    '';
+    system.activationScripts.kubeVipRbac = lib.mkIf (cfg.role == "server" && cfg.cluster_init) ''
+      install -D -m 0644 ${kubeVipRbac} /var/lib/rancher/k3s/server/manifests/kube-vip-rbac.yaml
+    '';
     virtualisation = lib.mkIf (cfg.is_registry) {
       containers = {
         enable = true;
@@ -387,13 +393,6 @@ in
     };
 
     systemd.tmpfiles.rules = [
-      (lib.mkIf (
-        cfg.role == "server" && cfg.cluster_init
-      ) "C /var/lib/rancher/k3s/server/manifests/kube-vip-rbac.yaml 0644 root root - ${kubeVipRbac}")
-
-      (lib.mkIf (
-        cfg.role == "server"
-      ) "C /var/lib/rancher/k3s/agent/pod-manifests/kube-vip.yaml 0644 root root - ${kubeVipManifest}")
       "L /usr/bin/mount - - - - /run/current-system/sw/bin/mount"
       "L /usr/bin/nsenter - - - - /run/current-system/sw/bin/nsenter"
       "L /usr/bin/fstrim - - - - /run/current-system/sw/bin/fstrim"
