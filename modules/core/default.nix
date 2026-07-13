@@ -74,6 +74,17 @@ in
           smudge = "git-lfs smudge -- %f";
         };
         init.defaultBranch = "main";
+        merge = {
+          tool = "nvimdiff";
+        };
+
+        mergetool = {
+          keepBackup = false;
+        };
+
+        "mergetool \"nvimdiff\"" = {
+          layout = "LOCAL,REMOTE / MERGED";
+        };
       };
 
       includes = [

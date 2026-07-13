@@ -54,7 +54,6 @@ let
     with pkgs.vimPlugins;
     map noCheck [
       conform-nvim
-      diffview-nvim
       fzf-lua
       gitsigns-nvim
       lazydev-nvim
