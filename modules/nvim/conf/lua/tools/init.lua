@@ -4,6 +4,9 @@ tool_utils.tools_table = {
     dap = { "debugpy" },
     formatters = { "ruff_fix", "ruff_format", "ruff_organize_import" }
   },
+  go = {
+    formatters = { "goimports", "gofumpt" },
+  },
   lua = {
     formatters = { "stylua" },
   },
