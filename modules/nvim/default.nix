@@ -89,6 +89,7 @@ let
     tree-sitter-bash
     tree-sitter-c
     tree-sitter-dockerfile
+    tree-sitter-go
     tree-sitter-html
     tree-sitter-jsdoc
     tree-sitter-json
@@ -133,6 +134,10 @@ in
         sqlfluff
         typos-lsp
         ty
+        go
+        gopls
+        gotools
+        gofumpt
       ];
       plugins = with pkgs.vimPlugins; [
         lazy-nvim
