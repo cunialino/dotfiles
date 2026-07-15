@@ -308,22 +308,9 @@ in
       };
       podman = {
         enable = true;
-
-        dockerCompat = true;
-        defaultNetwork.settings.dns_enabled = true;
       };
       oci-containers.backend = "podman";
       oci-containers.containers = {
-        registryUi = {
-          image = "docker.io/joxit/docker-registry-ui:latest";
-          autoStart = true;
-          ports = [ "6789:80" ];
-          environment = commonEnvRegistries // {
-            SINGLE_REGISTRY = "false";
-            DELETE_IMAGES = "true";
-            REGISTRY_URL = "http://192.168.0.2:5000";
-          };
-        };
         registry = {
           image = "docker.io/library/registry:3";
           autoStart = true;
