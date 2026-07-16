@@ -221,22 +221,6 @@ in
 
     environment.etc."rancher/k3s/registries.yaml".text = ''
       mirrors:
-        docker.io:
-          endpoint:
-            - "http://${cfg.server_ip}:5001"
-        docker.redpanda.com:
-          endpoint:
-            - "http://${cfg.server_ip}:5001"
-
-        ghcr.io:
-          endpoint:
-            - "http://${cfg.server_ip}:5002"
-        quay.io:
-          endpoint:
-            - "http://${cfg.server_ip}:5003"
-        registry.k8s.io:
-          endpoint:
-            - "http://${cfg.server_ip}:5004"
         custom.io:
           endpoint:
             - "http://${cfg.server_ip}:5000"
@@ -324,58 +308,6 @@ in
             "/var/lib/registry/custom:/var/lib/registry:Z"
           ];
         };
-
-        dockerRegistry = {
-          image = "docker.io/library/registry:3";
-          autoStart = true;
-          ports = [ "5001:5000" ];
-
-          environment = commonEnvRegistries // {
-            REGISTRY_HTTP_ADDR = ":5000";
-            REGISTRY_PROXY_REMOTEURL = "https://registry-1.docker.io";
-          };
-          volumes = [
-            "/var/lib/registry/docker:/var/lib/registry:Z"
-          ];
-        };
-
-        ghcrRegistry = {
-          image = "docker.io/library/registry:3";
-          autoStart = true;
-          ports = [ "5002:5000" ];
-          environment = commonEnvRegistries // {
-            REGISTRY_HTTP_ADDR = ":5000";
-            REGISTRY_PROXY_REMOTEURL = "https://ghcr.io";
-          };
-          volumes = [
-            "/var/lib/registry/ghcr:/var/lib/registry:Z"
-          ];
-        };
-        quayRegistry = {
-          image = "docker.io/library/registry:3";
-          autoStart = true;
-          ports = [ "5003:5000" ];
-          environment = {
-            REGISTRY_HTTP_ADDR = ":5000";
-            REGISTRY_PROXY_REMOTEURL = "https://quay.io";
-          };
-          volumes = [
-            "/var/lib/registry/quay:/var/lib/registry:Z"
-          ];
-        };
-        k8sRegistry = {
-          image = "docker.io/library/registry:3";
-          autoStart = true;
-          ports = [ "5004:5000" ];
-          environment = commonEnvRegistries // {
-            REGISTRY_HTTP_ADDR = ":5000";
-            REGISTRY_PROXY_REMOTEURL = "https://registry.k8s.io";
-          };
-          volumes = [
-            "/var/lib/registry/k8s:/var/lib/registry:Z"
-          ];
-        };
-
       };
     };
 
