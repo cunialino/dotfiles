@@ -66,6 +66,7 @@ in
           email = "elia.cunial@gmail.com";
         };
 
+        core.fsync = "committed";
         credential.helper = "cache";
         filter.lfs = {
           process = "git-lfs filter-process";
