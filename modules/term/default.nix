@@ -41,8 +41,8 @@ in
             moveUpCommit = "K";
           };
         };
-        git.pagers = [
-          { useExternalDiffGitConfig = true; }
+        git.diffRenderers = [
+          { type = "rawGit"; }
         ];
       };
 
