@@ -333,8 +333,7 @@ in
       }
     '';
     networking.hosts = lib.mkIf cfg.cluster_init {
-      "127.0.0.1" = [
-        "lakekeeper.lakekeeper.svc.cluster.local"
+      "192.168.0.200" = [
         "garage-svc.garage.svc.cluster.local"
       ];
     };
