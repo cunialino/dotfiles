@@ -24,6 +24,10 @@ in
           type = "sse";
           url = "https://mcpo.tail2f38ea.ts.net/memory/sse";
         };
+        graphiti = {
+          type = "http";
+          url = "https://graphiti.tail2f38ea.ts.net/mcp";
+        };
       };
     };
     programs.opencode = {
