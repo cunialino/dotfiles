@@ -1,10 +1,12 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
   cfg = config.modules.opencode;
+
 in
 {
   options.modules.opencode.enable = lib.mkEnableOption "opencode";
@@ -12,21 +14,13 @@ in
     programs.mcp = {
       enable = true;
       servers = {
-        k8s-fetch = {
-          type = "sse";
-          url = "https://mcpo.tail2f38ea.ts.net/fetch/sse";
-        };
-        k8s-search = {
-          type = "sse";
-          url = "https://mcpo.tail2f38ea.ts.net/ddg-search/sse";
-        };
-        k8s-memory = {
-          type = "sse";
-          url = "https://mcpo.tail2f38ea.ts.net/memory/sse";
-        };
         graphiti = {
           type = "http";
           url = "https://graphiti.tail2f38ea.ts.net/mcp";
+        };
+        k8s-ddg-search = {
+          type = "http";
+          url = "https://ddg.tail2f38ea.ts.net/mcp";
         };
       };
     };
@@ -55,6 +49,9 @@ in
               };
               "gemma4-uc" = {
                 name = "gemma4-uc";
+              };
+              "qwen3.8_27B" = {
+                name = "qwen3.8_27B";
               };
               "qwen3.6" = {
                 name = "qwen3.6";
