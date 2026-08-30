@@ -11,19 +11,6 @@ in
 {
   options.modules.opencode.enable = lib.mkEnableOption "opencode";
   config = lib.mkIf cfg.enable {
-    programs.mcp = {
-      enable = true;
-      servers = {
-        graphiti = {
-          type = "http";
-          url = "https://graphiti.tail2f38ea.ts.net/mcp";
-        };
-        k8s-ddg-search = {
-          type = "http";
-          url = "https://ddg.tail2f38ea.ts.net/mcp";
-        };
-      };
-    };
     programs.opencode = {
       enable = true;
       enableMcpIntegration = true;
