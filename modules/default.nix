@@ -11,5 +11,7 @@
     ./bw
     ./ai
     ./opencode
+    ./pi-coding-agent
+    ./mcp
   ];
 }
