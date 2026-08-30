@@ -40,7 +40,7 @@ in
     boot.loader.efi.canTouchEfiVariables = true;
     boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
-    boot.kernelPackages = pkgs.linuxPackages_latest;
+    boot.kernelPackages = pkgs.linuxKernel.packages.linux_7_1;
 
     users.users.${username} = {
       isNormalUser = true;
@@ -61,7 +61,10 @@ in
       allowedUDPPorts = [ ];
       trustedInterfaces = [ ];
       interfaces = {
-        "tailscale0".allowedTCPPorts = [ 22 443 ];
+        "tailscale0".allowedTCPPorts = [
+          22
+          443
+        ];
       };
     };
     networking.interfaces = {
@@ -76,7 +79,7 @@ in
       };
 
     };
-    # This part here is needed to skip tailscale routing table 
+    # This part here is needed to skip tailscale routing table
     networking.localCommands = ''
       ${pkgs.iproute2}/bin/ip rule add to 10.42.0.0/16 lookup main priority 2500 || true
       ${pkgs.iproute2}/bin/ip rule add to 10.43.0.0/16 lookup main priority 2501 || true
@@ -96,7 +99,6 @@ in
     systemd.services.tailscaled.serviceConfig.Environment = [
       "TS_DEBUG_FIREWALL_MODE=nftables"
     ];
-
 
     services.chrony = {
       enable = true;
