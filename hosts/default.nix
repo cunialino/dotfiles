@@ -10,6 +10,11 @@
       file = ./hp_1;
       hostname = "elcunhp1";
     };
+    elcunhalo = {
+      system = "x86_64-linux";
+      file = ./strix_halo;
+      hostname = "elcunhalo";
+    };
 
     elcungem = {
       system = "x86_64-linux";
