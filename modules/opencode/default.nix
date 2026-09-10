@@ -20,6 +20,19 @@ in
         instructions = [ ./instructions/system.md ];
 
         provider = {
+          "halogen" = {
+            npm = "@ai-sdk/openai-compatible";
+            name = "HaloGen Strix Server";
+            options = {
+              baseURL = "http://192.168.0.6/v1";
+              apiKey = "not-needed";
+            };
+            models = {
+              "halogen-qwen3.8-flash-next" = {
+                name = "halogen-qwen3.8-flash-next";
+              };
+            };
+          };
           "local-780m" = {
             npm = "@ai-sdk/openai-compatible";
             name = "Local 780M iGPU";
