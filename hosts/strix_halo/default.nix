@@ -7,6 +7,7 @@ let
   username = "elia";
   eth = "eno1";
   modelsDir = "/var/lib/halogen-models";
+  llamaModelsDir = "/var/lib/llama-models";
   checkpoint = "${modelsDir}/qwen38-flash-next-w4b.hgn";
 in
 {
@@ -63,6 +64,8 @@ in
       interfaces.${eth}.allowedTCPPorts = [
         22
         8731
+        11434
+        8188
       ];
     };
     interfaces = {
@@ -82,6 +85,15 @@ in
 
   systemd.tmpfiles.rules = [
     "d ${modelsDir} 0750 ${username} users -"
+    "d ${llamaModelsDir} 0750 ${username} users -"
+    "d /var/lib/comfyui 0755 root users -"
+    "d /var/lib/comfyui/custom_nodes 0775 ${username} users -"
+    "d /var/lib/comfyui/models 0775 ${username} users -"
+    "d /var/lib/comfyui/input 0775 ${username} users -"
+    "d /var/lib/comfyui/output 0775 ${username} users -"
+    "d /var/lib/comfyui/temp 0775 ${username} users -"
+    "d /var/lib/comfyui/user 0775 ${username} users -"
+
   ];
 
   virtualisation = {
@@ -89,7 +101,7 @@ in
     oci-containers = {
       backend = "podman";
       containers.halogen = {
-        image = "ghcr.io/peonist-ai/halogen-flash-server:0.5.5";
+        image = "ghcr.io/peonist-ai/halogen-flash-server:0.5.6";
         autoStart = true;
         ports = [ "8731:8731" ];
         volumes = [ "${modelsDir}:/models:ro" ];
@@ -106,12 +118,47 @@ in
           "HALOGEN_VISION_TOWER=1"
         ];
       };
+
+      # ROCm 10 images are built out-of-band from ./containers/*.Containerfile
+      # (no ROCm 10 in nixpkgs yet). Build them on the host before switching:
+      #   podman build -t localhost/llama-cpp-rocm:rocm10 -f containers/llama-cpp.Containerfile .
+      #   podman build -t localhost/comfyui-rocm:rocm10 -f containers/comfyui.Containerfile .
+      containers.llama-cpp = {
+        image = "localhost/llama-cpp-rocm:rocm10";
+        pull = "never";
+        autoStart = false;
+        ports = [ "11434:11434" ];
+        volumes = [ "${llamaModelsDir}:/models:ro" ];
+        extraOptions = [
+          "--device=/dev/kfd"
+          "--device=/dev/dri"
+          "--security-opt=seccomp=unconfined"
+          "--ipc=host"
+          "--ulimit=memlock=-1:-1"
+        ];
+      };
+
+      containers.comfyui = {
+        image = "localhost/comfyui-rocm:rocm10";
+        pull = "never";
+        autoStart = false;
+        ports = [ "8188:8188" ];
+        volumes = [ "/var/lib/comfyui:/data" ];
+        extraOptions = [
+          "--device=/dev/kfd"
+          "--device=/dev/dri"
+          "--security-opt=seccomp=unconfined"
+          "--ipc=host"
+          "--ulimit=memlock=-1:-1"
+        ];
+      };
     };
   };
 
   # Populate with: hf download peonist-ai/halogen-qwen3.8-flash-next --local-dir /var/lib/halogen-models
   # The path unit starts the container as soon as the checkpoint appears.
   systemd.services.podman-halogen.unitConfig.ConditionPathExists = checkpoint;
+  systemd.services.podman-llama-cpp.unitConfig.ConditionPathIsNonEmpty = llamaModelsDir;
   systemd.paths.halogen-models = {
     wantedBy = [ "multi-user.target" ];
     pathConfig = {
