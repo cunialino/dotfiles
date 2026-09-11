@@ -8,6 +8,7 @@ let
   eth = "eno1";
   modelsDir = "/var/lib/halogen-models";
   llamaModelsDir = "/var/lib/llama-models";
+  sdModelsDir = "/var/lib/sd-models";
   checkpoint = "${modelsDir}/qwen38-flash-next-w4b.hgn";
 in
 {
@@ -31,6 +32,33 @@ in
 
   environment.systemPackages = [
     pkgs.python313Packages.huggingface-hub
+    (pkgs.writeShellScriptBin "sd-cli" ''
+      # One-shot wrapper around the sd-cli-rocm image (built out-of-band from
+      # containers/sd-cli.Containerfile). Models are read from ${sdModelsDir};
+      # generated images land in the caller's current directory.
+      TTY=()
+      [ -t 1 ] && TTY=(-it)
+      exec podman run --rm "''${TTY[@]}" \
+        --device=/dev/kfd \
+        --device=/dev/dri \
+        --security-opt=seccomp=unconfined \
+        --ipc=host \
+        --ulimit=memlock=-1:-1 \
+        -v ${sdModelsDir}:/models:ro \
+        -v "$PWD:/work" \
+        -w /work \
+        localhost/sd-cli-rocm:rocm10 sd-cli "$@"
+    '')
+  ];
+
+  # Rootless podman + ROCm needs locked memory for HSA buffer mapping.
+  security.pam.loginLimits = [
+    {
+      domain = username;
+      type = "-";
+      item = "memlock";
+      value = "unlimited";
+    }
   ];
 
   boot.kernelParams = [
@@ -86,6 +114,7 @@ in
   systemd.tmpfiles.rules = [
     "d ${modelsDir} 0750 ${username} users -"
     "d ${llamaModelsDir} 0750 ${username} users -"
+    "d ${sdModelsDir} 0750 ${username} users -"
     "d /var/lib/comfyui 0755 root users -"
     "d /var/lib/comfyui/custom_nodes 0775 ${username} users -"
     "d /var/lib/comfyui/models 0775 ${username} users -"
@@ -123,6 +152,7 @@ in
       # (no ROCm 10 in nixpkgs yet). Build them on the host before switching:
       #   podman build -t localhost/llama-cpp-rocm:rocm10 -f containers/llama-cpp.Containerfile .
       #   podman build -t localhost/comfyui-rocm:rocm10 -f containers/comfyui.Containerfile .
+      #   podman build -t localhost/sd-cli-rocm:rocm10 -f containers/sd-cli.Containerfile .
       containers.llama-cpp = {
         image = "localhost/llama-cpp-rocm:rocm10";
         pull = "never";
