@@ -34,6 +34,14 @@ in
               { id = "halogen-qwen3.8-flash-next"; }
             ];
           };
+          "strixhalocpp" = {
+            baseUrl = "http://192.168.0.6:11434/v1";
+            apiKey = "not-needed";
+            api = "openai-completions";
+            models = [
+              { id = "gpt-oss-120b-MXFP4"; }
+            ];
+          };
           "local-780m" = {
             baseUrl = "https://genai.tail2f38ea.ts.net/v1";
             apiKey = "not-needed";
