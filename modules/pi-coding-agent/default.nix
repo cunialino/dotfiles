@@ -26,6 +26,14 @@ in
       };
       models = {
         providers = {
+          "halogen" = {
+            baseUrl = "http://192.168.0.6:8731/v1";
+            apiKey = "not-needed";
+            api = "openai-completions";
+            models = [
+              { id = "halogen-qwen3.8-flash-next"; }
+            ];
+          };
           "local-780m" = {
             baseUrl = "https://genai.tail2f38ea.ts.net/v1";
             apiKey = "not-needed";
