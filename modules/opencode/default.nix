@@ -24,7 +24,7 @@ in
             npm = "@ai-sdk/openai-compatible";
             name = "HaloGen Strix Server";
             options = {
-              baseURL = "http://192.168.0.6/v1";
+              baseURL = "http://192.168.0.6:8731/v1";
               apiKey = "not-needed";
             };
             models = {
