@@ -36,8 +36,33 @@ RUN set -eux; \
 
 FROM ${BASE}
 
+# ROCm 10 (TheRock) ships its shared libraries inside Python packages, not /opt/rocm:
+#   <site-packages>/_rocm_sdk_core/lib        -> libamdhip64.so.7, libhsa-runtime64.so.1, ...
+#   <site-packages>/_rocm_sdk_libraries/lib   -> libhipblas.so.3, librocblas.so.5, libhipblaslt.so.1, ...
+# Torch resolves them at import time (rocm_sdk.initialize_process + per-lib RPATH),
+# but a standalone llama-server binary has no such hook, so it dies with
+# "error while loading shared libraries: libhipblas.so.3". Register both
+# directories with the dynamic linker so plain ld.so resolution works.
+# torch depends on rocm[libraries], so the libraries package is normally already in
+# the base image; install it here only if a future base image drops it again.
+# The final ldconfig/ldd checks fail the build loudly rather than shipping an image
+# that cannot start.
 COPY --from=builder /out/ /usr/local/
-RUN ldconfig
+RUN set -eux; \
+    if ! ls /opt/venv/lib/python3.*/site-packages/_rocm_sdk_libraries/lib/libhipblas.so.3 >/dev/null 2>&1; then \
+        . /opt/venv/bin/activate; \
+        pip install --no-cache-dir --index-url https://stable.repo.amd.com/rocm/whl-next/ \
+            "rocm[libraries]==$(python -c 'import rocm_sdk; print(rocm_sdk.__version__)')"; \
+    fi; \
+    mkdir -p /etc/ld.so.conf.d; \
+    : > /etc/ld.so.conf.d/rocm-sdk.conf; \
+    for d in /opt/venv/lib/python3.*/site-packages/_rocm_sdk_*/lib; do \
+        echo "$d" >> /etc/ld.so.conf.d/rocm-sdk.conf; \
+    done; \
+    ldconfig; \
+    ldconfig -p | grep -q 'libhipblas\.so\.3'; \
+    ldconfig -p | grep -q 'libamdhip64\.so\.7'; \
+    ! ldd /usr/local/bin/llama-server | grep -q 'not found'
 
 EXPOSE 11434
 
