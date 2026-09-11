@@ -131,7 +131,7 @@ in
       backend = "podman";
       containers.halogen = {
         image = "ghcr.io/peonist-ai/halogen-flash-server:0.5.6";
-        autoStart = true;
+        autoStart = false;
         ports = [ "8731:8731" ];
         volumes = [ "${modelsDir}:/models:ro" ];
         environment = {
@@ -189,11 +189,4 @@ in
   # The path unit starts the container as soon as the checkpoint appears.
   systemd.services.podman-halogen.unitConfig.ConditionPathExists = checkpoint;
   systemd.services.podman-llama-cpp.unitConfig.ConditionPathIsNonEmpty = llamaModelsDir;
-  systemd.paths.halogen-models = {
-    wantedBy = [ "multi-user.target" ];
-    pathConfig = {
-      PathExists = checkpoint;
-      Unit = "podman-halogen.service";
-    };
-  };
 }
