@@ -42,15 +42,13 @@ in
               { id = "gpt-oss-120b-MXFP4"; }
             ];
           };
-          "local-780m" = {
-            baseUrl = "https://genai.tail2f38ea.ts.net/v1";
+          "llhalo" = {
+            baseUrl = "http://192.168.0.6:11434/v1";
             apiKey = "not-needed";
             api = "openai-completions";
             models = [
-              { id = "gemma4"; }
-              { id = "gemma4-heretic"; }
-              { id = "gemma4-uc"; }
-              { id = "qwen3.8_27B"; }
+              { id = "glm-4.5-air"; }
+              { id = "ornith-1.5-35b"; }
               { id = "qwen3.6"; }
             ];
           };
