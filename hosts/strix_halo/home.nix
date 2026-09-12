@@ -15,5 +15,6 @@
     nvim.enable = true;
     term.enable = true;
     tmux.enable = true;
+    pi-coding-agent.enable = true;
   };
 }
