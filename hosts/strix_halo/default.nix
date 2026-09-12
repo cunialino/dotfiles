@@ -158,7 +158,14 @@ in
         pull = "never";
         autoStart = false;
         ports = [ "11434:11434" ];
-        volumes = [ "${llamaModelsDir}:/models:ro" ];
+        # Mounted at the same absolute path as on the host: config.ini uses absolute
+        # model paths, so one preset file serves both this container and a native
+        # llama-server running directly on the host.
+        volumes = [ "${llamaModelsDir}:${llamaModelsDir}:ro" ];
+        environment = {
+          # Beats the image default so the preset path always tracks llamaModelsDir.
+          LLAMA_ARG_MODELS_PRESET = "${llamaModelsDir}/config.ini";
+        };
         extraOptions = [
           "--device=/dev/kfd"
           "--device=/dev/dri"
@@ -188,5 +195,11 @@ in
   # Populate with: hf download peonist-ai/halogen-qwen3.8-flash-next --local-dir /var/lib/halogen-models
   # The path unit starts the container as soon as the checkpoint appears.
   systemd.services.podman-halogen.unitConfig.ConditionPathExists = checkpoint;
-  systemd.services.podman-llama-cpp.unitConfig.ConditionPathIsNonEmpty = llamaModelsDir;
+
+  # ConditionPathIsNonEmpty is only valid in [Path] units; systemd drops it here
+  # ("Unknown key ... in section [Unit]"), so the service used to start with no
+  # models and crash-loop on "preset file does not exist". Gate on the preset file
+  # itself: llama-server aborts if it is missing, and a failed condition is a clean
+  # skip instead of a start-limit-hit.
+  systemd.services.podman-llama-cpp.unitConfig.ConditionFileNotEmpty = "${llamaModelsDir}/config.ini";
 }

@@ -64,6 +64,21 @@ RUN set -eux; \
     ldconfig -p | grep -q 'libamdhip64\.so\.7'; \
     ! ldd /usr/local/bin/llama-server | grep -q 'not found'
 
+# The models volume is bind-mounted at the *same absolute path* as on the host
+# (hosts/strix_halo/default.nix: llamaModelsDir). llama.cpp resolves preset paths
+# relative to the server CWD unless they are absolute, so host path == container
+# path is what lets one single config.ini drive both this container and a native
+# llama-server on the host. Keep MODELS_DIR in sync with llamaModelsDir.
+ARG MODELS_DIR=/var/lib/llama-models
+
 EXPOSE 11434
 
-CMD ["sh", "-c", "exec /usr/local/bin/llama-server --host 0.0.0.0 --port 11434 --models-dir /models ${LLAMA_ARGS}"]
+# Everything is env-driven: llama.cpp honours LLAMA_ARG_* for every CLI flag, so
+# the preset path can be repointed from Nix (containers.llama-cpp.environment) in
+# lockstep with the bind mount, without rebuilding the image. LLAMA_ARGS is kept so
+# extra flags can still be appended at run time.
+ENV LLAMA_ARG_HOST=0.0.0.0 \
+    LLAMA_ARG_PORT=11434 \
+    LLAMA_ARG_MODELS_PRESET=${MODELS_DIR}/config.ini
+
+CMD ["sh", "-c", "exec /usr/local/bin/llama-server ${LLAMA_ARGS}"]
