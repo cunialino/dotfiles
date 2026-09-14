@@ -165,6 +165,7 @@ in
         environment = {
           # Beats the image default so the preset path always tracks llamaModelsDir.
           LLAMA_ARG_MODELS_PRESET = "${llamaModelsDir}/config.ini";
+          HIP_LAUNCH_BLOCKING = "1";
         };
         extraOptions = [
           "--device=/dev/kfd"
