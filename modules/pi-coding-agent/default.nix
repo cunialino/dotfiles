@@ -19,7 +19,7 @@ in
       ];
 
       settings = {
-        model = "local-780m/qwen3-coder-30b-a3b";
+        model = "llhalo/ornith-1.5-35b";
         packages = [
           "npm:pi-mcp-adapter"
         ];
@@ -31,7 +31,7 @@ in
             apiKey = "not-needed";
             api = "openai-completions";
             models = [
-              { id = "halogen-qwen3.8-flash-next"; }
+              { id = "halogen-qwen3.8-flash-next"; contextWindow = 262144; }
             ];
           };
           "strixhalocpp" = {
@@ -39,7 +39,7 @@ in
             apiKey = "not-needed";
             api = "openai-completions";
             models = [
-              { id = "gpt-oss-120b-MXFP4"; }
+              { id = "gpt-oss-120b-MXFP4"; contextWindow = 131072; }
             ];
           };
           "llhalo" = {
@@ -47,9 +47,9 @@ in
             apiKey = "not-needed";
             api = "openai-completions";
             models = [
-              { id = "glm-4.5-air"; }
-              { id = "ornith-1.5-35b"; }
-              { id = "qwen3.6"; }
+              { id = "glm-4.5-air"; contextWindow = 131072; }
+              { id = "ornith-1.5-35b"; contextWindow = 262144; }
+              { id = "qwen3.6"; contextWindow = 262144; }
             ];
           };
         };
