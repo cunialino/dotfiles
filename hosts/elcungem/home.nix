@@ -19,7 +19,6 @@
       tmux.enable = true;
       bw.enable = true;
       ai.enable = true;
-      opencode.enable = true;
       pi-coding-agent.enable = true;
       mcp.enable = true;
       mcp.servers = {
