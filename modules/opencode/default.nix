@@ -13,7 +13,6 @@ in
   config = lib.mkIf cfg.enable {
     programs.opencode = {
       enable = true;
-      agents = ./agents;
       settings = {
         "$schema" = "https://opencode.ai/config.json";
         instructions = [ ./instructions/system.md ];
