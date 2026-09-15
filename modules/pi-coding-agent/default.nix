@@ -31,7 +31,11 @@ in
             apiKey = "not-needed";
             api = "openai-completions";
             models = [
-              { id = "halogen-qwen3.8-flash-next"; contextWindow = 262144; }
+              {
+                id = "halogen-qwen3.8-flash-next";
+                contextWindow = 262144;
+                input = [ "text" "image" ];
+              }
             ];
           };
           "strixhalocpp" = {
@@ -48,8 +52,16 @@ in
             api = "openai-completions";
             models = [
               { id = "glm-4.5-air"; contextWindow = 131072; }
-              { id = "ornith-1.5-35b"; contextWindow = 262144; }
-              { id = "qwen3.6"; contextWindow = 262144; }
+              {
+                id = "ornith-1.5-35b";
+                contextWindow = 262144;
+                input = [ "text" "image" ];
+              }
+              {
+                id = "qwen3.6";
+                contextWindow = 262144;
+                input = [ "text" "image" ];
+              }
             ];
           };
         };
