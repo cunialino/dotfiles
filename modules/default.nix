@@ -13,5 +13,6 @@
     ./opencode
     ./pi-coding-agent
     ./mcp
+    ./comfy-gen
   ];
 }

@@ -16,5 +16,6 @@
     term.enable = true;
     tmux.enable = true;
     pi-coding-agent.enable = true;
+    comfy-gen.enable = true;
   };
 }
