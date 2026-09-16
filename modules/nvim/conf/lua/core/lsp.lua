@@ -8,6 +8,7 @@ vim.lsp.enable({
   "terraformls",
   "ty",
   "typos_lsp",
+  "typst_lsp",
   "yamlls",
   "zk",
 })
