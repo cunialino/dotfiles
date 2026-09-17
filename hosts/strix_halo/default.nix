@@ -130,12 +130,15 @@ in
     oci-containers = {
       backend = "podman";
       containers.halogen = {
-        image = "ghcr.io/peonist-ai/halogen-flash-server:0.5.6";
+        image = "ghcr.io/peonist-ai/halogen-flash-server:0.11.4";
         autoStart = false;
         ports = [ "8731:8731" ];
         volumes = [ "${modelsDir}:/models:ro" ];
         environment = {
           "HALOGEN_VISION_TOWER" = "1";
+          "HALOGEN_TEMPERATURE" = "1.0";
+          "HALOGEN_TOP_P" = "0.95";
+          "HALOGEN_TOP_K" = "20";
         };
         extraOptions = [
           "--device=/dev/kfd"
