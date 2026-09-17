@@ -4,12 +4,17 @@
 Runs anywhere that can reach the ComfyUI server (e.g. another PC on the LAN).
 Python stdlib only -- no ComfyUI install needed on the machine you run it from.
 
+The workflow is supplied in ComfyUI *API format* -- the same ``Save (API Format)``
+export Open WebUI consumes. The canonical copy lives in the ``myai`` repo and is
+bundled into the Nix closure at build time (see modules/comfy-gen/default.nix), so
+``--workflow workflow.json`` is POSTed as-is: no runtime conversion.
+
 This ROCm build serves outputs at ``/api/view`` rather than the stock ``/file``,
 so the download URL below uses that endpoint.
 
 Example (from another PC, server at 192.168.0.6:8188):
     comfy-gen --server http://192.168.0.6:8188 \
-        --workflow workflow-template.json \
+        --workflow workflow.json \
         --prompt "a serene alpine lake at sunrise, highly detailed" \
         --out alpine.png
 """
@@ -27,17 +32,37 @@ def http_get(server, path, timeout=120):
         return r.read()
 
 
+def list_workflows():
+    """Print the simple names of the workflows bundled in the Nix closure."""
+    bundled = os.environ.get("COMFY_WORKFLOWS")
+    if not bundled or not os.path.isdir(bundled):
+        print("no bundled workflows available")
+        raise SystemExit(1)
+    names = sorted(f[:-len(".json")] for f in os.listdir(bundled) if f.endswith(".json"))
+    if not names:
+        print("no bundled workflows available")
+        raise SystemExit(1)
+    print("bundled workflows:")
+    for n in names:
+        print(f"  {n}")
+
+
 def resolve_workflow(args):
     """Resolve the workflow, in order:
     1. bundled in the Nix closure (COMFY_WORKFLOWS) -- present on every host
-       with comfy-gen, so no copy is needed;
+       with comfy-gen, so no copy is needed; referred to by simple name
+       (e.g. ``image-gen``), ``.json`` optional;
     2. a local path given on the CLI.
     """
     bundled = os.environ.get("COMFY_WORKFLOWS")
-    if bundled:
+    if bundled and os.path.isdir(bundled):
         # Nix may prefix the stored file with a content hash, e.g.
-        # <hash>-workflow-template.json, so match by suffix.
+        # <hash>-image-gen.json, so match by suffix. The CLI name may omit
+        # the trailing ``.json``.
         target = os.path.basename(args.workflow)
+        if target.endswith(".json"):
+            target = target[:-len(".json")]
+        target += ".json"
         matches = [
             f for f in os.listdir(bundled) if f == target or f.endswith("-" + target)
         ]
@@ -48,6 +73,7 @@ def resolve_workflow(args):
     if os.path.exists(args.workflow):
         return args.workflow
     print(f"workflow not found: {args.workflow}")
+    print("run with --list to see bundled workflow names")
     raise SystemExit(1)
 
 
@@ -60,75 +86,6 @@ def http_json(server, path, obj=None, timeout=600):
     )
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode())
-
-
-def build_prompt(server, wf):
-    """Convert a workflow JSON (nodes[]+links[]) into /prompt API format.
-
-    Links are resolved by matching the source output type to the target input
-    type, so the prompt stays correct even if the frontend version differs from
-    the one the workflow was authored against.
-    """
-    ordered, type_of, src_out = {}, {}, {}
-    for nd in wf["nodes"]:
-        info = http_json(server, f"/object_info/{nd['type']}")
-        if nd["type"] not in info:
-            continue
-        spec = info[nd["type"]]
-        inp = spec.get("input", {})
-        fields = {}
-        fields.update(inp.get("required", {}))
-        fields.update(inp.get("optional", {}))
-        for name, cfg in fields.items():
-            type_of[(nd["id"], name)] = (
-                cfg[0] if isinstance(cfg, list) else cfg.get("type")
-            )
-        io = spec.get("input_order", {})
-        ordered[nd["id"]] = list(io.get("required", [])) + list(io.get("optional", []))
-        src_out[nd["id"]] = spec.get("output", [])
-
-    linked = {nd["id"]: {} for nd in wf["nodes"]}
-    for link in wf["links"]:
-        _, src_id, src_o, tgt_id, tgt_i, _ = link
-        src_type = (
-            src_out.get(src_id, [])[src_o]
-            if 0 <= src_o < len(src_out.get(src_id, []))
-            else None
-        )
-        names = ordered.get(tgt_id, [])
-        name = names[tgt_i] if 0 <= tgt_i < len(names) else None
-        if name and src_type:
-            ct = type_of.get((tgt_id, name))
-            if ct and ct.lower() != src_type.lower():
-                for n in names:
-                    if (
-                        type_of.get((tgt_id, n))
-                        and type_of[(tgt_id, n)].lower() == src_type.lower()
-                    ):
-                        name = n
-                        break
-        if name:
-            linked[tgt_id][name] = [str(src_id), src_o]
-
-    prompt = {}
-    for nd in wf["nodes"]:
-        info = http_json(server, f"/object_info/{nd['type']}")
-        if nd["type"] not in info:
-            continue
-        widgets = nd.get("widgets_values") or []
-        linked_names = set(linked[nd["id"]])
-        widget_inputs = [
-            n for n in ordered.get(nd["id"], []) if n.lower() not in linked_names
-        ]
-        inputs = {n: v for n, v in zip(widget_inputs, widgets)}
-        for iname, ref in linked[nd["id"]].items():
-            inputs[iname] = list(ref)
-        prompt[str(nd["id"])] = {
-            "class_type": nd["type"],
-            "inputs": inputs,
-            "properties": nd.get("properties", {}),
-        }
-    return prompt
 
 
 SAMPLER_TYPES = {
@@ -155,12 +112,22 @@ def override(prompt, args):
         if cles:
             cles[-1]["inputs"]["text"] = args.negative
     if args.seed is not None:
+        seed = int(args.seed)
+        # SD3.5/AuraFlow-style workflows drive seeding through a RandomNoise
+        # node whose input is ``noise_seed`` (not ``seed``).
         for n in prompt.values():
-            if n["class_type"] in SAMPLER_TYPES and isinstance(
-                n["inputs"].get("seed"), int
-            ):
-                n["inputs"]["seed"] = int(args.seed)
+            if n["class_type"] == "RandomNoise" and "noise_seed" in n["inputs"]:
+                n["inputs"]["noise_seed"] = seed
+                seed = None
                 break
+        # Fall back to a KSampler-style ``seed`` input if the workflow uses one.
+        if seed is not None:
+            for n in prompt.values():
+                if n["class_type"] in SAMPLER_TYPES and isinstance(
+                    n["inputs"].get("seed"), int
+                ):
+                    n["inputs"]["seed"] = seed
+                    break
     if args.steps is not None:
         for n in prompt.values():
             if n["class_type"] == "BetaSamplingScheduler" and "steps" in n["inputs"]:
@@ -185,9 +152,14 @@ def main():
     )
     ap.add_argument("--server", default="http://192.168.0.6:8188")
     ap.add_argument(
+        "-l",
+        "--list",
+        action="store_true",
+        help="list the bundled workflows and exit",
+    )
+    ap.add_argument(
         "--workflow",
-        required=True,
-        help="local path to the workflow JSON, or the name of a bundled one",
+        help="simple name of a bundled workflow (see --list), or a local path to the workflow JSON",
     )
     ap.add_argument("--prompt", help="override the positive prompt")
     ap.add_argument("--negative", help="override the negative prompt")
@@ -201,11 +173,19 @@ def main():
     args = ap.parse_args()
     args.server = args.server.rstrip("/")
 
-    wf = json.load(open(resolve_workflow(args)))
-    prompt = build_prompt(args.server, wf)
-    override(prompt, args)
+    if args.list:
+        list_workflows()
+        return
+    if not args.workflow:
+        print("error: --workflow is required (or use --list to see bundled names)")
+        raise SystemExit(1)
 
-    res = http_json(args.server, "/prompt", {"prompt": prompt, "outputs": {}})
+    # The bundled workflow is already in ComfyUI API format (node-id keyed),
+    # so it is used directly -- no object_info conversion required.
+    wf = json.load(open(resolve_workflow(args)))
+    override(wf, args)
+
+    res = http_json(args.server, "/prompt", {"prompt": wf, "outputs": {}})
     if "prompt_id" not in res:
         print("ERROR:", json.dumps(res)[:500])
         raise SystemExit(1)

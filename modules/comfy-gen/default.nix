@@ -2,17 +2,44 @@
   config,
   lib,
   pkgs,
+  myai,
   ...
 }:
 let
   cfg = config.modules.comfy-gen;
 
-  # Workflows bundled into the closure so every host that has comfy-gen also
-  # has them locally -- no copy needed at run time.
+  # The canonical ComfyUI workflows live in the ``myai`` repo, where they are
+  # also consumed by Open WebUI (base/openwebui/config-env.yaml -> COMFYUI_*).
+  # We pull those single sources here and bundle the API-format JSON into the
+  # closure, so comfy-gen and Open WebUI never drift apart. Simple user-facing
+  # names (see workflowNames) map to those env keys.
+  py = pkgs.python3.withPackages (ps: [ ps.pyyaml ]);
+
+  # Simple, user-facing names for the workflows bundled from the myai repo. The
+  # canonical copies live there (base/openwebui/config-env.yaml) and are also
+  # consumed by Open WebUI, so this is the single source of truth.
+  workflowNames = {
+    "image-gen" = "COMFYUI_WORKFLOW";      # ComfyUI image generation
+    "image-edit" = "IMAGES_EDIT_COMFYUI_WORKFLOW";  # ComfyUI image edit
+  };
+
   comfyWorkflowsDir =
-    pkgs.runCommand "comfy-gen-workflows" {} ''
+    pkgs.runCommand "comfy-gen-workflows" {
+      nativeBuildInputs = [ py ];
+    } ''
       mkdir -p $out
-      cp ${./workflow-template.json} $out/
+      ${py}/bin/python3 - "${myai}/base/openwebui/config-env.yaml" "$out" <<'PY'
+      import sys, json, yaml
+      outdir = sys.argv[2]
+      data = yaml.safe_load(open(sys.argv[1]))["data"]
+      for name, key in ${builtins.toJSON workflowNames}.items():
+          if key not in data:
+              print(f"skipping {name}: {key} not found in config-env.yaml")
+              continue
+          raw = data[key]
+          with open(f"{outdir}/{name}.json", "w") as f:
+              json.dump(json.loads(raw), f, indent=2, ensure_ascii=False)
+      PY
     '';
 
   # Drives the running ComfyUI (comfyui-rocm) over its REST API: queues a
@@ -24,9 +51,10 @@ let
       name = "comfy-gen";
       runtimeInputs = [ pkgs.python3 ];
       text = ''
-        # Workflows shipped in the Nix closure (see comfyWorkflowsDir above).
+        # Bundled API-format workflow (extracted from the myai repo, see
+        # comfyWorkflowsDir above). comfy-gen.py POSTs it to ComfyUI as-is.
         export COMFY_WORKFLOWS="${comfyWorkflowsDir}"
-        exec ${pkgs.python3} "${pkgs.writeText "comfy-gen.py" (builtins.readFile ./comfy-gen.py)}" "$@"
+        exec ${pkgs.python3}/bin/python3 "${pkgs.writeText "comfy-gen.py" (builtins.readFile ./comfy-gen.py)}" "$@"
       '';
     };
 in

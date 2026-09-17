@@ -30,3 +30,4 @@ Ohara/
 .config/**/supervise
 .config/service
 orangepizero3.txt
+/modules/comfy-gen/__pycache__

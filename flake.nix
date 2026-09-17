@@ -5,6 +5,9 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     catppuccin.url = "github:catppuccin/nix";
     nixgl.url = "github:nix-community/nixGL";
+    # AI workloads (Open WebUI deploy + canonical ComfyUI workflow). Referenced
+    # by modules/comfy-gen to share one workflow source with the myai repo.
+    myai.url = "github:cunialino/myai";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -17,6 +20,7 @@
       catppuccin,
       nixgl,
       home-manager,
+      myai,
       ...
     }@inputs:
     let
@@ -44,6 +48,7 @@
             extraSpecialArgs = {
               modulesPath = mod_dir;
               nixgl = nixgl;
+              inherit myai;
             };
           };
         };
@@ -63,7 +68,7 @@
             {
               home-manager = {
                 extraSpecialArgs = {
-                  inherit catppuccin;
+                  inherit catppuccin myai;
                   modulesPath = mod_dir;
                   nixgl = nixgl;
                 };
