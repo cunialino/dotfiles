@@ -40,7 +40,7 @@ in
     boot.loader.efi.canTouchEfiVariables = true;
     boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
-    boot.kernelPackages = pkgs.linuxKernel.packages.linux_7_1;
+    boot.kernelPackages = pkgs.linuxPackages_latest;
 
     users.users.${username} = {
       isNormalUser = true;

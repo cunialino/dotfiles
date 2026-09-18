@@ -42,7 +42,7 @@ in
     boot.loader.systemd-boot.enable = true;
     boot.loader.efi.canTouchEfiVariables = true;
 
-    boot.kernelPackages = pkgs.linuxKernel.packages.linux_7_1;
+    boot.kernelPackages = pkgs.linuxPackages_latest;
 
     networking.nftables.enable = true;
     networking.wireless.enable = false;
