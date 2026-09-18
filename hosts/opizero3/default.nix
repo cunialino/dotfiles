@@ -9,8 +9,8 @@
 }:
 
 let
-  # choose kernel package set that has up-to-date DTBs for sun50i-h618
-  kernelPkgs = pkgs.linuxKernel.packages.linux_7_1; # change if you want to pin/build a specific kernel
+  kernelPkgs = pkgs.linuxPackages_latest;
+
   username = "elia";
   eth = "end0";
 
