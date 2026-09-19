@@ -8,6 +8,7 @@
     ./common
     ./gui
     ./tmux
+    ./zellij
     ./bw
     ./ai
     ./opencode

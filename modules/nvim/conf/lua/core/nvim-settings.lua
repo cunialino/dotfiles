@@ -94,18 +94,18 @@ local termfeatures = vim.g.termfeatures or {}
 termfeatures.osc52 = false
 vim.g.termfeatures = termfeatures
 
-vim.api.nvim_set_keymap("n", "<leader>t", "", { desc = "+Tmux Send", noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<leader>t", "", { desc = "+Tmux Send", noremap = true, silent = true })
-vim.api.nvim_set_keymap("n", "<leader>tt", ":lua require('tmux_send').send_line()<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<leader>tt", ":lua require('tmux_send').send_visual()<CR>",
+vim.api.nvim_set_keymap("n", "<leader>t", "", { desc = "+Send to REPL (tmux/zellij)", noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<leader>t", "", { desc = "+Send to REPL (tmux/zellij)", noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>tt", ":lua require('repl_sender').send_line()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<leader>tt", ":lua require('repl_sender').send_visual()<CR>",
   { noremap = true, silent = true })
 
-vim.api.nvim_set_keymap("n", "<leader>tl", ":lua require('tmux_send').send_line_livy()<CR>",
+vim.api.nvim_set_keymap("n", "<leader>tl", ":lua require('repl_sender').send_line_livy()<CR>",
   { noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<leader>tl", ":lua require('tmux_send').send_visual_livy()<CR>",
+vim.api.nvim_set_keymap("v", "<leader>tl", ":lua require('repl_sender').send_visual_livy()<CR>",
   { noremap = true, silent = true })
 
-vim.api.nvim_set_keymap("n", "<leader>ts", ":lua require('tmux_send').toggle_strip_all_leading()<CR>",
+vim.api.nvim_set_keymap("n", "<leader>ts", ":lua require('repl_sender').toggle_strip_all_leading()<CR>",
   { noremap = true, silent = true })
 
 vim.api.nvim_create_autocmd("FileType", {
