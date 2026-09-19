@@ -15,6 +15,7 @@
     nvim.enable = true;
     term.enable = true;
     tmux.enable = true;
+    zellij.enable = true;
     pi-coding-agent.enable = true;
     comfy-gen.enable = true;
   };

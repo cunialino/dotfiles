@@ -239,6 +239,14 @@ in
         mgr.prepend_keymap = [
           {
             on = [
+              "z"
+              "s"
+            ];
+            run = "shell --block 'zellij_sessionizer.sh $0'";
+            desc = "Start New session in selected dir";
+          }
+          {
+            on = [
               "<Enter>"
             ];
             run = [

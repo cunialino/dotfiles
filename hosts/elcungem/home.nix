@@ -17,6 +17,7 @@
       term.enable = true;
       gui.enable = true;
       tmux.enable = true;
+      zellij.enable = true;
       bw.enable = true;
       ai.enable = true;
       pi-coding-agent.enable = true;

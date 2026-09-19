@@ -34,6 +34,7 @@ in
       shellAliases = {
         n = "nvim_tmux_opener.sh -l";
         s = "tmux_sessionizer.sh";
+        z = "zellij_sessionizer.sh";
       };
       sessionVariables = {
         PATH = "$HOME/.local/bin/:$PATH";
