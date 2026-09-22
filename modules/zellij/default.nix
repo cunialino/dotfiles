@@ -8,7 +8,7 @@ with lib;
 let
   cfg = config.modules.zellij;
 
-  sessionizerVersion = "0.1.1";
+  sessionizerVersion = "0.2.0";
   sessionizerUrl = "https://github.com/cunialino/zellij-sessionizer/releases/download/v${sessionizerVersion}/sessionizer.wasm";
 in
 {
