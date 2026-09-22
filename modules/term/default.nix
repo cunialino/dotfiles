@@ -250,7 +250,7 @@ in
               "<Enter>"
             ];
             run = [
-              "shell 'nvim_tmux_opener.sh -o $1 && ya emit quit'"
+              "shell 'nvim_tmux_opener.sh -o -- \"$0\" && ya emit quit'"
             ];
             desc = "Open with neovim server";
           }
@@ -259,7 +259,7 @@ in
               "t"
             ];
             run = [
-              "shell 'nvim_tmux_opener.sh -o $1 && ya emit quit'"
+              "shell 'nvim_tmux_opener.sh -o -- \"$0\" && ya emit quit'"
             ];
             desc = "Open with neovim server";
           }
