@@ -242,7 +242,7 @@ in
               "z"
               "s"
             ];
-            run = "shell --block 'zellij_sessionizer.sh $0'";
+            run = "shell --block -- zellij_sessionizer.sh %h";
             desc = "Start New session in selected dir";
           }
           {
@@ -250,7 +250,7 @@ in
               "<Enter>"
             ];
             run = [
-              "shell 'nvim_tmux_opener.sh -o $1 && ya emit quit'"
+              "shell -- nvim_tmux_opener.sh -o -- %h"
             ];
             desc = "Open with neovim server";
           }
@@ -259,7 +259,7 @@ in
               "t"
             ];
             run = [
-              "shell 'nvim_tmux_opener.sh -o $1 && ya emit quit'"
+              "shell -- nvim_tmux_opener.sh -o -- %h"
             ];
             desc = "Open with neovim server";
           }
