@@ -104,8 +104,13 @@ local function prepare_lines(lines)
   return lines
 end
 
--- All non-plugin (i.e. terminal) panes of the current session, with geometry.
-local function terminal_panes()
+-- All non-plugin (i.e. terminal) panes of the whole session, with geometry.
+-- NOTE: `list-panes` reports every tab of the session, including the panes of the
+-- tabs we cannot see. That is why bottom_pane_id() has to filter by tab: in a
+-- full-height-tab session the bottom edge of a pane in another tab is exactly the
+-- same as the one in this tab, so an unscoped "lowest pane wins" sort happily
+-- returns an invisible pane and the send looks like it did nothing.
+local function session_terminal_panes()
   local ok, out = pcall(vim.fn.system, { ZELLIJ, "action", "list-panes", "--geometry", "--json" })
   if not ok or type(out) ~= "string" or out == "" then
     return nil
@@ -123,23 +128,58 @@ local function terminal_panes()
   return panes
 end
 
-local function bottom_pane_id()
-  local panes = terminal_panes()
-  if not panes or #panes == 0 then
+-- The pane this nvim lives in, so the target can stay in the same tab.
+local function own_pane(panes)
+  local own_id = vim.env.ZELLIJ_PANE_ID
+  if own_id == nil then
     return nil
   end
-  table.sort(panes, function(a, b)
-    local a_bottom = (a.pane_y or 0) + (a.pane_rows or 0)
-    local b_bottom = (b.pane_y or 0) + (b.pane_rows or 0)
-    return a_bottom > b_bottom
-  end)
-  local own = vim.env.ZELLIJ_PANE_ID
   for _, p in ipairs(panes) do
-    if own == nil or tostring(p.id) ~= own then
-      return tostring(p.id)
+    if tostring(p.id) == tostring(own_id) then
+      return p
     end
   end
   return nil
+end
+
+local function bottom_pane_id()
+  local all = session_terminal_panes()
+  if not all or #all == 0 then
+    return nil
+  end
+  local own = own_pane(all)
+
+  -- only the panes of our own tab, never ourselves
+  local candidates = {}
+  for _, p in ipairs(all) do
+    local is_self = own ~= nil and tostring(p.id) == tostring(own.id)
+    local same_tab = own == nil or p.tab_id == own.tab_id
+    if same_tab and not is_self then
+      table.insert(candidates, p)
+    end
+  end
+
+  table.sort(candidates, function(a, b)
+    local a_bottom = (a.pane_y or 0) + (a.pane_rows or 0)
+    local b_bottom = (b.pane_y or 0) + (b.pane_rows or 0)
+    if a_bottom ~= b_bottom then
+      return a_bottom > b_bottom -- lowest pane wins, like tmux's {bottom}
+    end
+    local a_below = (a.pane_y or 0) >= (own and own.pane_y or 0)
+    local b_below = (b.pane_y or 0) >= (own and own.pane_y or 0)
+    if a_below ~= b_below then
+      return a_below -- prefer a pane underneath us
+    end
+    if (a.pane_rows or 0) ~= (b.pane_rows or 0) then
+      return (a.pane_rows or 0) > (b.pane_rows or 0) -- then the bigger target
+    end
+    return tostring(a.id) < tostring(b.id) -- deterministic tie-break
+  end)
+
+  if #candidates == 0 then
+    return nil
+  end
+  return "terminal_" .. tostring(candidates[1].id)
 end
 
 -- Extra argv that points `zellij action` at the target pane; nil when unresolvable.
@@ -166,8 +206,9 @@ local function send_lines(lines)
   local args = pane_args()
   if not args then
     vim.notify(
-      "zellij_send: no target pane found (M.target = " .. tostring(M.target)
-        .. ", own pane = " .. tostring(vim.env.ZELLIJ_PANE_ID) .. ")",
+      "zellij_send: no target pane found in this tab (M.target = " .. tostring(M.target)
+        .. ", own pane = " .. tostring(vim.env.ZELLIJ_PANE_ID)
+        .. "). Open another pane in this tab, or set M.target = \"focused\" / a pane id.",
       vim.log.levels.ERROR
     )
     return
