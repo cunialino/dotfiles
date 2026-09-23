@@ -10,6 +10,20 @@ let
   llamaModelsDir = "/var/lib/llama-models";
   sdModelsDir = "/var/lib/sd-models";
   checkpoint = "${modelsDir}/qwen38-flash-next-w4b.hgn";
+
+  # halogen gets its own podman bridge so the egress lockdown below singles it out
+  # without touching llama-cpp/comfyui, which still need egress to fetch models.
+  #
+  # NB: podman does NOT name the bridge after the network. A network called
+  # "halogen0" silently gets bridge "podmanN" (measured: name=halogen0 ->
+  # network_interface=podman2). Two consequences, both handled:
+  #   * --interface-name pins the bridge to ${halogenNet};
+  #   * the nft rules key on the SOURCE SUBNET, not iifname, so if the device
+  #     name ever drifts the block fails *closed* instead of silently opening up
+  #     (that is exactly how the first version of this file leaked).
+  halogenNet = "halogen0";
+  halogenSubnet = "10.98.0.0/24";
+  lan = "192.168.0.0/24";
 in
 {
   imports = [
@@ -132,6 +146,7 @@ in
       containers.halogen = {
         image = "ghcr.io/peonist-ai/halogen-flash-server:0.11.4";
         autoStart = false;
+        networks = [ halogenNet ];
         ports = [ "8731:8731" ];
         volumes = [ "${modelsDir}:/models:ro" ];
         environment = {
@@ -194,6 +209,85 @@ in
         ];
       };
     };
+  };
+
+  # ---------------------------------------------------------------------------
+  # Halogen egress lockdown
+  #
+  # halogen is a server: it must only ever answer requests that arrived from the
+  # LAN, never open a connection of its own (no telemetry, no model pulls, no
+  # call-home). Its packets are *routed* by the host (podman bridge -> eno1), so
+  # the block belongs in the forward hook, not in INPUT.
+  # ---------------------------------------------------------------------------
+
+  # The bridge has to exist before the container starts, and there is no
+  # oci-containers option to declare one, so: idempotent oneshot.
+  systemd.services.podman-network-halogen = {
+    description = "Isolated podman network for halogen";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    before = [ "podman-halogen.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "halogen-net" ''
+        set -euo pipefail
+        ${pkgs.podman}/bin/podman network exists ${halogenNet} || \
+          ${pkgs.podman}/bin/podman network create --driver bridge --subnet ${halogenSubnet} \
+            --interface-name ${halogenNet} --disable-dns ${halogenNet}
+      '';
+    };
+  };
+
+  # DNS is cut too: halogen gets no resolver at all, on-bridge or otherwise.
+  #
+  # --disable-dns is the part that actually matters here. With dns enabled,
+  # netavark installs a hijack rule (`--dport 53 --to-destination <gateway>`) that
+  # redirects EVERY port-53 packet to aardvark-dns no matter which resolver the
+  # container targeted. So `tcp 8.8.8.8 53` reports OPEN while really handshaking
+  # with the local resolver, which then answers NXDOMAIN for anything that is not a
+  # container name. --disable-dns means no aardvark and no redirect: port 53 then
+  # dies in the forward chain like everything else. The nftables rules below are
+  # belt-and-braces on top of that.
+  #
+  # NOTE: `podman network exists || create` is idempotent, so it will NOT re-create
+  # a network that already exists. After changing these flags, once by hand:
+  #   systemctl stop podman-halogen && podman network rm halogen0 && systemctl restart podman-network-halogen
+  #
+  # Also: the `tcp HOST PORT` helper times out on getaddrinfo *and* connect together,
+  # so "deb.debian.org FILTERED" usually just means "could not resolve the name".
+  # Probe with literal IPs to tell a cut resolver apart from a cut path.
+
+  networking.nftables.tables.halogen_egress = {
+    family = "inet";
+    content = ''
+      chain forward {
+        # -50 = after conntrack confirms the packet (-200) but before netavark's
+        # and NixOS' own filter chains (priority 0), so nothing can ACCEPT it
+        # behind our back. policy accept leaves every other flow untouched.
+        type filter hook forward priority -50; policy accept;
+
+        # The only thing allowed out: answers to LAN hosts that asked first
+        # (original direction is ${lan} -> halogen).
+        ip saddr ${halogenSubnet} ip daddr ${lan} ct state established,related accept
+
+        # Everything else is gone: no internet, no poking at LAN hosts that never
+        # called it, no IPv6 either. This also kills any hard-coded external
+        # resolver (8.8.8.8 & friends).
+        ip saddr ${halogenSubnet} limit rate 10/minute burst 20 packets log prefix "halogen-egress-drop: " drop
+        ip saddr ${halogenSubnet} counter drop
+      }
+
+      chain input {
+        # Belt and braces on top of --disable-dns: if a resolver ever ends up back
+        # on this bridge, halogen still cannot reach it.
+        type filter hook input priority -50; policy accept;
+
+        ip saddr ${halogenSubnet} meta l4proto { tcp, udp } th dport 53 limit rate 10/minute burst 20 packets log prefix "halogen-dns-drop: "
+        ip saddr ${halogenSubnet} meta l4proto { tcp, udp } th dport 53 counter reject with icmpx type port-unreachable
+      }
+    '';
   };
 
   # Populate with: hf download peonist-ai/halogen-qwen3.8-flash-next --local-dir /var/lib/halogen-models
