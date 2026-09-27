@@ -26,18 +26,9 @@ in
       };
       models = {
         providers = {
-          # Two ways to reach a model on this box, both plain OpenAI-compatible
-          # servers with no key:
-          #
-          #   11434  llama.cpp -- now a native nixpkgs ROCm service instead of a
-          #          container. The address is unchanged, so nothing here needed to
-          #          move; it runs in router mode, where the requested model name
-          #          selects the preset from /var/lib/llama-models/config.ini.
-          #   8731   the halogen container, which is still the only thing serving
-          #          Qwen3.8 Flash-Next at this point.
-          #
-          # strixhalocpp and llhalo both point at 11434 with different model lists.
-          # Redundant, but harmless while both resolve to the same server.
+          # 8731 is halogen, reached directly. It bypasses llama-swap on purpose:
+          # at this point it is the only thing serving Qwen3.8 Flash-Next, and it
+          # is not a swap model.
           "halogen" = {
             baseUrl = "http://192.168.0.6:8731/v1";
             apiKey = "not-needed";
@@ -50,14 +41,19 @@ in
               }
             ];
           };
-          "strixhalocpp" = {
-            baseUrl = "http://192.168.0.6:11434/v1";
-            apiKey = "not-needed";
-            api = "openai-completions";
-            models = [
-              { id = "gpt-oss-120b-MXFP4"; contextWindow = 131072; }
-            ];
-          };
+
+          # 11434 is llama-swap, and it is now the ONLY thing listening there --
+          # llama.cpp moved to 127.0.0.1:11435 behind it. That makes this provider
+          # the single entry point for everything the swap knows about: the ids
+          # below are the router aliases llama-swap advertises (includeAliasesInList
+          # = true), and asking for one starts llama.cpp through a holder unit. The
+          # agent and genai groups are exclusive, so a request here can unload
+          # whatever the other group was holding -- which is the point, 124 GiB of
+          # unified memory does not fit two of them.
+          #
+          # The old "strixhalocpp" provider is gone with this: same baseUrl, and its
+          # only model (gpt-oss-120b-MXFP4) is not in the router preset tree any
+          # more, so it could only ever 404.
           "llhalo" = {
             baseUrl = "http://192.168.0.6:11434/v1";
             apiKey = "not-needed";

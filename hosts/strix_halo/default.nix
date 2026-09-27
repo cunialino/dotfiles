@@ -40,6 +40,53 @@ let
   # python-env + wrapper model does not carry (`import torch` dies on
   # "libgomp.so.1: cannot open shared object file"). The container works, so the
   # image stays.
+
+  # One holder per unit, deliberately: the unit name is baked into the script, so
+  # a holder can only ever touch the unit it was built for. One generic
+  # `holder <unit>` would take whatever unit name the config happened to pass it.
+  #
+  # The holder blocks in the foreground for as long as the model is wanted and
+  # stops the unit on the way out. `exec tail -f /dev/null` will NOT do: llama-swap
+  # setpgid()s every command and SIGTERMs the whole process group on unload
+  # (internal/process/runtime_unix.go), so a trap in this shell is the only thing
+  # that reliably runs -- and exec would replace the shell and leave the unit
+  # loaded forever.
+  #
+  # It returns the executable, NOT the package. Interpolating a package into a
+  # string yields its $out *directory*, and llama-swap then does fork/exec on that
+  # directory:
+  #   failed to start command '/nix/store/…-llama-swap-holder-llama-cpp.service':
+  #   fork/exec …: permission denied
+  # (measured on this host -- the real binary is $out/bin/llama-swap-holder-<unit>).
+  swapUnitHolder =
+    unit:
+    let
+      pkg = pkgs.writeShellApplication {
+        name = "llama-swap-holder-${unit}";
+        # No sudo. llama-swap.service runs as root (User= is unset) and its sandbox
+        # makes sudo impossible anyway: RestrictSUIDSGID=yes and
+        # SystemCallFilter=~@privileged (denied as EPERM) leave no setuid transition
+        # available. Measured on the host:
+        #   sudo[11947]: root : unable to open /etc/sudoers : Operation not permitted
+        # systemctl needs no escalation here, only the bus, which a confined root
+        # service keeps (AF_UNIX is in RestrictAddressFamilies).
+        runtimeInputs = [ pkgs.systemd ];
+        text = ''
+          stopped=0
+          trap 'stopped=1' TERM INT
+
+          systemctl start ${unit}
+          # `wait` wakes on the group signal, which is what lets the trap take
+          # effect; sleeping in the foreground would stall teardown.
+          while [ $stopped -eq 0 ]; do
+            sleep 3600 &
+            wait $! || true
+          done
+          systemctl stop ${unit}
+        '';
+      };
+    in
+    "${pkg}/bin/llama-swap-holder-${unit}";
 in
 {
   imports = [
@@ -102,7 +149,10 @@ in
       enable = true;
       interfaces.${eth}.allowedTCPPorts = [
         22
-        8731
+        # llama-swap is the only model-serving port. 8731 (halogen) is closed:
+        # it is reached through llama-swap now. 8188 stays open on purpose --
+        # ComfyUI's web UI and `comfy-gen --server` talk to it directly, but the
+        # service itself is still only started/stopped by llama-swap.
         11434
         8188
       ];
@@ -125,8 +175,6 @@ in
   systemd.tmpfiles.rules = [
     "d ${modelsDir} 0750 ${username} users -"
     "d ${llamaModelsDir} 0750 ${username} users -"
-    # ComfyUI's data tree, shared with the container below. The interactive user
-    # drops models in by hand, so these stay group-writable.
     "d ${comfyDataDir} 0755 root users -"
     "d ${comfyDataDir}/custom_nodes 0775 ${username} users -"
     "d ${comfyDataDir}/models 0775 ${username} users -"
@@ -185,11 +233,12 @@ in
   };
 
   # ---------------------------------------------------------------------------
-  # Native ROCm inference (replaces the llama-cpp and sd-cli containers)
+  # Native ROCm inference (llama.cpp only; ComfyUI stays a podman container)
   #
-  # The unit is NOT wantedBy multi-user.target, which mirrors the old
-  # `autoStart = false`: nothing touches the GPU or pulls 100+ GiB of weights into
-  # page cache until something starts it.
+  # The unit exists but is NOT wantedBy multi-user.target, which mirrors the old
+  # `autoStart = false`: nothing grabs the GPU until something starts it.
+  # Inference is meant to be driven through llama-swap (see below), not by
+  # enabling this.
   # ---------------------------------------------------------------------------
 
   services.llama-cpp = {
@@ -200,11 +249,10 @@ in
       # works verbatim here (router mode: one process, every preset selectable by
       # the requested model name).
       models-preset = "${llamaModelsDir}/config.ini";
-      # 0.0.0.0, not loopback. The container published 11434 on every interface and
-      # clients -- pi included -- address it as 192.168.0.6:11434, so binding this
-      # to 127.0.0.1 would silently break every one of them.
-      host = "0.0.0.0";
-      port = 11434;
+      host = "127.0.0.1";
+      # llama-swap owns 11434 now; the router answers on a loopback-only port and
+      # is reached through it.
+      port = 11435;
     };
   };
 
@@ -219,6 +267,130 @@ in
       LimitMEMLOCK = "infinity";
     };
   };
+
+  # -------------------------------------------------------------------------
+  # llama-swap: the only serving path
+  #
+  # One OpenAI-compatible entry point on 11434, owning the GPU schedule through
+  # two exclusive groups, so text/image inference and the 124 GB halogen
+  # checkpoint can never be resident at the same time on this unified-memory box:
+  #
+  #   halogen  swap=true   exclusive=true   -> [halogen]
+  #   genai    swap=false  exclusive=true   -> [llamacpp, comfyui]
+  #
+  # exclusive=true is the point: a request for a member of either group unloads
+  # every model of the *other* group. genai uses swap=false because the llama.cpp
+  # router and ComfyUI are meant to run together inside the group.
+  #
+  # Backend lifecycles stay systemd's job -- llama-swap toggles the units and
+  # health-checks their loopback ports. That keeps halogen's container isolation
+  # (including the nftables egress lockdown below) and ComfyUI's dedicated user
+  # intact, instead of flattening all three into llama-swap's own process tree.
+  # -------------------------------------------------------------------------
+
+  users.users.llama-swap = {
+    isSystemUser = true;
+    group = "llama-swap";
+  };
+  users.groups.llama-swap = { };
+
+  # No sudoers rules for the holders. They talk to systemd directly as the (root)
+  # user llama-swap already runs as -- see the swapUnitHolder comment for why sudo
+  # cannot work under ProtectSystem=strict + RestrictSUIDSGID +
+  # SystemCallFilter=~@privileged in the first place.
+
+  services.llama-swap = {
+    enable = true;
+    listenAddress = "0.0.0.0";
+    port = 11434;
+
+    settings = {
+      # 120 s default is nowhere near enough for a 124 GB halogen checkpoint or a
+      # cold ComfyUI import.
+      healthCheckTimeout = 900;
+      logLevel = "info";
+      # advertise the aliases, otherwise the preset names are invisible to clients
+      # until the router happens to be loaded.
+      includeAliasesInList = true;
+
+      models = {
+        "halogen" = {
+          name = "halogen-qwen3.8-flash-next";
+          cmd = swapUnitHolder "podman-halogen.service";
+          proxy = "http://127.0.0.1:8731";
+          checkEndpoint = "/health";
+          aliases = [ "halogen-qwen3.8-flash-next" ];
+        };
+
+        "llamacpp" = {
+          name = "llama.cpp router (all presets)";
+          cmd = swapUnitHolder "llama-cpp.service";
+          proxy = "http://127.0.0.1:11435";
+          checkEndpoint = "/health";
+          # Router mode: llama-server selects the preset from the requested model
+          # name, and llama-swap forwards the body untouched (only an explicit
+          # `useModelName` rewrites it). So these aliases are literally the
+          # [sections] in ${llamaModelsDir}/config.ini.
+          aliases = [
+            "qwen3.6"
+            "glm-4.5-air"
+            "ori"
+            "deepseek-ocr"
+            "ornith-1.5-35b"
+          ];
+        };
+
+        "comfyui" = {
+          name = "ComfyUI";
+          cmd = swapUnitHolder "podman-comfyui.service";
+          proxy = "http://127.0.0.1:8188";
+          # ComfyUI 0.34.1 has no /health; /system_stats answers 200 once the
+          # server is up.
+          checkEndpoint = "/system_stats";
+        };
+      };
+
+      routing.router = {
+        use = "group";
+        settings.groups = {
+          halogen = {
+            swap = true;
+            exclusive = true;
+            members = [ "halogen" ];
+          };
+          genai = {
+            # all members may run at once
+            swap = false;
+            exclusive = true;
+            members = [ "llamacpp" "comfyui" ];
+          };
+        };
+      };
+    };
+  };
+
+  # Settings the holder needs from the llama-swap unit. The upstream module's
+  # defaults break a service that drives systemd on the host:
+  #   * DynamicUser  -> the uid changes every boot (and is not root), so it
+  #                     cannot start/stop other units at all
+  #   * PrivateUsers -> "root" inside a user namespace cannot drive host systemd
+  # The rest of the module's hardening is left alone; note that this is what keeps
+  # the service root, which is why the holders need no sudo.
+  systemd.services.llama-swap.serviceConfig = {
+    DynamicUser = lib.mkForce false;
+    NoNewPrivileges = lib.mkForce false;
+    PrivateUsers = lib.mkForce false;
+    CapabilityBoundingSet = lib.mkForce [
+      "CAP_SETUID"
+      "CAP_SETGID"
+      "CAP_SETPCAP"
+      "CAP_DAC_OVERRIDE"
+      "CAP_READ_SEARCH"
+    ];
+    # llama-server / torch inherit this through the holder.
+    LimitMEMLOCK = "infinity";
+  };
+
 
   # ---------------------------------------------------------------------------
   # Halogen egress lockdown
