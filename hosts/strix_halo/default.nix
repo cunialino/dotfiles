@@ -1,5 +1,6 @@
 {
   pkgs,
+  lib,
   sys_dir,
   ...
 }:
@@ -8,8 +9,8 @@ let
   eth = "eno1";
   modelsDir = "/var/lib/halogen-models";
   llamaModelsDir = "/var/lib/llama-models";
-  sdModelsDir = "/var/lib/sd-models";
   checkpoint = "${modelsDir}/qwen38-flash-next-w4b.hgn";
+  comfyDataDir = "/var/lib/comfyui";
 
   # halogen gets its own podman bridge so the egress lockdown below singles it out
   # without touching llama-cpp/comfyui, which still need egress to fetch models.
@@ -24,6 +25,21 @@ let
   halogenNet = "halogen0";
   halogenSubnet = "10.98.0.0/24";
   lan = "192.168.0.0/24";
+
+  # Native ROCm from nixpkgs (ROCm 7.2.3; the hip arch list ships gfx1151, so no
+  # HSA override tricks are needed on Strix Halo). llama.cpp runs from there.
+  #
+  # ComfyUI deliberately stays on podman. Every nix-native route ends in a
+  # from-source ROCm torch build, and nixpkgs 26.11's torch 2.13 does not even
+  # compile against its own aotriton headers:
+  #   aotriton_adapter.h:143: use of undeclared identifier 'cookie'
+  #   mha_all_aot.hip:487: no member named 'StridedVarlen' ... 'strided_varlen'
+  # The prebuilt TheRock ROCm 10 wheels (nix-strix-halo) skip the compile but set
+  # dontPatchELF/dontAutoPatchelf on purpose: their runtime contract is an
+  # exported LD_LIBRARY_PATH over ~10 SDK directories, which the nixpkgs
+  # python-env + wrapper model does not carry (`import torch` dies on
+  # "libgomp.so.1: cannot open shared object file"). The container works, so the
+  # image stays.
 in
 {
   imports = [
@@ -44,26 +60,7 @@ in
     ];
   };
 
-  environment.systemPackages = [
-    pkgs.python313Packages.huggingface-hub
-    (pkgs.writeShellScriptBin "sd-cli" ''
-      # One-shot wrapper around the sd-cli-rocm image (built out-of-band from
-      # containers/sd-cli.Containerfile). Models are read from ${sdModelsDir};
-      # generated images land in the caller's current directory.
-      TTY=()
-      [ -t 1 ] && TTY=(-it)
-      exec podman run --rm "''${TTY[@]}" \
-        --device=/dev/kfd \
-        --device=/dev/dri \
-        --security-opt=seccomp=unconfined \
-        --ipc=host \
-        --ulimit=memlock=-1:-1 \
-        -v ${sdModelsDir}:/models:ro \
-        -v "$PWD:/work" \
-        -w /work \
-        localhost/sd-cli-rocm:rocm10 sd-cli "$@"
-    '')
-  ];
+  environment.systemPackages = [ pkgs.python313Packages.huggingface-hub ];
 
   # Rootless podman + ROCm needs locked memory for HSA buffer mapping.
   security.pam.loginLimits = [
@@ -128,15 +125,15 @@ in
   systemd.tmpfiles.rules = [
     "d ${modelsDir} 0750 ${username} users -"
     "d ${llamaModelsDir} 0750 ${username} users -"
-    "d ${sdModelsDir} 0750 ${username} users -"
-    "d /var/lib/comfyui 0755 root users -"
-    "d /var/lib/comfyui/custom_nodes 0775 ${username} users -"
-    "d /var/lib/comfyui/models 0775 ${username} users -"
-    "d /var/lib/comfyui/input 0775 ${username} users -"
-    "d /var/lib/comfyui/output 0775 ${username} users -"
-    "d /var/lib/comfyui/temp 0775 ${username} users -"
-    "d /var/lib/comfyui/user 0775 ${username} users -"
-
+    # ComfyUI's data tree, shared with the container below. The interactive user
+    # drops models in by hand, so these stay group-writable.
+    "d ${comfyDataDir} 0755 root users -"
+    "d ${comfyDataDir}/custom_nodes 0775 ${username} users -"
+    "d ${comfyDataDir}/models 0775 ${username} users -"
+    "d ${comfyDataDir}/input 0775 ${username} users -"
+    "d ${comfyDataDir}/output 0775 ${username} users -"
+    "d ${comfyDataDir}/temp 0775 ${username} users -"
+    "d ${comfyDataDir}/user 0775 ${username} users -"
   ];
 
   virtualisation = {
@@ -166,25 +163,15 @@ in
         ];
       };
 
-      # ROCm 10 images are built out-of-band from ./containers/*.Containerfile
-      # (no ROCm 10 in nixpkgs yet). Build them on the host before switching:
-      #   podman build -t localhost/llama-cpp-rocm:rocm10 -f containers/llama-cpp.Containerfile .
+      # ROCm 10 image is built out-of-band from ./containers/comfyui.Containerfile
+      # (no ROCm 10 in nixpkgs). Build it on the host before switching:
       #   podman build -t localhost/comfyui-rocm:rocm10 -f containers/comfyui.Containerfile .
-      #   podman build -t localhost/sd-cli-rocm:rocm10 -f containers/sd-cli.Containerfile .
-      containers.llama-cpp = {
-        image = "localhost/llama-cpp-rocm:rocm10";
+      containers.comfyui = {
+        image = "localhost/comfyui-rocm:rocm10";
         pull = "never";
         autoStart = false;
-        ports = [ "11434:11434" ];
-        # Mounted at the same absolute path as on the host: config.ini uses absolute
-        # model paths, so one preset file serves both this container and a native
-        # llama-server running directly on the host.
-        volumes = [ "${llamaModelsDir}:${llamaModelsDir}:ro" ];
-        environment = {
-          # Beats the image default so the preset path always tracks llamaModelsDir.
-          LLAMA_ARG_MODELS_PRESET = "${llamaModelsDir}/config.ini";
-          HIP_LAUNCH_BLOCKING = "1";
-        };
+        ports = [ "8188:8188" ];
+        volumes = [ "${comfyDataDir}:/data" ];
         extraOptions = [
           "--device=/dev/kfd"
           "--device=/dev/dri"
@@ -194,20 +181,42 @@ in
         ];
       };
 
-      containers.comfyui = {
-        image = "localhost/comfyui-rocm:rocm10";
-        pull = "never";
-        autoStart = false;
-        ports = [ "8188:8188" ];
-        volumes = [ "/var/lib/comfyui:/data" ];
-        extraOptions = [
-          "--device=/dev/kfd"
-          "--device=/dev/dri"
-          "--security-opt=seccomp=unconfined"
-          "--ipc=host"
-          "--ulimit=memlock=-1:-1"
-        ];
-      };
+    };
+  };
+
+  # ---------------------------------------------------------------------------
+  # Native ROCm inference (replaces the llama-cpp and sd-cli containers)
+  #
+  # The unit is NOT wantedBy multi-user.target, which mirrors the old
+  # `autoStart = false`: nothing touches the GPU or pulls 100+ GiB of weights into
+  # page cache until something starts it.
+  # ---------------------------------------------------------------------------
+
+  services.llama-cpp = {
+    enable = true;
+    package = pkgs.llama-cpp-rocm;
+    settings = {
+      # config.ini holds absolute host paths, so the same file the container read
+      # works verbatim here (router mode: one process, every preset selectable by
+      # the requested model name).
+      models-preset = "${llamaModelsDir}/config.ini";
+      # 0.0.0.0, not loopback. The container published 11434 on every interface and
+      # clients -- pi included -- address it as 192.168.0.6:11434, so binding this
+      # to 127.0.0.1 would silently break every one of them.
+      host = "0.0.0.0";
+      port = 11434;
+    };
+  };
+
+  # DynamicUser cannot read ${llamaModelsDir} (0750 elia:users); run as elia,
+  # who is in `render`/`video` and already gets unlimited memlock.
+  systemd.services.llama-cpp = {
+    wantedBy = lib.mkForce [ ];
+    serviceConfig = {
+      DynamicUser = lib.mkForce false;
+      User = username;
+      Group = "users";
+      LimitMEMLOCK = "infinity";
     };
   };
 
@@ -299,5 +308,5 @@ in
   # models and crash-loop on "preset file does not exist". Gate on the preset file
   # itself: llama-server aborts if it is missing, and a failed condition is a clean
   # skip instead of a start-limit-hit.
-  systemd.services.podman-llama-cpp.unitConfig.ConditionFileNotEmpty = "${llamaModelsDir}/config.ini";
+  systemd.services.llama-cpp.unitConfig.ConditionFileNotEmpty = "${llamaModelsDir}/config.ini";
 }

@@ -26,6 +26,18 @@ in
       };
       models = {
         providers = {
+          # Two ways to reach a model on this box, both plain OpenAI-compatible
+          # servers with no key:
+          #
+          #   11434  llama.cpp -- now a native nixpkgs ROCm service instead of a
+          #          container. The address is unchanged, so nothing here needed to
+          #          move; it runs in router mode, where the requested model name
+          #          selects the preset from /var/lib/llama-models/config.ini.
+          #   8731   the halogen container, which is still the only thing serving
+          #          Qwen3.8 Flash-Next at this point.
+          #
+          # strixhalocpp and llhalo both point at 11434 with different model lists.
+          # Redundant, but harmless while both resolve to the same server.
           "halogen" = {
             baseUrl = "http://192.168.0.6:8731/v1";
             apiKey = "not-needed";
