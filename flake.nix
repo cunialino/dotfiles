@@ -8,6 +8,11 @@
     # AI workloads (Open WebUI deploy + canonical ComfyUI workflow). Referenced
     # by modules/comfy-gen to share one workflow source with the myai repo.
     myai.url = "github:cunialino/myai";
+    # gufo: Strix Halo inference engine (Qwen3.8 Flash-Next + Qwen-Image-2.1).
+    # Replaces halogen as this agent's backend. Only ONE derivation builds -- every
+    # ROCm dependency it needs is already on cache.nixos.org -- so it does not put
+    # a torch-shaped compile between us and a working system.
+    gufo.url = "github:gufo-org/gufo";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";

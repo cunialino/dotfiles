@@ -7,6 +7,10 @@
 let
   cfg = config.modules.pi-coding-agent;
 
+  # llama-swap's alias for the gufo Qwen3.8 Flash-Next unit. The agent talks to
+  # the swap only; the swap decides which backend answers and unloads the others.
+  gufoModelName = "qwen3.8-flash-next";
+
 in
 {
   options.modules.pi-coding-agent.enable = lib.mkEnableOption "pi-coding-agent";
@@ -19,16 +23,16 @@ in
       ];
 
       settings = {
-        model = "llhalo/ornith-1.5-35b";
+        model = "llhalo/${gufoModelName}";
         packages = [
           "npm:pi-mcp-adapter"
         ];
       };
       models = {
         providers = {
-          # 8731 is halogen, reached directly. It bypasses llama-swap on purpose:
-          # at this point it is the only thing serving Qwen3.8 Flash-Next, and it
-          # is not a swap model.
+          # RESCUE PATH ONLY. 8731 is still halogen's container port (gufo took
+          # 8732 so the two never collide). Delete this provider once gufo has
+          # proven itself and the halogen container is gone from the host config.
           "halogen" = {
             baseUrl = "http://192.168.0.6:8731/v1";
             apiKey = "not-needed";
@@ -41,24 +45,24 @@ in
               }
             ];
           };
-
-          # 11434 is llama-swap, and it is now the ONLY thing listening there --
-          # llama.cpp moved to 127.0.0.1:11435 behind it. That makes this provider
-          # the single entry point for everything the swap knows about: the ids
-          # below are the router aliases llama-swap advertises (includeAliasesInList
-          # = true), and asking for one starts llama.cpp through a holder unit. The
-          # agent and genai groups are exclusive, so a request here can unload
-          # whatever the other group was holding -- which is the point, 124 GiB of
-          # unified memory does not fit two of them.
-          #
-          # The old "strixhalocpp" provider is gone with this: same baseUrl, and its
-          # only model (gpt-oss-120b-MXFP4) is not in the router preset tree any
-          # more, so it could only ever 404.
+          "strixhalocpp" = {
+            baseUrl = "http://192.168.0.6:11434/v1";
+            apiKey = "not-needed";
+            api = "openai-completions";
+            models = [
+              { id = "gpt-oss-120b-MXFP4"; contextWindow = 131072; }
+            ];
+          };
           "llhalo" = {
             baseUrl = "http://192.168.0.6:11434/v1";
             apiKey = "not-needed";
             api = "openai-completions";
             models = [
+              {
+                id = gufoModelName;
+                contextWindow = 262144;
+                input = [ "text" "image" ];
+              }
               { id = "glm-4.5-air"; contextWindow = 131072; }
               {
                 id = "ornith-1.5-35b";

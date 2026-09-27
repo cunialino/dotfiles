@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  inputs,
   sys_dir,
   ...
 }:
@@ -11,6 +12,19 @@ let
   llamaModelsDir = "/var/lib/llama-models";
   checkpoint = "${modelsDir}/qwen38-flash-next-w4b.hgn";
   comfyDataDir = "/var/lib/comfyui";
+
+  # gufo replaces halogen as this agent's backend. Models live in their own tree;
+  # the files come from the pinned `hf download`s documented in
+  # modules/pi-coding-agent (gufo docs qualify exact revisions, not "latest").
+  gufoModelsDir = "/var/lib/gufo-models";
+  flashNextDir = "${gufoModelsDir}/qwen3.8-flash-next";
+  # The loader discovers the remaining shards from the first one it is given.
+  flashNextShard1 = "${flashNextDir}/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf";
+  flashNextMtp = "${flashNextDir}/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf";
+  qImageDir = "${gufoModelsDir}/qwen-image-2.1";
+  gufo = inputs.gufo.packages.x86_64-linux.default;
+  gufoServedName = "qwen3.8-flash-next";
+  gufoCacheDir = "/var/lib/gufo/cache";
 
   # halogen gets its own podman bridge so the egress lockdown below singles it out
   # without touching llama-cpp/comfyui, which still need egress to fetch models.
@@ -41,9 +55,9 @@ let
   # "libgomp.so.1: cannot open shared object file"). The container works, so the
   # image stays.
 
-  # One holder per unit, deliberately: the unit name is baked into the script, so
-  # a holder can only ever touch the unit it was built for. One generic
-  # `holder <unit>` would take whatever unit name the config happened to pass it.
+  # One holder per unit, deliberately: the unit name is baked into the script so
+  # sudoers can pin the exact `systemctl start|stop <unit>` pairs. A single
+  # generic `holder <unit>` would make the rule `systemctl start ANY`, i.e. root.
   #
   # The holder blocks in the foreground for as long as the model is wanted and
   # stops the unit on the way out. `exec tail -f /dev/null` will NOT do: llama-swap
@@ -51,30 +65,22 @@ let
   # (internal/process/runtime_unix.go), so a trap in this shell is the only thing
   # that reliably runs -- and exec would replace the shell and leave the unit
   # loaded forever.
-  #
-  # It returns the executable, NOT the package. Interpolating a package into a
-  # string yields its $out *directory*, and llama-swap then does fork/exec on that
-  # directory:
-  #   failed to start command '/nix/store/…-llama-swap-holder-llama-cpp.service':
-  #   fork/exec …: permission denied
-  # (measured on this host -- the real binary is $out/bin/llama-swap-holder-<unit>).
   swapUnitHolder =
     unit:
     let
       pkg = pkgs.writeShellApplication {
         name = "llama-swap-holder-${unit}";
-        # No sudo. llama-swap.service runs as root (User= is unset) and its sandbox
-        # makes sudo impossible anyway: RestrictSUIDSGID=yes and
-        # SystemCallFilter=~@privileged (denied as EPERM) leave no setuid transition
-        # available. Measured on the host:
-        #   sudo[11947]: root : unable to open /etc/sudoers : Operation not permitted
-        # systemctl needs no escalation here, only the bus, which a confined root
-        # service keeps (AF_UNIX is in RestrictAddressFamilies).
         runtimeInputs = [ pkgs.systemd ];
         text = ''
           stopped=0
           trap 'stopped=1' TERM INT
 
+          # No sudo. llama-swap.service runs as root (User= is unset), and its
+          # sandbox makes sudo impossible anyway: RestrictSUIDSGID=yes and
+          # SystemCallFilter=~@privileged with SystemCallErrorNumber=EPERM kill any
+          # setuid transition. Measured on the host during the first cutover:
+          #   sudo[11947]: root : unable to open /etc/sudoers : Operation not permitted
+          # systemctl only needs the bus, which a confined root service still has.
           systemctl start ${unit}
           # `wait` wakes on the group signal, which is what lets the trap take
           # effect; sleeping in the foreground would stall teardown.
@@ -86,7 +92,18 @@ let
         '';
       };
     in
+    # Return the executable, NOT the package. Interpolating the package yields the
+    # $out *directory*, and llama-swap then does fork/exec on a directory:
+    #   failed to start command '/nix/store/…-llama-swap-holder-gufo-llm.service':
+    #   fork/exec …: permission denied
+    # (measured on the host: that store path is a directory whose real binary is
+    # $out/bin/llama-swap-holder-<unit>).
     "${pkg}/bin/llama-swap-holder-${unit}";
+
+  # No sudoers rules: the holders talk to systemd directly as the (root) user
+  # llama-swap already runs as. See the note in swapUnitHolder for why sudo is
+  # unavailable inside that unit's sandbox.
+
 in
 {
   imports = [
@@ -182,6 +199,9 @@ in
     "d ${comfyDataDir}/output 0775 ${username} users -"
     "d ${comfyDataDir}/temp 0775 ${username} users -"
     "d ${comfyDataDir}/user 0775 ${username} users -"
+    "d ${gufoModelsDir} 0755 ${username} users -"
+    "d /var/lib/gufo 0750 gufo gufo -"
+    "d ${gufoCacheDir} 0750 gufo gufo -"
   ];
 
   virtualisation = {
@@ -272,20 +292,22 @@ in
   # llama-swap: the only serving path
   #
   # One OpenAI-compatible entry point on 11434, owning the GPU schedule through
-  # two exclusive groups, so text/image inference and the 124 GB halogen
-  # checkpoint can never be resident at the same time on this unified-memory box:
+  # two exclusive groups on a 124 GiB unified-memory box:
   #
-  #   halogen  swap=true   exclusive=true   -> [halogen]
-  #   genai    swap=false  exclusive=true   -> [llamacpp, comfyui]
+  #   agent    swap=true   exclusive=true   -> [gufo]                 (this agent)
+  #   genai    swap=false  exclusive=true   -> [llamacpp, comfyui, qwen-image-2.1]
   #
   # exclusive=true is the point: a request for a member of either group unloads
-  # every model of the *other* group. genai uses swap=false because the llama.cpp
-  # router and ComfyUI are meant to run together inside the group.
+  # every model of the *other* group. genai uses swap=false because its members
+  # are meant to run together -- which is also the sharp edge: gufo's
+  # Qwen-Image-2.1 pipeline is ~31 GiB and llama.cpp's bigger presets are not
+  # small, so an image request next to a loaded 70B preset plus ComfyUI can walk
+  # past the 124 GiB the box actually has. Exclusivity only protects the agent.
   #
   # Backend lifecycles stay systemd's job -- llama-swap toggles the units and
-  # health-checks their loopback ports. That keeps halogen's container isolation
-  # (including the nftables egress lockdown below) and ComfyUI's dedicated user
-  # intact, instead of flattening all three into llama-swap's own process tree.
+  # health-checks their loopback ports. That keeps ComfyUI's container isolation
+  # and gufo's dedicated user intact, instead of flattening every backend into
+  # llama-swap's own process tree.
   # -------------------------------------------------------------------------
 
   users.users.llama-swap = {
@@ -294,10 +316,10 @@ in
   };
   users.groups.llama-swap = { };
 
-  # No sudoers rules for the holders. They talk to systemd directly as the (root)
-  # user llama-swap already runs as -- see the swapUnitHolder comment for why sudo
-  # cannot work under ProtectSystem=strict + RestrictSUIDSGID +
-  # SystemCallFilter=~@privileged in the first place.
+  # Exactly the invocations the holders can make -- none via sudo. See the
+  # swapUnitHolder comment; sudo cannot work under ProtectSystem=strict +
+  # RestrictSUIDSGID + SystemCallFilter=~@privileged, and the holders do not need
+  # it because llama-swap is already root.
 
   services.llama-swap = {
     enable = true;
@@ -314,12 +336,12 @@ in
       includeAliasesInList = true;
 
       models = {
-        "halogen" = {
-          name = "halogen-qwen3.8-flash-next";
-          cmd = swapUnitHolder "podman-halogen.service";
-          proxy = "http://127.0.0.1:8731";
+        "gufo" = {
+          name = "gufo ${gufoServedName}";
+          cmd = swapUnitHolder "gufo-llm.service";
+          proxy = "http://127.0.0.1:8732";
           checkEndpoint = "/health";
-          aliases = [ "halogen-qwen3.8-flash-next" ];
+          aliases = [ gufoServedName ];
         };
 
         "llamacpp" = {
@@ -348,21 +370,35 @@ in
           # server is up.
           checkEndpoint = "/system_stats";
         };
+
+        "qwen-image-2.1" = {
+          name = "gufo Qwen-Image-2.1";
+          cmd = swapUnitHolder "gufo-image.service";
+          proxy = "http://127.0.0.1:8189";
+          checkEndpoint = "/health";
+          # Same passthrough rule as the llama.cpp aliases: llama-swap forwards the
+          # body untouched, so this is the exact --served-model-name gufo answers to.
+          aliases = [ "Qwen-Image-2.1" ];
+        };
       };
 
       routing.router = {
         use = "group";
         settings.groups = {
-          halogen = {
+          agent = {
             swap = true;
             exclusive = true;
-            members = [ "halogen" ];
+            members = [ "gufo" ];
           };
           genai = {
             # all members may run at once
             swap = false;
             exclusive = true;
-            members = [ "llamacpp" "comfyui" ];
+            members = [
+              "llamacpp"
+              "comfyui"
+              "qwen-image-2.1"
+            ];
           };
         };
       };
@@ -481,4 +517,123 @@ in
   # itself: llama-server aborts if it is missing, and a failed condition is a clean
   # skip instead of a start-limit-hit.
   systemd.services.llama-cpp.unitConfig.ConditionFileNotEmpty = "${llamaModelsDir}/config.ini";
+
+  # -------------------------------------------------------------------------
+  # gufo: Qwen3.8 Flash-Next (this agent's backend) and Qwen-Image-2.1
+ #
+  # Both units are deliberately NOT wantedBy multi-user.target: on 124 GiB of
+  # unified memory a loaded model is not something you want up by accident.
+  # Both are started on demand by llama-swap (see swapUnitHolder above) --
+  # gufo-llm in the `agent` group, gufo-image alongside llama.cpp and ComfyUI in
+  # `genai`.
+  # -------------------------------------------------------------------------
+
+  # Dedicated uid, not the interactive user: the egress lockdown below keys on
+  # the uid, and blocking `elia` would block this login session too.
+  users.users.gufo = {
+    isSystemUser = true;
+    group = "gufo";
+    # /dev/kfd + /dev/dri for the GPU, `users` to read the 0750 model trees.
+    extraGroups = [
+      "render"
+      "video"
+      "users"
+    ];
+    home = "/var/lib/gufo";
+  };
+  users.groups.gufo = { };
+
+  systemd.services.gufo-llm = {
+    description = "gufo: Qwen3.8 Flash-Next + MTP (OpenAI-compatible)";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    # This engine and halogen cannot share the 124 GiB unified pool. Measured: gufo
+    # used gpu_device_used_mib=100920 of 126976; halogen's flash_serve holds ~70
+    # GiB. With halogen resident, gufo dies partway through the shards:
+    #   hipMalloc failed for blk.8.ffn_down_exps.weight (629145600 bytes)
+    # and llama-swap hangs waiting for a health check that never comes. So halogen
+    # has to be down before this unit loads -- the cutover harness enforces that,
+    # and taking halogen off the host config removes the trap for good.
+    # A failed allocation used to restart forever -- the host sat at NRestarts=69,
+    # reading 15.2 GiB from the SSD per attempt. Three strikes in 5 minutes and
+    # the unit goes to failed, so llama-swap gets an error instead of a hang.
+    startLimitIntervalSec = 300;
+    startLimitBurst = 3;
+    unitConfig = {
+      # A missing checkpoint is a clean skip, not a crash loop.
+      ConditionPathExists = [
+        flashNextShard1
+        flashNextMtp
+      ];
+    };
+    serviceConfig = {
+      Type = "simple";
+      User = "gufo";
+      Group = "gufo";
+      ExecStart = ''
+        ${gufo}/bin/gufo serve llm \
+          --host 127.0.0.1 --port 8732 \
+          --model ${flashNextShard1} \
+          --speculative mtp --mtp-model ${flashNextMtp} \
+          --served-model-name ${gufoServedName} \
+          --sessions 2 \
+          --cache-disk ${gufoCacheDir} \
+          --cache-disk-staging-bytes 8589934592
+      '';
+      # gufo drains in-flight requests and queued disk writes on SIGTERM.
+      KillSignal = "SIGTERM";
+      TimeoutStopSec = 120;
+      Restart = "on-failure";
+      RestartSec = 5;
+      LimitMEMLOCK = "infinity";
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      # Same rule as halogen's egress lockdown, but cgroup-scoped instead of
+      # uid-keyed: a server may answer, never call home. Both units bind to
+      # loopback, so anything leaving this cgroup towards a non-loopback address
+      # is unexpected. (systemd's IPFilter beats an nftables `meta skuid` rule
+      # here -- config.users.users.gufo.uid is null at eval time for an
+      # dynamically allocated id, which silently renders the nft rule empty.)
+      IPAddressAllow = [
+        "127.0.0.0/8"
+        "::1/128"
+      ];
+      IPAddressDeny = "any";
+    };
+    wantedBy = [ ];
+  };
+
+  systemd.services.gufo-image = {
+    description = "gufo: Qwen-Image-2.1 (OpenAI Images-compatible)";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    # Same pool, same rule as gufo-llm: halogen must be down before this loads.
+    startLimitIntervalSec = 300;
+    startLimitBurst = 3;
+    unitConfig.ConditionPathExists = "${qImageDir}/model_index.json";
+    serviceConfig = {
+      Type = "simple";
+      User = "gufo";
+      Group = "gufo";
+      ExecStart = ''
+        ${gufo}/bin/gufo serve image \
+          --host 127.0.0.1 --port 8189 \
+          --model ${qImageDir} \
+          --served-model-name Qwen-Image-2.1
+      '';
+      KillSignal = "SIGTERM";
+      TimeoutStopSec = 120;
+      Restart = "on-failure";
+      RestartSec = 5;
+      LimitMEMLOCK = "infinity";
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      IPAddressAllow = [
+        "127.0.0.0/8"
+        "::1/128"
+      ];
+      IPAddressDeny = "any";
+    };
+    wantedBy = [ ];
+  };
 }
