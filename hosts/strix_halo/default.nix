@@ -8,9 +8,7 @@
 let
   username = "elia";
   eth = "eno1";
-  modelsDir = "/var/lib/halogen-models";
   llamaModelsDir = "/var/lib/llama-models";
-  checkpoint = "${modelsDir}/qwen38-flash-next-w4b.hgn";
   comfyDataDir = "/var/lib/comfyui";
 
   # gufo replaces halogen as this agent's backend. Models live in their own tree;
@@ -26,19 +24,23 @@ let
   gufoServedName = "qwen3.8-flash-next";
   gufoCacheDir = "/var/lib/gufo/cache";
 
-  # halogen gets its own podman bridge so the egress lockdown below singles it out
-  # without touching llama-cpp/comfyui, which still need egress to fetch models.
+  # halogen -- the container that served this agent before gufo -- is off the
+  # config entirely: no unit, no podman bridge, no egress table, no pi provider.
+  # Its 126 GB of weights stay at /var/lib/halogen-models on purpose as a
+  # manual-rescue fallback, and nothing starts them any more (there was never a
+  # .path unit; every halogen start on 2026-09-27 was a human). To bring it back:
   #
-  # NB: podman does NOT name the bridge after the network. A network called
-  # "halogen0" silently gets bridge "podmanN" (measured: name=halogen0 ->
-  # network_interface=podman2). Two consequences, both handled:
-  #   * --interface-name pins the bridge to ${halogenNet};
-  #   * the nft rules key on the SOURCE SUBNET, not iifname, so if the device
-  #     name ever drifts the block fails *closed* instead of silently opening up
-  #     (that is exactly how the first version of this file leaked).
-  halogenNet = "halogen0";
-  halogenSubnet = "10.98.0.0/24";
-  lan = "192.168.0.0/24";
+  #   systemctl stop gufo-llm.service          # they cannot coexist, see below
+  #   podman run --rm -d --name halogen -p 127.0.0.1:8731:8731 \
+  #     --device=/dev/kfd --device=/dev/dri --ipc=host \
+  #     --security-opt seccomp=unconfined --ulimit memlock=-1:-1 \
+  #     -v /var/lib/halogen-models:/models:ro \
+  #     -e HALOGEN_VISION_TOWER=1 ghcr.io/peonist-ai/halogen-flash-server:0.11.4
+  #
+  # Two guarantees do NOT hold when you do that. It runs with no egress lockdown
+  # (the halogen0 bridge and its nftables table went away with it), and it cannot
+  # share the box with gufo: flash_serve held ~70 GiB while gufo needed ~98 GiB,
+  # which is what killed gufo on `hipMalloc failed for blk.8.ffn_down_exps.weight`.
 
   # Native ROCm from nixpkgs (ROCm 7.2.3; the hip arch list ships gfx1151, so no
   # HSA override tricks are needed on Strix Halo). llama.cpp runs from there.
@@ -55,9 +57,9 @@ let
   # "libgomp.so.1: cannot open shared object file"). The container works, so the
   # image stays.
 
-  # One holder per unit, deliberately: the unit name is baked into the script so
-  # sudoers can pin the exact `systemctl start|stop <unit>` pairs. A single
-  # generic `holder <unit>` would make the rule `systemctl start ANY`, i.e. root.
+  # One holder per unit, deliberately: the unit name is baked into the script, so
+  # a holder can only ever touch the unit it was built for. One generic
+  # `holder <unit>` would take whatever unit name the config happened to pass it.
   #
   # The holder blocks in the foreground for as long as the model is wanted and
   # stops the unit on the way out. `exec tail -f /dev/null` will NOT do: llama-swap
@@ -166,8 +168,9 @@ in
       enable = true;
       interfaces.${eth}.allowedTCPPorts = [
         22
-        # llama-swap is the only model-serving port. 8731 (halogen) is closed:
-        # it is reached through llama-swap now. 8188 stays open on purpose --
+        # llama-swap is the only model-serving port. 8731 is closed for good now
+        # that halogen is off the config; gufo answers on 8732 behind the swap.
+        # 8188 stays open on purpose --
         # ComfyUI's web UI and `comfy-gen --server` talk to it directly, but the
         # service itself is still only started/stopped by llama-swap.
         11434
@@ -190,7 +193,6 @@ in
   nix.settings.trusted-users = [ username ];
 
   systemd.tmpfiles.rules = [
-    "d ${modelsDir} 0750 ${username} users -"
     "d ${llamaModelsDir} 0750 ${username} users -"
     "d ${comfyDataDir} 0755 root users -"
     "d ${comfyDataDir}/custom_nodes 0775 ${username} users -"
@@ -208,28 +210,6 @@ in
     podman.enable = true;
     oci-containers = {
       backend = "podman";
-      containers.halogen = {
-        image = "ghcr.io/peonist-ai/halogen-flash-server:0.11.4";
-        autoStart = false;
-        networks = [ halogenNet ];
-        ports = [ "8731:8731" ];
-        volumes = [ "${modelsDir}:/models:ro" ];
-        environment = {
-          "HALOGEN_VISION_TOWER" = "1";
-          "HALOGEN_TEMPERATURE" = "1.0";
-          "HALOGEN_TOP_P" = "0.95";
-          "HALOGEN_TOP_K" = "20";
-        };
-        extraOptions = [
-          "--device=/dev/kfd"
-          "--device=/dev/dri"
-          "--security-opt=seccomp=unconfined"
-          "--ipc=host"
-          "--ulimit=memlock=-1:-1"
-          "-e"
-          "HALOGEN_VISION_TOWER=1"
-        ];
-      };
 
       # ROCm 10 image is built out-of-band from ./containers/comfyui.Containerfile
       # (no ROCm 10 in nixpkgs). Build it on the host before switching:
@@ -327,8 +307,9 @@ in
     port = 11434;
 
     settings = {
-      # 120 s default is nowhere near enough for a 124 GB halogen checkpoint or a
-      # cold ComfyUI import.
+      # 120 s default is nowhere near enough: gufo measured 61 s to load 107 GiB,
+      # 45 s of which is fingerprinting 1224 tensors, and a cold ComfyUI import is
+      # slower still.
       healthCheckTimeout = 900;
       logLevel = "info";
       # advertise the aliases, otherwise the preset names are invisible to clients
@@ -428,89 +409,6 @@ in
   };
 
 
-  # ---------------------------------------------------------------------------
-  # Halogen egress lockdown
-  #
-  # halogen is a server: it must only ever answer requests that arrived from the
-  # LAN, never open a connection of its own (no telemetry, no model pulls, no
-  # call-home). Its packets are *routed* by the host (podman bridge -> eno1), so
-  # the block belongs in the forward hook, not in INPUT.
-  # ---------------------------------------------------------------------------
-
-  # The bridge has to exist before the container starts, and there is no
-  # oci-containers option to declare one, so: idempotent oneshot.
-  systemd.services.podman-network-halogen = {
-    description = "Isolated podman network for halogen";
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
-    before = [ "podman-halogen.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = pkgs.writeShellScript "halogen-net" ''
-        set -euo pipefail
-        ${pkgs.podman}/bin/podman network exists ${halogenNet} || \
-          ${pkgs.podman}/bin/podman network create --driver bridge --subnet ${halogenSubnet} \
-            --interface-name ${halogenNet} --disable-dns ${halogenNet}
-      '';
-    };
-  };
-
-  # DNS is cut too: halogen gets no resolver at all, on-bridge or otherwise.
-  #
-  # --disable-dns is the part that actually matters here. With dns enabled,
-  # netavark installs a hijack rule (`--dport 53 --to-destination <gateway>`) that
-  # redirects EVERY port-53 packet to aardvark-dns no matter which resolver the
-  # container targeted. So `tcp 8.8.8.8 53` reports OPEN while really handshaking
-  # with the local resolver, which then answers NXDOMAIN for anything that is not a
-  # container name. --disable-dns means no aardvark and no redirect: port 53 then
-  # dies in the forward chain like everything else. The nftables rules below are
-  # belt-and-braces on top of that.
-  #
-  # NOTE: `podman network exists || create` is idempotent, so it will NOT re-create
-  # a network that already exists. After changing these flags, once by hand:
-  #   systemctl stop podman-halogen && podman network rm halogen0 && systemctl restart podman-network-halogen
-  #
-  # Also: the `tcp HOST PORT` helper times out on getaddrinfo *and* connect together,
-  # so "deb.debian.org FILTERED" usually just means "could not resolve the name".
-  # Probe with literal IPs to tell a cut resolver apart from a cut path.
-
-  networking.nftables.tables.halogen_egress = {
-    family = "inet";
-    content = ''
-      chain forward {
-        # -50 = after conntrack confirms the packet (-200) but before netavark's
-        # and NixOS' own filter chains (priority 0), so nothing can ACCEPT it
-        # behind our back. policy accept leaves every other flow untouched.
-        type filter hook forward priority -50; policy accept;
-
-        # The only thing allowed out: answers to LAN hosts that asked first
-        # (original direction is ${lan} -> halogen).
-        ip saddr ${halogenSubnet} ip daddr ${lan} ct state established,related accept
-
-        # Everything else is gone: no internet, no poking at LAN hosts that never
-        # called it, no IPv6 either. This also kills any hard-coded external
-        # resolver (8.8.8.8 & friends).
-        ip saddr ${halogenSubnet} limit rate 10/minute burst 20 packets log prefix "halogen-egress-drop: " drop
-        ip saddr ${halogenSubnet} counter drop
-      }
-
-      chain input {
-        # Belt and braces on top of --disable-dns: if a resolver ever ends up back
-        # on this bridge, halogen still cannot reach it.
-        type filter hook input priority -50; policy accept;
-
-        ip saddr ${halogenSubnet} meta l4proto { tcp, udp } th dport 53 limit rate 10/minute burst 20 packets log prefix "halogen-dns-drop: "
-        ip saddr ${halogenSubnet} meta l4proto { tcp, udp } th dport 53 counter reject with icmpx type port-unreachable
-      }
-    '';
-  };
-
-  # Populate with: hf download peonist-ai/halogen-qwen3.8-flash-next --local-dir /var/lib/halogen-models
-  # The path unit starts the container as soon as the checkpoint appears.
-  systemd.services.podman-halogen.unitConfig.ConditionPathExists = checkpoint;
-
   # ConditionPathIsNonEmpty is only valid in [Path] units; systemd drops it here
   # ("Unknown key ... in section [Unit]"), so the service used to start with no
   # models and crash-loop on "preset file does not exist". Gate on the preset file
@@ -547,13 +445,6 @@ in
     description = "gufo: Qwen3.8 Flash-Next + MTP (OpenAI-compatible)";
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
-    # This engine and halogen cannot share the 124 GiB unified pool. Measured: gufo
-    # used gpu_device_used_mib=100920 of 126976; halogen's flash_serve holds ~70
-    # GiB. With halogen resident, gufo dies partway through the shards:
-    #   hipMalloc failed for blk.8.ffn_down_exps.weight (629145600 bytes)
-    # and llama-swap hangs waiting for a health check that never comes. So halogen
-    # has to be down before this unit loads -- the cutover harness enforces that,
-    # and taking halogen off the host config removes the trap for good.
     # A failed allocation used to restart forever -- the host sat at NRestarts=69,
     # reading 15.2 GiB from the SSD per attempt. Three strikes in 5 minutes and
     # the unit goes to failed, so llama-swap gets an error instead of a hang.
@@ -588,8 +479,8 @@ in
       LimitMEMLOCK = "infinity";
       NoNewPrivileges = true;
       PrivateTmp = true;
-      # Same rule as halogen's egress lockdown, but cgroup-scoped instead of
-      # uid-keyed: a server may answer, never call home. Both units bind to
+      # A server may answer, never call home. Cgroup-scoped (systemd's IPFilter)
+      # rather than uid-keyed, so it survives uid changes. Both units bind to
       # loopback, so anything leaving this cgroup towards a non-loopback address
       # is unexpected. (systemd's IPFilter beats an nftables `meta skuid` rule
       # here -- config.users.users.gufo.uid is null at eval time for an
@@ -607,7 +498,6 @@ in
     description = "gufo: Qwen-Image-2.1 (OpenAI Images-compatible)";
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
-    # Same pool, same rule as gufo-llm: halogen must be down before this loads.
     startLimitIntervalSec = 300;
     startLimitBurst = 3;
     unitConfig.ConditionPathExists = "${qImageDir}/model_index.json";

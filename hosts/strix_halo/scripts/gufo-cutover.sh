@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
 #
-# gufo-cutover.sh -- take halogen down, put gufo up through llama-swap, and
-# leave a readable trail of what actually happened.
+# gufo-cutover.sh -- drive the model stack through llama-swap and leave a
+# readable trail of what actually happened.
 #
 # Run it as root AFTER `nixos-rebuild switch`:
 #
-#   sudo ./hosts/strix_halo/scripts/gufo-cutover.sh          # full cutover + tests
-#   sudo ./hosts/strix_halo/scripts/gufo-cutover.sh --dry     # preflight only, nothing stopped
+#   sudo ./hosts/strix_halo/scripts/gufo-cutover.sh          # full run
+#   sudo ./hosts/strix_halo/scripts/gufo-cutover.sh --dry     # preflight only, no requests
 #   sudo ./hosts/strix_halo/scripts/gufo-cutover.sh --yes     # no countdown
 #   sudo ./hosts/strix_halo/scripts/gufo-cutover.sh --with-genai --with-image
 #
 # Logs: /var/log/gufo-cutover/<UTC timestamp>/  (+ .../latest symlink), world
 # readable so a non-root session can read them afterwards.
 #
-# WHY each stage exists: this box has 124 GiB of unified memory, gufo's
-# Qwen3.8 Flash-Next weights are 107 GiB, and halogen holds ~40 GiB while it is
-# up. The two cannot be resident at once, so "test gufo" unavoidably means
-# "halogen goes down first" -- which is also why every failure path in here puts
-# halogen back up instead of leaving the host with no model server at all.
+# The name is older than the job. This script used to perform the halogen -> gufo
+# cutover: stop halogen, wait for the memory, load gufo, and put halogen back on
+# any failure. halogen is off the host config now, so what remains is a smoke
+# test of the stack -- cold load through the swap, warm path, exclusive-group
+# eviction, image generation -- plus the one guard that still matters: nothing
+# else may be holding the unified pool when gufo allocates.
+#
+# WHY that guard exists: 124 GiB of unified memory, 107 GiB of weights, and gufo
+# measured ~98 GiB resident once loaded (gpu_device_used_mib=100920 of 126976).
+# A hand-started halogen (flash_serve, ~70 GiB) makes gufo die partway through
+# the shards on `hipMalloc failed for blk.8.ffn_down_exps.weight`, and llama-swap
+# then hangs rather than erroring. That belongs in preflight, not mid-request.
 #
 # Everything here mirrors hosts/strix_halo/default.nix; if the aliases or ports
 # change there, change them here too.
@@ -33,13 +40,11 @@ umask 022
 SWAP=http://127.0.0.1:11434
 GUFO_LLM=http://127.0.0.1:8732
 GUFO_IMG=http://127.0.0.1:8189
-HALOGEN=http://127.0.0.1:8731
 
 UNIT_SWAP=llama-swap.service
 UNIT_GUFO_LLM=gufo-llm.service
 UNIT_GUFO_IMG=gufo-image.service
 UNIT_LLAMACPP=llama-cpp.service
-UNIT_HALOGEN=podman-halogen.service
 
 MODEL=gufo-qwen3.8-flash-next
 AGENT_ALIAS=qwen3.8-flash-next
@@ -149,15 +154,22 @@ chat_via_swap() {
   t0=$(date +%s)
   CODE=$(curl -sS -o "$out" -w '%{http_code}' --max-time "$mt" \
     -H 'Content-Type: application/json' \
-    -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with exactly one word: PONG\"}],\"max_tokens\":16,\"temperature\":0}" \
+    -d "{\"model\":\"$model\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with exactly one word: PONG\"}],\"max_tokens\":512,\"temperature\":0}" \
     "$SWAP/v1/chat/completions" 2>>"$LOGDIR/curl.err" || echo "000")
   t1=$(date +%s)
   TOTAL=$((t1 - t0))
   TTFB=$TOTAL
 }
 
-body_has_content() { # outfile -> 0 if a non-empty assistant message came back
-  grep -q '"content"' "$1" 2>/dev/null || return 1
+body_has_content() { # outfile -> 0 only if the model actually answered
+  # The first version of this check was "a content key exists && PONG appears",
+  # and it PASSED on a response whose content was "" with finish_reason=length:
+  # the 16-token budget ran out inside reasoning_content, so nothing was ever
+  # said. Require real text, a clean stop, and the expected word.
+  # NB `"content":"` cannot match inside `"reasoning_content":"` -- there is no
+  # quote before the word -- so this really does test the answer field.
+  grep -qE '"content":"[^"]' "$1" 2>/dev/null || return 1
+  grep -q '"finish_reason":"stop"' "$1" 2>/dev/null || return 1
   grep -q 'PONG' "$1" 2>/dev/null || return 1
   return 0
 }
@@ -172,28 +184,14 @@ wait_unit_active() { # unit timeout -> 0 when active
   return 1
 }
 
-wait_http_200() { # url timeout -> 0 when it answers 200
-  local url=$1 deadline=$(( $(date +%s) + $2 ))
-  while [ "$(date +%s)" -lt "$deadline" ]; do
-    if [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url" 2>/dev/null)" = "200" ]; then
-      return 0
-    fi
-    printf '.'
-    sleep "$POLL"
-  done
-  return 1
-}
-
-bring_halogen_back() {
-  say "ROLLBACK  starting $UNIT_HALOGEN so the host is not left without a model server"
-  systemctl start "$UNIT_HALOGEN" 2>>"$LOGDIR/curl.err" || true
-  if wait_http_200 "$HALOGEN/health" 900; then
-    say "ROLLBACK  halogen healthy again on $HALOGEN"
-    record rollback halogen-restored
-  else
-    say "ROLLBACK  halogen did NOT come back -- host has no model server, intervene by hand"
-    record rollback halogen-FAILED
-  fi
+# No rollback any more. halogen is off the host config, so there is nothing to
+# fall back to: on failure the journals get dumped, the script exits non-zero,
+# and gufo is left exactly as it is for a human (or the next session) to read.
+# Inventing a rollback target here would just hide the failure.
+abort_stack() {
+  say "ABORT  no rollback target exists (halogen is gone from the host config)."
+  say "       gufo/llama-swap left as-is -- read the dumps above before retrying."
+  exit 1
 }
 
 # --- stages ------------------------------------------------------------------
@@ -202,7 +200,7 @@ stage_preflight() {
   say "=== preflight ==="
 
   if [ "$(id -u)" != "0" ]; then
-    say "must run as root (systemctl stop/start of halogen + /var/log) -- re-run with sudo"
+    say "must run as root (reads other users' process tables, writes /var/log) -- re-run with sudo"
     exit 2
   fi
   pass "running as root"
@@ -306,9 +304,9 @@ stage_snapshot_before() {
     echo "--- free -m ---"; free -m
     echo "--- units ---"
     systemctl show -p Id -p ActiveState -p SubState -p ExecMainStartTimestamp \
-      "$UNIT_SWAP" "$UNIT_GUFO_LLM" "$UNIT_GUFO_IMG" "$UNIT_LLAMACPP" "$UNIT_HALOGEN" 2>/dev/null
-    echo "--- listening (11434 8731 8732 8188 8189 11435) ---"
-    ss -tlnp 2>/dev/null | grep -E ':(11434|11435|8731|8732|8188|8189)\b' || echo "(none)"
+      "$UNIT_SWAP" "$UNIT_GUFO_LLM" "$UNIT_GUFO_IMG" "$UNIT_LLAMACPP" 2>/dev/null
+    echo "--- listening (11434 11435 8732 8188 8189) ---"
+    ss -tlnp 2>/dev/null | grep -E ':(11434|11435|8732|8188|8189)\b' || echo "(none)"
     echo "--- llama-swap /v1/models ---"
     curl -s --max-time 15 "$SWAP/v1/models" || echo "(request failed)"
   } >"$LOGDIR/before.txt" 2>&1
@@ -323,42 +321,40 @@ stage_snapshot_before() {
   fi
 }
 
-stage_cutover() {
-  say "=== cutover: halogen down ==="
+stage_ready() {
+  say "=== ready: is the unified pool free for gufo? ==="
 
   if [ "$ASSUME_YES" != "1" ] && [ "$DRY" != "1" ]; then
-    say "next step stops $UNIT_HALOGEN. anything using it (including this agent's own"
-    say "session) dies. 20s to Ctrl-C. pass --yes to skip the countdown."
-    for i in $(seq 20 -1 1); do printf '\r   %2ds ' "$i"; sleep 1; done
+    say "the cold load below takes ~60s and can evict whatever the exclusive groups"
+    say "hold (llama.cpp / ComfyUI / gufo-image). 10s to Ctrl-C, --yes skips it."
+    for i in $(seq 10 -1 1); do printf '\r   %2ds ' "$i"; sleep 1; done
     printf '\n'
   fi
 
-  if systemctl is-active --quiet "$UNIT_HALOGEN"; then
-    say "stopping $UNIT_HALOGEN"
-    systemctl stop "$UNIT_HALOGEN" 2>>"$LOGDIR/curl.err"
-    say "stopped (exit $?)"
-  else
-    say "$UNIT_HALOGEN was not active, nothing to stop"
+  # The gate is the process, not a counter: MemAvailable read 86 GiB while 70 GiB
+  # was pinned, and card0's mem_info_vram_used read ~0.2 GiB while gufo held 98.
+  if halogen_engine_running; then
+    fail "flash_serve is running (pid $(pgrep -x flash_serve | tr '\n' ' ')): a hand-started halogen holds ~70 GiB"
+    say "      gufo cannot allocate next to it (hipMalloc dies at blk.8). Stop it first:"
+    say "        podman stop halogen"
+    say "      aborting before spending a cold load on it."
+    exit 1
+  fi
+  pass "flash_serve not running"
+
+  if systemctl is-active --quiet "$UNIT_GUFO_LLM"; then
+    say "      note: $UNIT_GUFO_LLM is already active, so the timing below measures a"
+    say "      warm model. systemctl stop $UNIT_GUFO_LLM first for a real cold number."
   fi
 
-  local need=$((MEM_NEEDED_KB / 1024)) got_kb waited=0 engine=1
-  say "waiting for halogen's engine (flash_serve) to exit and MemAvailable >= ${need} MB"
-  while true; do
-    got_kb=$(mem_avail_kb)
-    if halogen_engine_running; then engine=1; else engine=0; fi
-    if [ "$engine" = "0" ] && [ "$got_kb" -ge "$MEM_NEEDED_KB" ]; then break; fi
-    if [ "$waited" -ge 600 ]; then
-      fail "not ready after 10 min: flash_serve=$( [ "$engine" = 1 ] && echo 'STILL UP' || echo gone ), $(numfmt --from=iec --to=iec ${got_kb}K 2>/dev/null || echo "${got_kb} kB") available"
-      bring_halogen_back
-      exit 1
-    fi
-    printf '\r   flash_serve=%s  available=%s MiB ...' \
-      "$( [ "$engine" = 1 ] && echo UP || echo gone )" "$((got_kb / 1024))"
-    sleep "$POLL"
-    waited=$((waited + POLL))
-  done
-  printf '\n'
-  pass "halogen engine gone, memory available: $((got_kb / 1024)) MiB"
+  local need=$((MEM_NEEDED_KB / 1024)) got_kb
+  got_kb=$(mem_avail_kb)
+  if [ "$got_kb" -lt "$MEM_NEEDED_KB" ]; then
+    say "      MemAvailable is $((got_kb / 1024)) MiB (< ${need} MB). Not fatal: this"
+    say "      counter has been wrong in the optimistic direction before, so it is a"
+    say "      sanity check, not the gate. Continuing."
+  fi
+  pass "proceeding with $((got_kb / 1024)) MiB available for a ~98 GiB load"
 }
 
 stage_agent_cold() {
@@ -376,7 +372,7 @@ stage_agent_cold() {
     say "      body head: $(head -c 300 "$LOGDIR/chat-agent-cold.json" | tr '\n' ' ')"
     dump_journal "$UNIT_GUFO_LLM" gufo-llm-failed
     dump_journal "$UNIT_SWAP" swap-failed
-    bring_halogen_back
+    abort_stack
     exit 1
   fi
 
@@ -446,18 +442,18 @@ stage_after_snapshot() {
     echo "--- free -m ---"; free -m
     echo "--- units ---"
     systemctl show -p Id -p ActiveState -p MainPID -p MemoryCurrent \
-      "$UNIT_SWAP" "$UNIT_GUFO_LLM" "$UNIT_GUFO_IMG" "$UNIT_LLAMACPP" "$UNIT_HALOGEN" 2>/dev/null
+      "$UNIT_SWAP" "$UNIT_GUFO_LLM" "$UNIT_GUFO_IMG" "$UNIT_LLAMACPP" 2>/dev/null
     echo "--- listening ---"
-    ss -tlnp 2>/dev/null | grep -E ':(11434|11435|8731|8732|8188|8189)\b' || echo "(none)"
+    ss -tlnp 2>/dev/null | grep -E ':(11434|11435|8732|8188|8189)\b' || echo "(none)"
   } >"$LOGDIR/after.txt" 2>&1
-  save "$LOGDIR/after.txt" "state after cutover"
+  save "$LOGDIR/after.txt" "state after the run"
   dump_journal "$UNIT_SWAP" swap
   dump_journal "$UNIT_GUFO_LLM" gufo-llm
 }
 
 # --- main --------------------------------------------------------------------
 
-say "gufo cutover test  started $(date -u '+%Y-%m-%d %H:%M:%SZ')"
+say "gufo model-stack test  started $(date -u '+%Y-%m-%d %H:%M:%SZ')"
 say "logs: $LOGDIR"
 say "mode: dry=$DRY yes=$ASSUME_YES genai=$WITH_GENAI image=$WITH_IMAGE"
 
@@ -467,7 +463,7 @@ stage_snapshot_before
 if [ "$DRY" = "1" ]; then
   say "=== --dry: stopping here, nothing was started or stopped ==="
 else
-  stage_cutover
+  stage_ready
   stage_agent_cold
   stage_agent_warm
   stage_genai
