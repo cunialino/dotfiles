@@ -7,8 +7,10 @@
 let
   cfg = config.modules.pi-coding-agent;
 
-  # llama-swap's alias for the gufo Qwen3.8 Flash-Next unit. The agent talks to
-  # the swap only; the swap decides which backend answers and unloads the others.
+  # llama-swap model ID for the gufo Qwen3.8 Flash-Next unit (a real entry, not an
+  # alias -- aliases get no display name of their own and clutter /v1/models). The
+  # agent talks to the swap only; the swap decides which backend answers and
+  # unloads the others.
   gufoModelName = "qwen3.8-flash-next";
 
 in

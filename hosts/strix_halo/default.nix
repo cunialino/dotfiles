@@ -274,8 +274,8 @@ in
   # One OpenAI-compatible entry point on 11434, owning the GPU schedule through
   # two exclusive groups on a 124 GiB unified-memory box:
   #
-  #   agent    swap=true   exclusive=true   -> [gufo]                 (this agent)
-  #   genai    swap=false  exclusive=true   -> [llamacpp, comfyui, qwen-image-2.1]
+  #   agent    swap=true   exclusive=true   -> [qwen3.8-flash-next]        (this agent)
+  #   genai    swap=false  exclusive=true   -> [6 llama.cpp presets, comfyui, Qwen-Image-2.1]
   #
   # exclusive=true is the point: a request for a member of either group unloads
   # every model of the *other* group. genai uses swap=false because its members
@@ -312,57 +312,69 @@ in
       # slower still.
       healthCheckTimeout = 900;
       logLevel = "info";
-      # advertise the aliases, otherwise the preset names are invisible to clients
-      # until the router happens to be loaded.
-      includeAliasesInList = true;
 
-      models = {
-        "gufo" = {
-          name = "gufo ${gufoServedName}";
-          cmd = swapUnitHolder "gufo-llm.service";
-          proxy = "http://127.0.0.1:8732";
-          checkEndpoint = "/health";
-          aliases = [ gufoServedName ];
-        };
+      # One entry per requestable name; no aliases anywhere.
+      #
+      # /v1/models lists *requestable ids*, not backends, and an alias row is a
+      # copy of its parent with only the id swapped out (internal/server/api.go):
+      # an alias has no name of its own, so N aliases of one model render as N
+      # identical rows in Open WebUI. Making each name a real entry gives it its
+      # own display name, and includeAliasesInList (default false) has nothing
+      # left to duplicate -- the list is one clean row per model.
+      #
+      # The IDs are what the upstreams match, not labels: llama-swap forwards the
+      # request body untouched, so an ID must be a llama.cpp router preset (a
+      # [section] in ${llamaModelsDir}/config.ini) or gufo's --served-model-name.
+      # Display names carry no backend prefix; ids are already unique across all
+      # models, so nothing here can collide.
+      models =
+        let
+          # All llama.cpp presets are ONE llama-server in router mode: one holder,
+          # one port. The sharp edge that comes with sharing it -- the holder's
+          # teardown is `systemctl stop llama-cpp.service`, so stopping any single
+          # row here (llama-swap UI, /api/models/<id>/stop) drops the router for
+          # the other five. Nothing else unloads them: genai is swap=false and
+          # there is no TTL, so in practice they go only when the agent group
+          # takes the GPU.
+          preset = name: {
+            inherit name;
+            cmd = swapUnitHolder "llama-cpp.service";
+            proxy = "http://127.0.0.1:11435";
+            checkEndpoint = "/health";
+          };
+        in
+        {
+          "${gufoServedName}" = {
+            name = "Qwen3.8 Flash-Next";
+            cmd = swapUnitHolder "gufo-llm.service";
+            proxy = "http://127.0.0.1:8732";
+            checkEndpoint = "/health";
+          };
 
-        "llamacpp" = {
-          name = "llama.cpp router (all presets)";
-          cmd = swapUnitHolder "llama-cpp.service";
-          proxy = "http://127.0.0.1:11435";
-          checkEndpoint = "/health";
-          # Router mode: llama-server selects the preset from the requested model
-          # name, and llama-swap forwards the body untouched (only an explicit
-          # `useModelName` rewrites it). So these aliases are literally the
-          # [sections] in ${llamaModelsDir}/config.ini.
-          aliases = [
-            "qwen3.6"
-            "glm-4.5-air"
-            "ori"
-            "deepseek-ocr"
-            "ornith-1.5-35b"
-            "ornith-og"
-          ];
-        };
+          "qwen3.6" = preset "Qwen3.6";
+          "glm-4.5-air" = preset "GLM-4.5-Air";
+          "ori" = preset "Ori";
+          "deepseek-ocr" = preset "DeepSeek-OCR";
+          "ornith-1.5-35b" = preset "Ornith-1.5-35B";
+          "ornith-og" = preset "Ornith-OG";
 
-        "comfyui" = {
-          name = "ComfyUI";
-          cmd = swapUnitHolder "podman-comfyui.service";
-          proxy = "http://127.0.0.1:8188";
-          # ComfyUI 0.34.1 has no /health; /system_stats answers 200 once the
-          # server is up.
-          checkEndpoint = "/system_stats";
-        };
+          "comfyui" = {
+            name = "ComfyUI";
+            cmd = swapUnitHolder "podman-comfyui.service";
+            proxy = "http://127.0.0.1:8188";
+            # ComfyUI 0.34.1 has no /health; /system_stats answers 200 once the
+            # server is up.
+            checkEndpoint = "/system_stats";
+          };
 
-        "qwen-image-2.1" = {
-          name = "gufo Qwen-Image-2.1";
-          cmd = swapUnitHolder "gufo-image.service";
-          proxy = "http://127.0.0.1:8189";
-          checkEndpoint = "/health";
-          # Same passthrough rule as the llama.cpp aliases: llama-swap forwards the
-          # body untouched, so this is the exact --served-model-name gufo answers to.
-          aliases = [ "Qwen-Image-2.1" ];
+          # ID is the gufo-image unit's --served-model-name, same passthrough rule.
+          "Qwen-Image-2.1" = {
+            name = "Qwen-Image-2.1";
+            cmd = swapUnitHolder "gufo-image.service";
+            proxy = "http://127.0.0.1:8189";
+            checkEndpoint = "/health";
+          };
         };
-      };
 
       routing.router = {
         use = "group";
@@ -370,16 +382,21 @@ in
           agent = {
             swap = true;
             exclusive = true;
-            members = [ "gufo" ];
+            members = [ gufoServedName ];
           };
           genai = {
             # all members may run at once
             swap = false;
             exclusive = true;
             members = [
-              "llamacpp"
+              "qwen3.6"
+              "glm-4.5-air"
+              "ori"
+              "deepseek-ocr"
+              "ornith-1.5-35b"
+              "ornith-og"
               "comfyui"
-              "qwen-image-2.1"
+              "Qwen-Image-2.1"
             ];
           };
         };
