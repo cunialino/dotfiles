@@ -340,6 +340,7 @@ in
             "ori"
             "deepseek-ocr"
             "ornith-1.5-35b"
+            "ornith-og"
           ];
         };
 

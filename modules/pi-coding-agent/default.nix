@@ -68,6 +68,11 @@ in
                 input = [ "text" "image" ];
               }
               {
+                id = "ornith-og";
+                contextWindow = 262144;
+                input = [ "text" "image" ];
+              }
+              {
                 id = "ori";
                 contextWindow = 262144;
               }
