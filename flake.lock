@@ -81,11 +81,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1790384484,
-        "narHash": "sha256-dTQ/3TywHchUmjk4zQeo5NthEaYWLS9XqSZgyltHHUg=",
+        "lastModified": 1790663131,
+        "narHash": "sha256-PDq3QPxFzUrVQ7VbPIoEm205EfpTjTE1NUXwF+1oUnI=",
         "owner": "gufo-org",
         "repo": "gufo",
-        "rev": "d9a84f13f35d1f98da22886a12eb25dc7062e392",
+        "rev": "992113b750066760b9a660d6a3084bd2088267d8",
         "type": "github"
       },
       "original": {
