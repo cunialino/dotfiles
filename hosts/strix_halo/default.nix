@@ -373,6 +373,7 @@ in
           "qwen3.6" = preset "Qwen3.6";
           "glm-4.5-air" = preset "GLM-4.5-Air";
           "ori" = preset "Ori";
+          "lk" = preset "Lk";
           "deepseek-ocr" = preset "DeepSeek-OCR";
           "ornith-1.5-35b" = preset "Ornith-1.5-35B";
           "ornith-og" = preset "Ornith-OG";
