@@ -19,10 +19,10 @@ let
   # The loader discovers the remaining shards from the first one it is given.
   flashNextShard1 = "${flashNextDir}/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf";
   flashNextMtp = "${flashNextDir}/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf";
-  qImageDir = "${gufoModelsDir}/qwen-image-2.1";
-  # The LoRA'd variant, merged from the LoRA in the home dir at --strength 0.8.
-  # Served to clients as plain qwen-image-2.1; the base tree at qImageDir is
-  # unused while gufo-image points here.
+  # The image model is the LoRA'd variant, merged from the LoRA in the home dir
+  # at --strength 0.8 and served to clients as plain qwen-image-2.1. The
+  # untouched base tree next to it on disk is a rollback copy only: nothing in
+  # this config points at it.
   qImageLrDir = "${gufoModelsDir}/qwen-image-2.1-lr";
   gufo = inputs.gufo.packages.x86_64-linux.default;
   gufoServedName = "qwen3.8-flash-next";
