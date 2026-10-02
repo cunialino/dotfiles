@@ -81,11 +81,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1790663131,
-        "narHash": "sha256-PDq3QPxFzUrVQ7VbPIoEm205EfpTjTE1NUXwF+1oUnI=",
+        "lastModified": 1790939322,
+        "narHash": "sha256-b47+epLFY6G8IWQX/Ipntul8uOaXhOqYssKQtg4JS1k=",
         "owner": "gufo-org",
         "repo": "gufo",
-        "rev": "992113b750066760b9a660d6a3084bd2088267d8",
+        "rev": "23cacbb9379d5a8e8531535270891729ca6c00dd",
         "type": "github"
       },
       "original": {
@@ -143,11 +143,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1789743189,
-        "narHash": "sha256-kKh5I5fqM2TzxfGlMZGHlnSAdCHlj+COW2asWf6esl8=",
+        "lastModified": 1790849721,
+        "narHash": "sha256-sNI8ccQy+MLlDMsfaBPPY+jvutiVUlrFMM1QUJWZokQ=",
         "owner": "cunialino",
         "repo": "myai",
-        "rev": "5654a623ace615b0c969184e5c5ed2f6b0d0a579",
+        "rev": "0d665ffdc3b945ccff38ac713a674428a1db94b1",
         "type": "github"
       },
       "original": {
