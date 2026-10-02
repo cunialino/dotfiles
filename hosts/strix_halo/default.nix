@@ -432,6 +432,7 @@ in
               "qwen3.6"
               "glm-4.5-air"
               "ori"
+              "lk"
               "deepseek-ocr"
               "ornith-1.5-35b"
               "ornith-og"
