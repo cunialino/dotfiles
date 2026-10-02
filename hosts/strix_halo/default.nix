@@ -281,7 +281,7 @@ in
   };
 
   # ComfyUI rides the llama.cpp router's lifecycle. Every llama.cpp preset is one
-  # router unit, so hooking the container to that unit covers all six rows at
+  # router unit, so hooking the container to that unit covers all of them at
   # once -- llama-swap has no "start this model alongside that one" primitive
   # (its only preload hook, hooks.on_startup, fires when llama-swap boots).
   #
@@ -306,7 +306,7 @@ in
   # two exclusive groups on a 124 GiB unified-memory box:
   #
   #   agent    swap=true   exclusive=true   -> [qwen3.8-flash-next]        (this agent)
-  #   genai    swap=false  exclusive=true   -> [6 llama.cpp presets, comfyui]
+  #   genai    swap=false  exclusive=true   -> [7 llama.cpp presets, comfyui]
   #
   # exclusive=true is the point: a request for a member of either group unloads
   # every model of the *other* group. genai uses swap=false because its members
@@ -366,7 +366,7 @@ in
           # one port. The sharp edge that comes with sharing it -- the holder's
           # teardown is `systemctl stop llama-cpp.service`, so stopping any single
           # row here (llama-swap UI, /api/models/<id>/stop) drops the router for
-          # the other five. Nothing else unloads them: genai is swap=false and
+          # the rest of them. Nothing else unloads them: genai is swap=false and
           # there is no TTL, so in practice they go only when the agent group
           # takes the GPU.
           preset = name: {
@@ -396,8 +396,8 @@ in
             name = "ComfyUI";
             cmd = swapUnitHolder "podman-comfyui.service";
             proxy = "http://127.0.0.1:8188";
-            # ComfyUI 0.34.1 has no /health; /system_stats answers 200 once the
-            # server is up.
+            # Health-check on /system_stats: it answers 200 only once the server
+            # is actually up (this backend has nothing on /health).
             checkEndpoint = "/system_stats";
           };
         }
