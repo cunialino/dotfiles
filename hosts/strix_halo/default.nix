@@ -20,6 +20,10 @@ let
   flashNextShard1 = "${flashNextDir}/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf";
   flashNextMtp = "${flashNextDir}/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf";
   qImageDir = "${gufoModelsDir}/qwen-image-2.1";
+  # The LoRA'd variant, merged from the LoRA in the home dir at --strength 0.8.
+  # Served to clients as plain qwen-image-2.1; the base tree at qImageDir is
+  # unused while gufo-image points here.
+  qImageLrDir = "${gufoModelsDir}/qwen-image-2.1-lr";
   gufo = inputs.gufo.packages.x86_64-linux.default;
   gufoServedName = "qwen3.8-flash-next";
   gufoCacheDir = "/var/lib/gufo/cache";
@@ -387,8 +391,10 @@ in
             checkEndpoint = "/system_stats";
           };
 
-          # ID is the gufo-image unit's --served-model-name, same passthrough rule.
-          "Qwen-Image-2.1" = {
+          # ID must equal the gufo-image unit's --served-model-name: the body is
+          # forwarded untouched, so this is exactly the string clients send. The
+          # LoRA lives at ${qImageLrDir} on disk; clients never see it.
+          "qwen-image-2.1" = {
             name = "Qwen-Image-2.1";
             cmd = swapUnitHolder "gufo-image.service";
             proxy = "http://127.0.0.1:8189";
@@ -416,7 +422,7 @@ in
               "ornith-1.5-35b"
               "ornith-og"
               "comfyui"
-              "Qwen-Image-2.1"
+              "qwen-image-2.1"
             ];
           };
         };
@@ -456,6 +462,7 @@ in
 
   # -------------------------------------------------------------------------
   # gufo: Qwen3.8 Flash-Next (this agent's backend) and Qwen-Image-2.1
+  # (the image unit serves the LoRA'd qwen-image-2.1-lr variant)
  #
   # Both units are deliberately NOT wantedBy multi-user.target: on 124 GiB of
   # unified memory a loaded model is not something you want up by accident.
@@ -533,12 +540,12 @@ in
   };
 
   systemd.services.gufo-image = {
-    description = "gufo: Qwen-Image-2.1 (OpenAI Images-compatible)";
+    description = "gufo: Qwen-Image-2.1 LoRA (served as qwen-image-2.1, OpenAI Images-compatible)";
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     startLimitIntervalSec = 300;
     startLimitBurst = 3;
-    unitConfig.ConditionPathExists = "${qImageDir}/model_index.json";
+    unitConfig.ConditionPathExists = "${qImageLrDir}/model_index.json";
     serviceConfig = {
       Type = "simple";
       User = "gufo";
@@ -546,8 +553,8 @@ in
       ExecStart = ''
         ${gufo}/bin/gufo serve image \
           --host 127.0.0.1 --port 8189 \
-          --model ${qImageDir} \
-          --served-model-name Qwen-Image-2.1
+          --model ${qImageLrDir} \
+          --served-model-name qwen-image-2.1
       '';
       KillSignal = "SIGTERM";
       TimeoutStopSec = 120;
