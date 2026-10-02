@@ -268,6 +268,25 @@ in
     };
   };
 
+  # ComfyUI rides the llama.cpp router's lifecycle. Every llama.cpp preset is one
+  # router unit, so hooking the container to that unit covers all six rows at
+  # once -- llama-swap has no "start this model alongside that one" primitive
+  # (its only preload hook, hooks.on_startup, fires when llama-swap boots).
+  #
+  # Wants=, not Requires=: a failing ComfyUI must never take the chat presets
+  # down, and `systemctl stop podman-comfyui.service` by hand must not stop the
+  # router. No After= either -- ComfyUI's cold torch import runs in parallel with
+  # llama-server instead of delaying it.
+  systemd.services.llama-cpp.unitConfig.Wants = [ "podman-comfyui.service" ];
+
+  # One-way stop propagation (systemd.unit(5), PartOf=): stopping or restarting
+  # llama-cpp.service propagates here, never the reverse. This is what unloads
+  # the container when the `agent` group takes the GPU -- llama-swap evicts the
+  # llama holder, the holder stops the router unit, the container follows. Note
+  # it also fires when the llama-swap UI stops any one preset row, which already
+  # drops the whole shared router (see the `preset` binding below).
+  systemd.services.podman-comfyui.unitConfig.PartOf = [ "llama-cpp.service" ];
+
   # -------------------------------------------------------------------------
   # llama-swap: the only serving path
   #
