@@ -28,6 +28,14 @@ let
   gufoServedName = "qwen3.8-flash-next";
   gufoCacheDir = "/var/lib/gufo/cache";
 
+  # Qwen-Image-2.1 serves the LoRA'd variant (qwen-image-2.1-lr) through the
+  # `genai` group. The gate exists because image generation drops gufo's ~31 GiB
+  # image pipeline into the swap=false `genai` group -- the largest single chunk
+  # of the coexistence risk on a box with 124 GiB and no swap. Leave true to keep
+  # the row routable, or set to false to take it offline; the gufo-image.service
+  # unit stays defined and hand-startable either way.
+  qwenImageEnabled = true;
+
   # halogen -- the container that served this agent before gufo -- is off the
   # config entirely: no unit, no podman bridge, no egress table, no pi provider.
   # Its 126 GB of weights stay at /var/lib/halogen-models on purpose as a
@@ -298,14 +306,16 @@ in
   # two exclusive groups on a 124 GiB unified-memory box:
   #
   #   agent    swap=true   exclusive=true   -> [qwen3.8-flash-next]        (this agent)
-  #   genai    swap=false  exclusive=true   -> [6 llama.cpp presets, comfyui, Qwen-Image-2.1]
+  #   genai    swap=false  exclusive=true   -> [6 llama.cpp presets, comfyui]
   #
   # exclusive=true is the point: a request for a member of either group unloads
   # every model of the *other* group. genai uses swap=false because its members
-  # are meant to run together -- which is also the sharp edge: gufo's
-  # Qwen-Image-2.1 pipeline is ~31 GiB and llama.cpp's bigger presets are not
-  # small, so an image request next to a loaded 70B preset plus ComfyUI can walk
-  # past the 124 GiB the box actually has. Exclusivity only protects the agent.
+  # are meant to run together -- which is also the sharp edge: llama.cpp's bigger
+  # presets are not small and a Qwen-Image generation wants its UNet plus text
+  # encoder resident, so the group can still walk past the 124 GiB the box has
+  # (and there is no swap). Exclusivity only protects the agent. Qwen-Image-2.1
+  # (the LoRA'd qwen-image-2.1-lr variant) is the third big resident chunk here;
+  # it is routable via qwenImageEnabled above.
   #
   # Backend lifecycles stay systemd's job -- llama-swap toggles the units and
   # health-checks their loopback ports. That keeps ComfyUI's container isolation
@@ -390,10 +400,14 @@ in
             # server is up.
             checkEndpoint = "/system_stats";
           };
-
-          # ID must equal the gufo-image unit's --served-model-name: the body is
-          # forwarded untouched, so this is exactly the string clients send. The
-          # LoRA lives at ${qImageLrDir} on disk; clients never see it.
+        }
+        // lib.optionalAttrs qwenImageEnabled {
+          # A row that is not in a group is not routable at all -- the group
+          # router builds its process map from group membership alone
+          # (router/group.go) -- so the entry disappears together with its member
+          # below. ID must equal the gufo-image unit's --served-model-name: the
+          # body is forwarded untouched, so this is exactly the string clients
+          # send. The LoRA lives at ${qImageLrDir} on disk; clients never see it.
           "qwen-image-2.1" = {
             name = "Qwen-Image-2.1";
             cmd = swapUnitHolder "gufo-image.service";
@@ -422,8 +436,8 @@ in
               "ornith-1.5-35b"
               "ornith-og"
               "comfyui"
-              "qwen-image-2.1"
-            ];
+            ]
+            ++ lib.optionals qwenImageEnabled [ "qwen-image-2.1" ];
           };
         };
       };
@@ -462,7 +476,9 @@ in
 
   # -------------------------------------------------------------------------
   # gufo: Qwen3.8 Flash-Next (this agent's backend) and Qwen-Image-2.1
-  # (the image unit serves the LoRA'd qwen-image-2.1-lr variant)
+  # (the image unit serves the LoRA'd qwen-image-2.1-lr variant; it is
+  #  unreferenced by llama-swap while qwenImageEnabled = false, but stays
+  #  buildable and startable by hand: systemctl start gufo-image.service)
  #
   # Both units are deliberately NOT wantedBy multi-user.target: on 124 GiB of
   # unified memory a loaded model is not something you want up by accident.
