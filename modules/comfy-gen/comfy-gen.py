@@ -96,21 +96,47 @@ SAMPLER_TYPES = {
     "SamplerCustomAdvanced",
 }
 
+# Text-encode node types whose prompt text lives in different input keys
+# (``text`` for the classic CLIP encoders, ``prompt`` for Qwen-2.1 image
+# encoders). ``override()`` matches on any of these keys so a single --prompt
+# works across workflow schemas.
+TEXT_ENCODERS = {
+    "CLIPTextEncode",
+    "CLIPTextEncodeFlux",
+    "TextEncodeQwenImage21",
+}
+TEXT_INPUT_KEYS = ("text", "prompt")
+
 
 def override(prompt, args):
+    prompt_node = None
     if args.prompt is not None:
         for n in prompt.values():
-            if n["class_type"] == "CLIPTextEncode" and "text" in n["inputs"]:
-                n["inputs"]["text"] = args.prompt
+            if n["class_type"] in TEXT_ENCODERS:
+                for key in TEXT_INPUT_KEYS:
+                    if key in n["inputs"]:
+                        n["inputs"][key] = args.prompt
+                        prompt_node = n
+                        break
                 break
     if args.negative is not None:
+        # Pick a distinct encoder node from the positive prompt. Qwen-2.1 image
+        # encoders share one prompt input for their positive/negative outputs,
+        # so with a single encoder the negative prompt is a no-op rather than
+        # clobbering the positive one.
         cles = [
             n
             for n in prompt.values()
-            if n["class_type"] == "CLIPTextEncode" and "text" in n["inputs"]
+            if n["class_type"] in TEXT_ENCODERS
+            and any(key in n["inputs"] for key in TEXT_INPUT_KEYS)
         ]
-        if cles:
-            cles[-1]["inputs"]["text"] = args.negative
+        non_prompt = [n for n in cles if n is not prompt_node]
+        chosen = non_prompt[-1] if non_prompt else None
+        if chosen is not None:
+            for key in TEXT_INPUT_KEYS:
+                if key in chosen["inputs"]:
+                    chosen["inputs"][key] = args.negative
+                    break
     if args.seed is not None:
         seed = int(args.seed)
         # SD3.5/AuraFlow-style workflows drive seeding through a RandomNoise
@@ -120,27 +146,24 @@ def override(prompt, args):
                 n["inputs"]["noise_seed"] = seed
                 seed = None
                 break
-        # Fall back to a KSampler-style ``seed`` input if the workflow uses one.
+        # Fall back to a sampler-style seed/noise_seed input. Both KSampler
+        # (``seed``) and SamplerCustom (``noise_seed``) exist across schemas;
+        # only rewrite when the value is a literal int, i.e. not already linked
+        # from a RandomNoise node.
         if seed is not None:
             for n in prompt.values():
-                if n["class_type"] in SAMPLER_TYPES and isinstance(
-                    n["inputs"].get("seed"), int
-                ):
-                    n["inputs"]["seed"] = seed
+                if n["class_type"] in SAMPLER_TYPES:
+                    for key in ("noise_seed", "seed"):
+                        if isinstance(n["inputs"].get(key), int):
+                            n["inputs"][key] = seed
+                            break
                     break
-    if args.steps is not None:
-        for n in prompt.values():
-            if n["class_type"] == "BetaSamplingScheduler" and "steps" in n["inputs"]:
-                n["inputs"]["steps"] = int(args.steps)
-                break
-    if args.cfg is not None:
-        for n in prompt.values():
-            if n["class_type"] == "CFGGuider" and "cfg" in n["inputs"]:
-                n["inputs"]["cfg"] = float(args.cfg)
-                break
     if args.width and args.height:
         for n in prompt.values():
-            if n["class_type"] == "EmptySD3LatentImage" and "width" in n["inputs"]:
+            if n["class_type"] in (
+                "EmptySD3LatentImage",
+                "EmptyLatentImage",
+            ) and "width" in n["inputs"]:
                 n["inputs"]["width"] = int(args.width)
                 n["inputs"]["height"] = int(args.height)
                 break
@@ -164,8 +187,6 @@ def main():
     ap.add_argument("--prompt", help="override the positive prompt")
     ap.add_argument("--negative", help="override the negative prompt")
     ap.add_argument("--seed", type=int)
-    ap.add_argument("--steps", type=int)
-    ap.add_argument("--cfg", type=float)
     ap.add_argument("--width", type=int)
     ap.add_argument("--height", type=int)
     ap.add_argument("--out", default="output.png")
