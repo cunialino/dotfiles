@@ -1,0 +1,1137 @@
+#!/usr/bin/env bash
+# Sequential agent queue for herdr + pi.
+#
+#   one task = one git worktree = one fresh pi agent = one non-LLM verifier
+#
+# Nothing merges. Nothing auto-approves. Green means the verifier exited 0 --
+# agent state is never treated as success.
+#
+# EDITING THIS FILE: it is installed through pkgs.replaceVarsWith, whose check phase
+# fails the build on any leftover at-sign-name-at-sign text -- so never write that shape
+# again, not even in a comment. `bash -n` does not catch it; only `nix build` does.
+#
+# Written against the herdr 0.9.x CLI (socket protocol 22). Every flag and
+# response path used here was checked against `herdr --help` and
+# `herdr api schema --json`; see README.md for the table and for the Phase 0
+# gate that must pass before this is pointed at anything you care about.
+#
+# Needs on PATH: bash 4.4+, git, jq, curl, find, awk, sed, grep, flock.
+# The NixOS herdr module pins all of these in.
+set -uo pipefail # deliberately no -e: every herdr call has its own branch, and
+                 # a bare -e would abort on perfectly normal `[ ... ] && x` tests.
+
+# ---- defaults (baked in by the herdr module, overridable by env) --------------
+HERDR_BIN="${HERDR_BIN:-@herdrBin@}"
+PI_KIND="${PI_KIND:-pi}"
+DEFAULT_BASE="${QUEUE_BASE:-@defaultBase@}"
+DEFAULT_TIMEOUT_MS="${QUEUE_TIMEOUT_MS:-@defaultTimeoutMs@}"
+DEFAULT_RETRIES="${QUEUE_RETRIES:-@defaultRetries@}"
+READY_TIMEOUT_MS="${QUEUE_READY_TIMEOUT_MS:-90000}"   # `agent start` caps at 300000
+VERIFY_TIMEOUT_MS="${QUEUE_VERIFY_TIMEOUT_MS:-@verifyTimeoutMs@}"
+# Patience and hang detection are different knobs. A multi-hour turn is fine; a turn that
+# produces nothing at all is not, and with a 6h timeout you would not hear about it until
+# the next morning. 0 disables the detector and trusts the timeout alone.
+STALL_AFTER_SECS="${QUEUE_STALL_AFTER_SECS:-@stallAfterSecs@}"
+POLL_SECS="${QUEUE_STALL_POLL_SECS:-60}"
+# A file saved while a batch is running must queue behind it, not lose the run:
+# systemd path units (modules.herdr.queue.watch) trigger with a long wait.
+LOCK_WAIT_SECS="${QUEUE_LOCK_WAIT:-0}"
+DRAIN="${QUEUE_DRAIN:-0}"
+DRAIN_MAX="${QUEUE_DRAIN_MAX:-3}"
+# `mkdir tasks` and `write tasks/010.md` are two events; a watcher can fire on the
+# first. An empty queue is then a no-op, not an incident with a push attached.
+ALLOW_EMPTY="${QUEUE_ALLOW_EMPTY:-0}"
+# For a periodic sweep: a repo in the middle of a batch is normal, not an incident,
+# and must not produce a push every interval.
+SKIP_LOCKED="${QUEUE_SKIP_LOCKED:-0}"
+DEFAULT_MODEL="${QUEUE_MODEL:-@defaultModel@}"
+NTFY="${NTFY_TOPIC:-@ntfyTopic@}"
+# The topic URL *is* the credential on an unauthenticated (tailnet-only) server,
+# so it does not belong in a public dotfiles repo: by default it is read from a
+# file on the machine.
+NTFY_TOPIC_FILE="${NTFY_TOPIC_FILE:-@ntfyTopicFile@}"
+# A notification that only names a path is unreadable on a phone, so the review
+# artifact goes *as the message body* -- up to ntfy's 4096-byte maximum message size,
+# minus headroom for the truncation trailer. Bytes, not characters: the artifact
+# carries UTF-8 emoji. See notify_md below and README, "The two documents…".
+NTFY_MD_MAX_BYTES="${NTFY_MD_MAX_BYTES:-4000}"
+# A worktree bounds the repo, not the cluster: a verifier that can reach a live
+# control plane escapes isolation entirely. Anything matching one of these
+# regular expressions (one per line) is refused before a prompt is ever sent.
+# Override the file with QUEUE_VERIFY_DENY_FILE, or per run with --allow-verify.
+VERIFY_DENY_FILE="${QUEUE_VERIFY_DENY_FILE:-@verifyDenyFile@}"
+APPROVE_PROJECT="${QUEUE_APPROVE_PROJECT:-@approveProject@}"
+# The branch is the deliverable, so the branch must contain the work: the agent is
+# told to commit, and the queue commits whatever it left behind. See commit_contract.
+AGENT_COMMITS="${QUEUE_AGENT_COMMITS:-@agentCommits@}"
+# Normalised here rather than trusted from above: every other use in this file is
+# arithmetic, and `(( AGENT_COMMITS ))` with the string "true" makes bash look up a
+# variable called `true` -- unset, fatal under `set -u`. That is how the first real run of
+# the commit contract died at the prompt step while `bash -n` and --dry-run both passed.
+case "$AGENT_COMMITS" in
+  1 | true | yes | on)  AGENT_COMMITS=1 ;;
+  0 | false | no | off) AGENT_COMMITS=0 ;;
+  *) printf '! QUEUE_AGENT_COMMITS=%s is not 0/1/true/false -- treating as enabled\n' \
+        "$AGENT_COMMITS" >&2; AGENT_COMMITS=1 ;;
+esac
+# The verifier is the only oracle and it usually judges files that live in the tree the
+# agent edits. Gate integrity compares those files' content with base before green is
+# reported; this is the escape hatch for a task whose whole point is to change a test.
+# --allow-gate-self-modification is the per-run form; see gate_integrity below.
+ALLOW_GATE_MOD="${QUEUE_ALLOW_GATE_MOD:-@allowGateMod@}"
+# Normalised for the same reason as AGENT_COMMITS: `(( ALLOW_GATE_MOD ))` on the string
+# "true" makes bash look up a variable named `true`, and `set -u` kills the run.
+case "$ALLOW_GATE_MOD" in
+  1 | true | yes | on)  ALLOW_GATE_MOD=1 ;;
+  0 | false | no | off) ALLOW_GATE_MOD=0 ;;
+  *) printf '! QUEUE_ALLOW_GATE_MOD=%s is not 0/1/true/false -- enforcing gate integrity\n' \
+        "$ALLOW_GATE_MOD" >&2; ALLOW_GATE_MOD=0 ;;
+esac
+RUN_ID="$(date +%s)-$$"   # makes screen sentinels unique per run
+
+# ---- helpers (defined before first use: option parsing calls die) -------------
+die() {
+  printf '\033[31m✗ %s\033[0m\n' "$*" >&2
+  # A watched queue that dies in preflight is otherwise silent: no agent, no toast,
+  # no artifact -- the task file just never moves. Push the failure instead.
+  if [[ -n "${NTFY:-}" ]] && ((! DRY_RUN)); then
+    curl -fsS -m 5 -H "Title: 💥 agent-queue failed" -H "X-Priority: 5" -d "$*" \
+      "$NTFY" >/dev/null 2>&1 || true
+  fi
+  exit 2
+}
+note() { printf '\033[36m» %s\033[0m\n' "$*" >&2; }
+warn() { printf '\033[33m! %s\033[0m\n' "$*" >&2; }
+
+jqr() { jq -er "$1" 2>/dev/null; }
+errcode() { jq -r '.error.code // "unknown_error"' 2>/dev/null; }
+
+fm_get() {   # frontmatter scalar: fm_get <key> <file>
+  # Keys are matched case-insensitively. Frontmatter is written by hand and by agents,
+  # and a silent miss on `Verify:` means the task runs with some other task's defaults.
+  awk -v key="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" '
+    NR==1 && $0 ~ /^---[[:space:]]*$/ { infm=1; next }
+    infm && $0 ~ /^---[[:space:]]*$/  { exit }
+    infm && tolower($0) ~ "^"key"[[:space:]]*:" {
+      sub("^[^:]*:[[:space:]]*", ""); print; exit
+    }' "$2"
+}
+fm_body() { awk 'c==2{print} /^---[[:space:]]*$/{c++}' "$1"; }   # everything after 2nd ---
+
+# ---- runtime options ----------------------------------------------------------
+TASKS_DIR="tasks"
+ORIG_ARGS=("$@")
+ONLY=()
+LIMIT=0
+ON_STALL="skip"           # skip | abort | retry  (what to do when a turn does not settle)
+REUSE_BRANCH=0
+REMOVE_WORKTREES=0
+ALLOW_SCREEN_DETECTION=0
+ALLOW_VERIFY=()
+DRY_RUN=0
+
+usage() {
+  cat <<'EOF'
+agent-queue -- sequential herdr + pi task runner
+
+Usage: agent-queue [options]
+
+  --tasks DIR         task directory (default: tasks)
+  --only NAME         run only this task, repeatable
+  --limit N           stop after N executed tasks
+  --base REF          default branch to fork (default: main)
+  --model ID          pi model for every task (default: pi's own default)
+  --retries N         default verifier retries (default: 2)
+  --timeout MS        per-turn prompt timeout (default: modules.herdr.queue.defaultTimeoutMs,
+                      6h: a long build inside one tool call is the work, not a hang)
+  --on-stall POLICY   skip | abort | retry when a turn does not settle (default: skip)
+  --wait-lock SEC     wait for the run lock instead of failing (0 = fail now)
+  --drain             re-scan tasks/ after the batch and keep going if files landed
+  --allow-empty       exit 0 instead of failing when tasks/ holds no *.md yet
+                      (a refused task is also recorded in .agent-queue/refused/)
+  --skip-locked       exit 0 when another run holds the lock (for periodic sweeps)
+  --reuse-branch      accept an existing agent/<name> branch (it inherits old work)
+  --remove-worktrees  remove the worktree checkout when a task finishes (keeps branch)
+  --no-commits        do not ask the agent to commit, and do not commit what it leaves
+                      behind (modules.herdr.queue.agentCommits=false is the permanent form)
+  --allow-verify PAT  permit a verifier matching PAT (repeatable)
+  --allow-gate-self-modification  do not veto green when the files the verifier judges
+                      differ from base (for a task whose whole point is to change a test)
+  --allow-screen-detection  run even though the pi integration is missing
+  --dry-run           resolve and print the plan; change nothing
+  -h, --help          this text
+
+Exit codes: 0 all green, 1 something needs a human, 2 setup/preflight failed.
+EOF
+}
+
+while (($#)); do
+  case "$1" in
+    --tasks) TASKS_DIR="${2:?--tasks needs a directory}"; shift 2 ;;
+    --only) ONLY+=("${2:?--only needs a task name}"); shift 2 ;;
+    --limit) LIMIT="${2:?--limit needs a number}"; shift 2 ;;
+    --base) DEFAULT_BASE="${2:?--base needs a ref}"; shift 2 ;;
+    --model) DEFAULT_MODEL="${2:?--model needs an id}"; shift 2 ;;
+    --retries) DEFAULT_RETRIES="${2:?--retries needs a number}"; shift 2 ;;
+    --timeout) DEFAULT_TIMEOUT_MS="${2:?--timeout needs milliseconds}"; shift 2 ;;
+    --on-stall) ON_STALL="${2:?--on-stall needs skip|abort|retry}"; shift 2 ;;
+    --wait-lock) LOCK_WAIT_SECS="${2:?--wait-lock needs seconds}"; shift 2 ;;
+    --drain) DRAIN=1; shift ;;
+    --allow-empty) ALLOW_EMPTY=1; shift ;;
+    --skip-locked) SKIP_LOCKED=1; shift ;;
+    --reuse-branch) REUSE_BRANCH=1; shift ;;
+    --remove-worktrees) REMOVE_WORKTREES=1; shift ;;
+    --no-commits) AGENT_COMMITS=0; shift ;;
+    --autocommit) AGENT_COMMITS=1; shift ;;   # compat: committing is the default now
+    --allow-verify) ALLOW_VERIFY+=("${2:?--allow-verify needs a pattern}"); shift 2 ;;
+    --allow-gate-self-modification) ALLOW_GATE_MOD=1; shift ;;
+    --allow-screen-detection) ALLOW_SCREEN_DETECTION=1; shift ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    -h | --help) usage; exit 0 ;;
+    *) usage >&2; die "unknown option: $1" ;;
+  esac
+done
+case "$ON_STALL" in skip | abort | retry) : ;; *) die "--on-stall must be skip|abort|retry" ;; esac
+
+NOTIFY_WARNED=0
+
+# toast <title> <body> [sound] -- herdr's own on-screen notification, separate from
+# the push so notify_md can toast a one-liner while it sends a whole file.
+#
+# herdr's own toast delivery -- all three of herdr/system/terminal -- is best-effort
+# through a *foreground attached client*, so an unattended overnight run usually has
+# exactly one channel: ntfy. Both are attempted; the first failure per run says why,
+# loudly, once.
+toast() {
+  local title="$1" body="$2" sound="${3:-none}" out shown="err" reason=""
+  out=$("$HERDR_BIN" notification show "$title" --body "$body" --sound "$sound" 2>&1)
+  shown=$(jq -r '.result.shown // false' <<<"$out")
+  reason=$(jq -r '.result.reason // "error"' <<<"$out")
+  if [[ "$shown" != "true" ]] && ((NOTIFY_WARNED == 0)); then
+    NOTIFY_WARNED=1
+    warn "herdr toast not delivered (reason: $reason)."
+    if [[ -z "$NTFY" ]]; then
+      warn "and no topic is configured: nothing will reach you while you are away.
+  Write the ntfy URL to $NTFY_TOPIC_FILE (or set NTFY_TOPIC / ui.toast.delivery)."
+    fi
+  fi
+  return 0
+}
+
+notify() {  # notify <title> <body> [sound] -- the toast plus a one-line ntfy push.
+  local title="$1" body="$2" sound="${3:-none}"
+  [[ -n "${LOG_FILE:-}" ]] && printf 'NOTIFY %s | %s\n' "$title" "$body" >>"$LOG_FILE" 2>/dev/null
+  ((DRY_RUN)) && return 0
+  toast "$title" "$body" "$sound"
+  if [[ -n "$NTFY" ]]; then
+    # ntfy priority 4+ is what makes Android pop the notification over the screen
+    # instead of quietly filing it in the shade -- "needs you" must not be quiet.
+    local prio=3
+    [[ "$sound" == "request" ]] && prio=5
+    curl -fsS -m 5 -H "Title: $title" -H "X-Priority: $prio" -d "$body" "$NTFY" >/dev/null 2>&1 ||
+      warn "ntfy push failed for: $title"
+  fi
+  return 0
+}
+
+# md_clip <file> <budget> -- the bytes to put in an ntfy body, on stdout: the file
+# whole when it fits, otherwise whole lines under the budget plus a trailer giving the
+# real size and the path.
+#
+# The budget is in BYTES, because ntfy's maximum message size is 4096 bytes and going
+# over it does not fail: the server notices the size (or non-UTF-8) and delivers the
+# message as an *attachment* instead. That is useless on a phone here -- attachments
+# need attachment-cache-dir and a reachable base-url on the ntfy *server*, which lives
+# in the homelab repo (homelab/base/ntfy, apps/ntfy.yaml), so enabling them is not a
+# dotfiles change. Nothing here sets Attach:/X-Attach either; the file is the body.
+md_clip() {
+  local file="$1" budget="$2" total trailer keep
+  total=$( (wc -c <"$file") 2>/dev/null | tr -d '[:space:]')
+  [[ "$total" =~ ^[0-9]+$ ]] || total=0
+  if ((total <= budget)); then cat "$file"; return 0; fi
+  trailer=$(printf '… truncated (%s bytes total) — full file: %s' "$total" "$file")
+  keep=$((budget - $(printf '%s\n' "$trailer" | wc -c | tr -d '[:space:]')))
+  ((keep > 0)) || { printf '%s\n' "$trailer"; return 0; }
+  # LC_ALL=C so awk counts bytes and not characters. Cut on whole lines only: 0x0A
+  # never occurs inside a UTF-8 sequence, so a line boundary is the one cut point
+  # that cannot split an emoji in half and turn the body into non-UTF-8 (which, per
+  # above, changes how the message is delivered). `head` may get SIGPIPE here --
+  # pipefail must not turn a delivered notification into a failed one.
+  head -c "$keep" "$file" | LC_ALL=C awk -v keep="$keep" '
+    { if (used + length($0) + 1 > keep) exit; used += length($0) + 1; print }' || true
+  printf '%s\n' "$trailer"
+}
+
+# notify_md <title> <summary> <file> [sound] -- the same toast as notify, but the ntfy
+# message body IS the artifact. A path on elcungem is not readable where nobody is
+# watching a terminal, so the file that explains a result travels in the push.
+# <summary> is what the toast shows, and what is pushed if there is no file at all.
+#
+# Duplicated in agent-queue-intake instead of extracted into a shared library: each
+# script is installed standalone by replaceVarsWith in default.nix with its own
+# placeholders, which is why die/warn/notify/verify_is_safe are duplicated too.
+notify_md() {
+  local title="$1" summary="$2" file="$3" sound="${4:-none}" prio=4 size=""
+  local payload="$file" tmp=""
+  [[ "$sound" == "request" ]] && prio=5   # 5 = answer now, 4 = this rig's "needs you"
+  size=$( (wc -c <"$file") 2>/dev/null | tr -d '[:space:]')
+  [[ "$size" =~ ^[0-9]+$ ]] || size=0
+  note "$title | $file ($size bytes)"
+  [[ -n "${LOG_FILE:-}" ]] &&
+    printf 'NOTIFY %s | %s (%s bytes)\n' "$title" "$file" "$size" >>"$LOG_FILE" 2>/dev/null
+  ((DRY_RUN)) && return 0
+  toast "$title" "$summary" "$sound"
+  [[ -n "$NTFY" ]] || return 0
+  # --data-binary and never -d @file: -d strips CR/LF, and the artifact is fenced
+  # diff blocks whose layout is the whole point of reading it.
+  if ((size == 0)); then
+    payload=""                              # nothing there: the one-liner still travels
+  elif ((size > NTFY_MD_MAX_BYTES)); then
+    tmp=$(mktemp "${TMPDIR:-/tmp}/agent-queue-md.XXXXXX" 2>/dev/null) || tmp=""
+    if [[ -n "$tmp" ]]; then
+      md_clip "$file" "$NTFY_MD_MAX_BYTES" >"$tmp" || true
+      [[ -s "$tmp" ]] && payload="$tmp"
+    fi
+    [[ -n "$payload" ]] ||
+      warn "could not clip $file to $NTFY_MD_MAX_BYTES bytes; pushing the summary"
+  fi
+  if [[ -n "$payload" ]]; then
+    curl -fsS -m 10 -H "Title: $title" -H "X-Priority: $prio" \
+      --data-binary @"$payload" "$NTFY" >/dev/null 2>&1 || warn "ntfy push failed for: $title"
+  else
+    curl -fsS -m 10 -H "Title: $title" -H "X-Priority: $prio" \
+      -d "$summary" "$NTFY" >/dev/null 2>&1 || warn "ntfy push failed for: $title"
+  fi
+  [[ -z "$tmp" ]] || rm -f "$tmp"
+  return 0   # a notification must never fail a task
+}
+
+agent_status() { # authoritative re-read; a wait's return value is not the truth
+  "$HERDR_BIN" agent get "$1" 2>/dev/null | jqr '.result.agent.agent_status'
+}
+
+# pi has no permission prompts -- that is the reason it was chosen -- so "may I
+# proceed?" is structurally identical to "I am finished": herdr reports BOTH as
+# idle/done, never `blocked` (measured: a task that ends with "which name do you
+# want?" reported agent_status=done). The only signal is the transcript itself.
+# Consequence: never hand a question back to the agent as "the verifier is still
+# failing", which is how a queue steamrolls past the one question it needed.
+agent_asked() {
+  local out
+  out=$("$HERDR_BIN" agent read "$1" --source recent-unwrapped --lines 14 2>/dev/null || true)
+  [[ -z "$out" ]] && return 1
+  printf '%s\n' "$out" | grep -qE '\?[[:space:]]*$' && return 0
+  printf '%s\n' "$out" | grep -qiE '^[[:space:]]*(which|should|would you|do you want|please (tell|confirm|say))' && return 0
+  return 1
+}
+
+# pi caps every response at the model's maxTokens, and a model definition that omits it
+# gets 16384 (pi core/provider-composer.js: `definition.maxTokens ?? 16384`). A model
+# that designs out loud can spend the whole budget on a plan and stop mid-sentence
+# WITHOUT ever calling a tool. herdr still reports `done`, the verifier is still red,
+# and an identical prompt truncates in the identical place -- so a retry is not a second
+# chance, it is the same wasted turn. Measured on v350: three attempts, ~47k output
+# tokens, zero files touched.
+#
+# The session journal holds the real reason (stopReason "length"); the pane sentence is
+# rendered by pi's TUI and can scroll away, so read the journal first.
+pi_session_file() { # <cwd> -> newest pi journal for that working directory
+  local root="$HOME/.pi/agent/sessions" base="${1//\//-}" dir="" newest="" f
+  # The directory name is pi's own encoding of the cwd, not ours: it folds '/' to '-'
+  # and swallows the leading one, so `/home/elia/x` becomes `--home-elia-x--`. Getting
+  # this wrong fails silently into the pane fallback, which is weaker evidence.
+  for dir in "--${base#-}--" "--${base}--"; do
+    [[ -d "$root/$dir" ]] && break
+    dir=""
+  done
+  if [[ -z "$dir" ]]; then
+    # Still match by worktree name rather than give up: the worktree basename is what
+    # the queue chose, so it needs no assumption about pi's encoding.
+    for f in "$root"/*-"${1##*/}"--/*.jsonl; do [[ -f "$f" ]] && newest="$f"; done
+    [[ -n "$newest" ]] || return 1
+    printf '%s\n' "$newest"
+    return 0
+  fi
+  # No `ls | head`: names begin with an ISO timestamp, so the glob's last entry IS the
+  # newest, and a pipeline here would put pipefail's SIGPIPE in the way of a read.
+  for f in "$root/$dir"/*.jsonl; do [[ -f "$f" ]] && newest="$f"; done
+  [[ -n "$newest" ]] || return 1
+  printf '%s\n' "$newest"
+}
+
+agent_truncated() { # <agent-name> <worktree> -- did the LAST assistant turn hit the cap?
+  local sess last
+  if sess=$(pi_session_file "$2"); then
+    last=$(jq -r 'select(.type == "message" and .message.role == "assistant")
+                  | .message.stopReason // "?"' "$sess" 2>/dev/null | tail -1 || true)
+    if [[ -n "$last" && "$last" != "?" ]]; then
+      [[ "$last" == "length" ]]
+      return
+    fi
+  fi
+  # No journal (older pi, other agent kind): the rendered sentence is still evidence.
+  "$HERDR_BIN" agent read "$1" --source recent-unwrapped --lines 30 2>/dev/null |
+    grep -qi 'truncated before completion'
+}
+
+# agent_prompt <name> <text> <timeout_ms>
+#   sets PROMPT_STATUS (matched state) / PROMPT_ERR (herdr error code) / PROMPT_RAW
+# agent_prompt runs the wait in the foreground unless STALL_AFTER_SECS is set, in which
+# case it polls the pane for output and stops waiting on a quiet agent.
+agent_prompt() {
+  local name="$1" text="$2" ms="$3" out rc=""
+  local out_file="" last_fp="" idle=0 pid="" seen="" deadline
+  PROMPT_STATUS=""; PROMPT_ERR=""; PROMPT_RAW=""; PROMPT_STALL_WATCHDOG=0
+  if ((STALL_AFTER_SECS <= 0)); then
+    out=$("$HERDR_BIN" agent prompt "$name" "$text" \
+            --wait --until idle --until "done" --until blocked --timeout "$ms" 2>&1)
+    rc=$?
+  else
+    # Watch the pane, not agent_status: a 40-minute `nix build` inside a tool call keeps
+    # agent_status at `working` and bumps no revision, so "state unchanged" would call
+    # every patient run hung. Output appearing or not appearing is the honest signal.
+    deadline=$(( $(date +%s) + ms / 1000 + 60 ))
+    out_file=$(mktemp "${TMPDIR:-/tmp}/agent-prompt.XXXXXX")
+    "$HERDR_BIN" agent prompt "$name" "$text" \
+        --wait --until idle --until "done" --until blocked --timeout "$ms" >"$out_file" 2>&1 &
+    pid=$!
+    while kill -0 "$pid" 2>/dev/null; do
+      sleep "$POLL_SECS"
+      if (($(date +%s) > deadline)); then
+        warn "no verdict within $((ms / 60000))min; ending the wait"
+        PROMPT_STALL_WATCHDOG=1
+        break
+      fi
+      seen=$("$HERDR_BIN" pane read "${agent_pane:-}" --source recent-unwrapped --lines 6 2>/dev/null |
+                 tail -c 400 | tr -d '[:space:]' | cksum | awk '{print $1}')
+      if [[ -n "$seen" && "$seen" == "$last_fp" ]]; then
+        idle=$((idle + POLL_SECS))
+        if ((idle >= STALL_AFTER_SECS)); then
+          warn "no pane output for ${idle}s -- treating this turn as stalled"
+          PROMPT_STALL_WATCHDOG=1
+          break
+        fi
+      else
+        idle=0
+      fi
+      last_fp="$seen"
+    done
+    if kill -0 "$pid" 2>/dev/null; then
+      # End the *wait*, not the turn: `agent cancel` would throw away work in progress,
+      # and the stall handler below leaves a working agent alone and tells you about it.
+      kill "$pid" 2>/dev/null
+      PROMPT_STALL_WATCHDOG=1
+    fi
+    wait "$pid" 2>/dev/null
+    rc=$?
+    out=$(cat "$out_file" 2>/dev/null)
+    rm -f "$out_file"
+    if ((PROMPT_STALL_WATCHDOG)); then
+      # present it as herdr's own timeout so one stall path handles both
+      out='{"error":{"code":"timeout","message":"agent-queue stopped waiting"}}'
+      rc=1
+    fi
+  fi
+  PROMPT_RAW="$out"
+  if ((rc != 0)); then
+    PROMPT_ERR="$(errcode <<<"$out")"
+    return 1
+  fi
+  PROMPT_STATUS=$(jq -r '.result.agent.agent_status // "unknown"' <<<"$out")
+  [[ -n "$PROMPT_STATUS" ]]
+}
+
+# write_artifact <outcome> -- the branch is the deliverable, so leave something
+# a human can read in thirty seconds. Also written on the paths that never got
+# an agent: a notification that points at .agent-queue/<name>.md had better
+# find a file there.
+write_artifact() {
+  local outcome="$1" diffstat="" dirty="" commits="" ncommits=""
+  if [[ -d "${wt_path:-}" ]]; then
+    # NOT "$base...HEAD": an agent that does not commit would make that diff empty,
+    # so the artifact would read "no changes" while the file is sitting there
+    # modified. Working tree vs base is what a reviewer actually needs.
+    diffstat=$(git -C "$wt_path" diff --stat "$base" 2>/dev/null || true)
+    dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null || true)
+    # Bounded on purpose: this file is also an ntfy message body, and a 300-commit
+    # turn would truncate the part a reviewer reads first (the truncation trailer
+    # names the full file, so nothing is lost -- just pushed out of the push).
+    commits=$(git -C "$wt_path" log --oneline -20 "${base:-HEAD}..HEAD" 2>/dev/null || true)
+    ncommits=$(git -C "$wt_path" rev-list --count "${base:-HEAD}..HEAD" 2>/dev/null || true)
+    [[ -n "$commits" ]] || commits="(no commits on the branch -- the work is not committed)"
+  fi
+  {
+    printf '# %s\n\n' "${title:-$name}"
+    printf -- '- task: `%s`\n- branch: `%s`\n- worktree: `%s`\n' "${task_file:-?}" "${branch:-?}" "${wt_path:--}"
+    printf -- '- verifier: `%s`\n- outcome: **%s**\n' "${verify:--}" "$outcome"
+    printf -- '- agent pane: `%s` · verify pane: `%s`\n' "${agent_pane:--}" "${verify_pane:--}"
+    printf -- '- run log: `%s`\n\n' "${LOG_FILE:--}"
+    printf -- '- commits vs %s: %s\n\n' "${base:--}" "${ncommits:-?}"
+    printf '## commits\n\n```\n%s```\n\n' "$commits"
+    printf '## diff vs %s (incl. uncommitted)\n\n```\n%s```\n\n' "${base:--}" "$diffstat"
+    printf '## uncommitted\n\n```\n%s```\n\n' "${dirty:-(clean)}"
+    # The verifier decided; this says whether what it decided about was still the
+    # original. `no gate` and `allowed` are printed as themselves on purpose: a check
+    # that was turned off, and a run with nothing to check, must not read the same.
+    printf '## gate integrity\n\n- state: **%s**\n' "${GATE_STATE:-not checked}"
+    [[ -n "${GATE_SOURCE:-}" ]] && printf -- '- source: %s\n' "$GATE_SOURCE"
+    printf -- '- gates (%d): %s\n' "${#GATE_PATHS[@]}" "$(gate_clip 20 "${GATE_PATHS[@]}")"
+    if ((${#GATE_MODIFIED[@]})); then
+      printf -- '- modified vs %s: %s\n' "${base:--}" "$(gate_clip 20 "${GATE_MODIFIED[@]}")"
+    fi
+    if ((${#GATE_UNDECIDED[@]})); then
+      printf -- '- **not compared, the check did not decide**: %s\n' \
+        "$(gate_clip 20 "${GATE_UNDECIDED[@]}")"
+    fi
+  } >"$STATE_DIR/$name.md" || warn "could not write $STATE_DIR/$name.md"
+}
+
+# run_verifier <pane> <cmd> <sentinel>  ->  sets VERIFY_RC ("" means no verdict)
+run_verifier() {
+  local pane="$1" cmd="$2" sentinel="$3" out line
+  VERIFY_RC=""
+  "$HERDR_BIN" pane run "$pane" "{ $cmd; echo \"${sentinel}=\$?\"; }" >/dev/null 2>&1 || return 1
+  out=$("$HERDR_BIN" pane wait-output "$pane" --regex "${sentinel}=[0-9]+" \
+            --timeout "$VERIFY_TIMEOUT_MS" 2>&1) || return 1
+  line=$(jq -r '.result.matched_line // ""' <<<"$out")
+  [[ -n "$line" ]] || line=$(jq -r '.result.read // "" | tostring' <<<"$out")
+  VERIFY_RC=$(sed -n "s/.*${sentinel}=\([0-9][0-9]*\).*/\1/p" <<<"$line")
+  [[ -n "$VERIFY_RC" ]]
+}
+
+# ---- preflight ----------------------------------------------------------------
+for bin in git jq curl find awk sed grep flock; do
+  command -v "$bin" >/dev/null || die "missing required command: $bin"
+done
+
+NTFY_TOPIC_FILE="${NTFY_TOPIC_FILE/#\~/$HOME}"   # a leading ~ is not expanded in quotes
+if [[ -z "$NTFY" && -r "$NTFY_TOPIC_FILE" ]]; then
+  NTFY=$(head -n1 "$NTFY_TOPIC_FILE" | tr -d '[:space:]')
+fi
+[[ -x "$HERDR_BIN" ]] || die "herdr not found at $HERDR_BIN (set HERDR_BIN)"
+
+srv_json=$("$HERDR_BIN" status server --json 2>&1) || srv_json='{"running":false}'
+if [[ "$(jq -r '.running // false' <<<"$srv_json")" != "true" ]]; then
+  # A dry run touches nothing, so it may plan without a server.
+  ((DRY_RUN)) || die "no herdr server running: run \`herdr\` first"
+  warn "no herdr server running -- planning only"
+fi
+[[ "$(jq -r '.compatible // true' <<<"$srv_json")" == "true" ]] ||
+  die "herdr CLI $("$HERDR_BIN" --version) is not compatible with the running server"
+
+# Phase 0 gate, machine-checkable half. Without the pi integration herdr reads
+# state off the screen and `agent explain` reports
+# fallback_reason=default_known_agent_idle_fallback -- i.e. idle looks like done,
+# which is exactly how a queue turns into confidently wrong commits.
+pi_int_line=$("$HERDR_BIN" integration status 2>&1 | grep -E '^pi:' || true)
+# herdr 0.9.x reports "pi: current (v9) (...)"; older builds said "installed".
+# Anything else -- including "outdated", which means the extension predates this
+# binary -- leaves herdr classifying pi from the screen, where idle looks like done.
+case "$pi_int_line" in
+  pi:\ current* | pi:\ installed*) : ;;
+  *)
+    if ((ALLOW_SCREEN_DETECTION == 0 && DRY_RUN == 0)); then
+      die "pi integration is not current (${pi_int_line:-no pi line}).
+  Fix: rebuild with modules.herdr.piIntegration.enable (it re-runs
+  \`herdr integration install pi\`), or pass --allow-screen-detection."
+    fi
+    warn "pi integration not current (${pi_int_line:-no pi line}) -- agent state comes from the screen; verify by eye"
+    ;;
+esac
+
+[[ -d "$TASKS_DIR" ]] || die "no task directory: $TASKS_DIR (run from the repo root)"
+git rev-parse --show-toplevel >/dev/null 2>&1 || die "$PWD is not a git repository"
+REPO=$(git rev-parse --show-toplevel)
+
+if [[ -r "$VERIFY_DENY_FILE" ]]; then
+  mapfile -t DENY < <(grep -vE '^[[:space:]]*(#.*)?$' "$VERIFY_DENY_FILE")
+else
+  DENY=()
+  warn "deny list unreadable ($VERIFY_DENY_FILE): verifiers will NOT be screened"
+fi
+# The editing contract is also unconditional, and for the same reason: the task body is
+# the user's prose, so nothing in it can be relied on to say how the rig must behave.
+# This one exists because of the truncation failure above -- a model that answers in
+# design documents spends its output budget on text that changes no files at all.
+# Wording note: it must not contain pi's truncation sentence, because the prompt is
+# echoed in the pane and agent_truncated() reads the pane when there is no journal.
+editing_contract() {
+  cat <<'EOF'
+
+## Editing rules (set by the queue, not by the task)
+
+- Reply text is not progress. Do not put plans, designs or pseudocode in your reply; put
+  the change in a file. Save any explanation for two sentences at the end.
+- Never rewrite an existing file. Use targeted edits with the smallest unique old text.
+- Keep every tool call small: one function or one config block, under roughly 80 lines.
+  A response that runs out of budget half way through changes NOTHING -- the file stays
+  exactly as it was and the run is lost.
+- One edit, then the next. Stop early with a working tree rather than emit one huge block.
+EOF
+}
+
+# Sent instead of a plain "still failing" retry after a turn hit the cap. A verbatim
+# re-prompt reproduces the verbatim truncation, so the retry has to say something new.
+readonly NUDGE_TEXT='Your previous response ran out of budget and was cut off before it
+changed any file. Do not restate your plan, explain the design, or summarise what you
+read. Make exactly one small edit call now (one function, or a few lines), then continue
+one small step at a time.
+
+'
+
+# The commit contract goes on the END of every prompt the queue sends -- attempt 0 and
+# every retry -- because the task body is the user's prose and must not have to remember
+# rig policy. Kept short: an agent that has to read a page of rules drops the last one.
+commit_contract() {
+  cat <<EOF
+
+## Commit contract (set by the queue, not by the task)
+
+- Commit your work on the CURRENT branch before you finish. Leave the working tree clean.
+- Do not push. Do not amend, rebase, reset, or clean. Do not change git config.
+- End every commit message with this exact trailer:
+
+    Agent-run: ${RUN_ID}
+
+- If you cannot finish, commit what you have anyway and say what is missing.
+- Commit after each step that works, not only at the end. Several small commits survive a
+  response that runs out of budget; one large commit that never happens does not.
+EOF
+}
+
+# commit_leftovers <name> -- the agent was told to commit; if the tree is still dirty,
+# say so in the log AND make the commit anyway, so a reviewable branch never depends on
+# the agent having remembered. Runs for red outcomes too: work on a red branch is still
+# work, and losing it to a discarded checkout is the worse failure.
+commit_leftovers() {
+  local name="$1" subject
+  if ((green)); then
+    subject="agent-queue: ${title:-$name}"
+  else
+    subject="wip: ${title:-$name}"
+  fi
+  if git -C "$wt_path" add -A 2>/dev/null &&
+     git -C "$wt_path" commit -qm "$subject" -m "Agent-run: $RUN_ID" \
+        -m "Committed by agent-queue: the agent left this uncommitted (outcome: $outcome)."; then
+    note "$name: committed the agent's uncommitted work (as ${GIT_AUTHOR_NAME:-$(git -C "$wt_path" config user.name)})"
+  else
+    warn "$name: could not commit the remaining work -- the branch is incomplete"
+  fi
+}
+
+block_task() {  # record an unstartable task and the exact bytes that made it so, so a
+                # periodic sweep stops retrying it (same shape as .agent-queue/refused/)
+  { mkdir -p "$STATE_DIR/blocked" && sha256sum "$task_file" > "$STATE_DIR/blocked/$name"; } 2>/dev/null || true
+}
+
+verify_is_safe() {
+  local cmd="$1" pat allow
+  for pat in "${DENY[@]-}"; do
+    [[ -n "$pat" ]] || continue
+    [[ "$cmd" =~ $pat ]] || continue
+    for allow in "${ALLOW_VERIFY[@]-}"; do
+      [[ -n "$allow" && "$cmd" =~ $allow ]] && return 0
+    done
+    warn "verifier matches deny pattern: $pat"
+    return 1
+  done
+  return 0
+}
+
+# ---- gate integrity -----------------------------------------------------------
+# State for one task at a time, global so write_artifact can report what was actually
+# protected: an empty list and a disabled check must not read the same way.
+GATE_PATHS=()      # resolved, repo-relative, one entry per file
+GATE_TAMPERED=0    # 1 = a gate differs from base, or the check could not decide
+GATE_MODIFIED=()   # the offending paths
+GATE_UNDECIDED=()  # subset: the comparison itself failed -- never reported as clean
+GATE_SOURCE=""     # 'gate:' frontmatter | derived | disabled
+GATE_STATE="no gate"
+
+# gate_clip <max> <paths...> -- space-joined for the artifact, bounded: the artifact is
+# also an ntfy body, and a directory gate (`.github/workflows`) expands to every file
+# under it. The count next to it is printed unbounded, so a clipped list never reads as
+# a short one.
+gate_clip() {
+  local max="$1" n
+  shift
+  n=$#
+  ((n == 0)) && { printf '(none)'; return 0; }
+  ((n <= max)) && { printf '%s' "$*"; return 0; }
+  printf '%s… (+%d more)' "${*:1:$max}" "$((n - max))"
+}
+
+gate_token_is_pathlike() {  # does this word of the verifier name something in the tree?
+  local tok="$1" q="'"
+  tok="${tok#\"}"; tok="${tok%\"}"
+  tok="${tok#"$q"}"; tok="${tok%"$q"}"   # quotes around a path are not part of it
+  # Anything but a plain path: an option, a redirect, a shell metacharacter, a quote.
+  [[ -n "$tok" && "$tok" != -* && ! "$tok" =~ [^[:alnum:]._/-] ]] || return 1
+  case "$tok" in
+    modules/* | tasks/* | test*/* | tests/* | spec/* | */test*/*) return 0 ;;
+    *_test.* | *.bats | *.sh) return 0 ;;
+  esac
+  return 1
+}
+
+# resolve_gate_paths <task file> <verify cmd> -- fills GATE_PATHS. An explicit `gate:`
+# line (comma- or space-separated) wins; otherwise take every path-looking argument out
+# of the verifier, plus the entry points a verifier is often driven by. Imperfect on
+# purpose: a filter on nonsense and a review aid, not a proof.
+resolve_gate_paths() {
+  local file="$1" cmd="$2" tok p listing declared
+  local -a input=() raw=() kept=()
+  GATE_PATHS=()
+  declared=$(fm_get gate "$file")
+  if [[ -n "$declared" ]]; then
+    GATE_SOURCE="gate: frontmatter"
+    read -r -a input <<<"$(printf '%s' "$declared" | tr ',' ' ')"
+  else
+    GATE_SOURCE="derived from verify:"
+    read -r -a input <<<"$cmd"
+    for tok in "${input[@]}"; do
+      gate_token_is_pathlike "$tok" || continue
+      kept+=("${tok#./}")
+    done
+    for tok in Makefile justfile .github/workflows; do
+      if [[ -e "${wt_path}/${tok}" ]] ||
+         git -C "$wt_path" cat-file -e "${base:-HEAD}:${tok}" 2>/dev/null; then
+        kept+=("$tok")
+      fi
+    done
+    input=("${kept[@]-}")
+  fi
+  for tok in "${input[@]-}"; do
+    [[ -n "$tok" && "$tok" != /* ]] || continue   # gates are repository-relative
+    # Expand directories to files: a gate must be a blob on both sides, and this is
+    # what catches a deleted or newly added file under e.g. .github/workflows.
+    listing=$( { git -C "${wt_path}" ls-tree -r --name-only "${base:-HEAD}" -- "$tok" 2>/dev/null
+                 git -C "${wt_path}" ls-files -- "$tok" 2>/dev/null; } | sort -u )
+    if [[ -n "$listing" ]]; then
+      # (ls-tree quotes names containing " or a backslash; such a gate then produces no
+      # line below and is reported undecided, which is the safe direction.)
+      while IFS= read -r p; do [[ -n "$p" ]] && raw+=("$p"); done <<<"$listing"
+    else
+      raw+=("$tok")   # unknown to git on both sides: keep it, undecided is not clean
+    fi
+  done
+  mapfile -t GATE_PATHS < <(printf '%s\n' "${raw[@]-}" | sed '/^$/d' | sort -u)
+}
+
+# gate_integrity -- compare the working-tree content of every gate path with the same
+# path at base. Blob hashes on purpose, never a patch: `git update-index
+# --assume-unchanged <path>` hides a tampered gate from `git add -A` and from every diff
+# a human reads while the tampered gate still runs; committing the tamper empties the
+# staged diff; diff.mnemonicPrefix rewrites header paths. Content survives all three,
+# and so does a file that vanished (expected non-empty, actual empty).
+#
+# Sets GATE_MODIFIED / GATE_UNDECIDED / GATE_STATE / GATE_TAMPERED. Returns 0 only when
+# every gate hashes identically to base; a comparison that could not run is a failure,
+# not a pass.
+gate_integrity() {
+  local p expected actual
+  GATE_MODIFIED=(); GATE_UNDECIDED=(); GATE_TAMPERED=0
+  (( ${#GATE_PATHS[@]} )) || { GATE_STATE="no gate"; return 0; }
+  if ((ALLOW_GATE_MOD)); then
+    GATE_STATE="allowed (gate integrity off: ${#GATE_PATHS[@]} path(s) not compared)"
+    return 0
+  fi
+  if ! git -C "$wt_path" rev-parse --verify -q "${base:-HEAD}^{commit}" >/dev/null 2>&1; then
+    GATE_MODIFIED=("${GATE_PATHS[@]}"); GATE_UNDECIDED=("${GATE_PATHS[@]}")
+    GATE_STATE="undecided (base ${base:-HEAD} is not a readable commit)"
+    GATE_TAMPERED=1
+    return 1
+  fi
+  for p in "${GATE_PATHS[@]}"; do
+    expected=$(git -C "$wt_path" rev-parse --verify -q "${base:-HEAD}:${p}" 2>/dev/null || true)
+    actual=$(git -C "$wt_path" hash-object -- "$p" 2>/dev/null || true)
+    if [[ -z "$expected" && -z "$actual" ]]; then
+      # No line from either side: the check did not decide. Never report that as clean.
+      GATE_MODIFIED+=("$p"); GATE_UNDECIDED+=("$p"); continue
+    fi
+    # empty `actual` with a non-empty `expected` is a deleted gate; the other way round
+    # is a gate that appeared. Both are modifications of what the verifier judges.
+    [[ "$expected" == "$actual" ]] || GATE_MODIFIED+=("$p")
+  done
+  if ((${#GATE_MODIFIED[@]})); then
+    GATE_TAMPERED=1
+    GATE_STATE=$(printf 'tampered (%d of %d gate path(s) differ from %s; %d undetermined)' \
+      "${#GATE_MODIFIED[@]}" "${#GATE_PATHS[@]}" "${base:-HEAD}" "${#GATE_UNDECIDED[@]}")
+    return 1
+  fi
+  GATE_STATE=$(printf 'checked (%d gate path(s) byte-identical to %s)' \
+    "${#GATE_PATHS[@]}" "${base:-HEAD}")
+  return 0
+}
+
+# One run at a time: two drivers means two pi agents editing the same worktrees.
+STATE_DIR="$REPO/.agent-queue"
+LOG_DIR="$STATE_DIR/logs"
+mkdir -p "$LOG_DIR" || die "cannot write $STATE_DIR"
+[[ -e "$STATE_DIR/.gitignore" ]] || printf '*\n!/.gitignore\n' >"$STATE_DIR/.gitignore"
+LOG_FILE="$LOG_DIR/run-$RUN_ID.log"
+exec 9>"$STATE_DIR/.lock" || die "cannot open lock"
+locked=1
+if [[ "$LOCK_WAIT_SECS" == 0 ]]; then
+  flock -n 9 || locked=0
+else
+  note "waiting up to ${LOCK_WAIT_SECS}s for the run lock..."
+  flock -w "$LOCK_WAIT_SECS" 9 || locked=0
+fi
+if (( ! locked )); then
+  ((SKIP_LOCKED)) && { note "$REPO :: busy (another run holds the lock) -- skipped"; exit 0; }
+  die "another agent-queue run holds $STATE_DIR/.lock"
+fi
+
+shopt -s nullglob
+mapfile -t TASKS < <(find "$TASKS_DIR" -maxdepth 1 -name '*.md' | sort)   # lexical = ordering
+if ((${#TASKS[@]} == 0)); then
+  ((ALLOW_EMPTY)) && { note "no *.md tasks in $TASKS_DIR yet -- nothing to do"; exit 0; }
+  die "no *.md tasks in $TASKS_DIR"
+fi
+SNAPSHOT=("${TASKS[@]}")
+((${#TASKS[@]})) || die "no *.md tasks in $TASKS_DIR"
+
+FAILED=(); SUCCEEDED=(); SKIPPED=()
+note "$("$HERDR_BIN" --version) · repo $REPO · base $DEFAULT_BASE · ${#TASKS[@]} task(s)"
+
+for task_file in "${TASKS[@]}"; do
+  name=$(basename "$task_file" .md)
+  # First thing per task: an artifact written by an early `continue` (bad name, denied
+  # verifier, setup failure) must never carry the previous task's gate verdict.
+  GATE_STATE="not checked (this run never reached a verifier)"
+  GATE_SOURCE=""; GATE_PATHS=(); GATE_MODIFIED=(); GATE_UNDECIDED=(); GATE_TAMPERED=0
+  if ((${#ONLY[@]})); then
+    case " ${ONLY[*]} " in *" $name "*) : ;; *) continue ;; esac
+  fi
+  if ((LIMIT > 0)) && ((${#SUCCEEDED[@]} + ${#FAILED[@]} >= LIMIT)); then break; fi
+
+  verify=$(fm_get verify "$task_file")
+  [[ -n "$verify" ]] ||
+    die "$task_file: missing required 'verify:'. If you cannot write that line, the task is not ready for the queue."
+  title=$(fm_get title "$task_file"); title=${title:-$name}
+  timeout_ms=$(fm_get timeout_ms "$task_file"); timeout_ms=${timeout_ms:-$DEFAULT_TIMEOUT_MS}
+  max_retries=$(fm_get max_retries "$task_file"); max_retries=${max_retries:-$DEFAULT_RETRIES}
+  base=$(fm_get base "$task_file"); base=${base:-$DEFAULT_BASE}
+  model=$(fm_get model "$task_file"); model=${model:-$DEFAULT_MODEL}
+  branch="agent/$name"
+  # A task file's stem becomes a git branch, but the stem is authored by a human, a
+  # sweep or the intake planner -- `v346-add hi.md containing "hi" at the homelab.md`
+  # produced a branch git rejected, and the queue died with someone else's error
+  # message. Check it here, say it in our own words, and stop retrying it.
+  if ! git check-ref-format "refs/heads/$branch"; then
+    warn "$name: file name is not usable as a branch name (use a-z 0-9 . _ -)"
+    write_artifact "rejected (invalid task name)"
+    block_task
+    notify "⏭ $name invalid name" "rename the task file; '$branch' is not a valid branch" request
+    SKIPPED+=("$name (invalid name)")
+    continue
+  fi
+  # herdr agent names must start with a lowercase letter and be [a-z0-9_-]{1,32},
+  # but task files are numbered by convention (010-foo). The branch keeps the real
+  # name; the agent gets a prefixed, slugified one.
+  ag_name="q-$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]' |
+    sed -e 's/[^a-z0-9_-]/-/g' -e 's/^[-_]*//' | cut -c1-30)"
+  LOG_FILE="$LOG_DIR/$name-$RUN_ID.log"
+
+  if ! verify_is_safe "$verify"; then
+    note "$name :: SKIPPED (verifier refused -- it can reach live infrastructure)"
+    # Record what was refused and the exact bytes it was refused at. No branch
+    # exists for a refused task, so without this a periodic sweep would re-discover
+    # it and push about the same file forever. Change the task (e.g. its `verify:`)
+    # and the hash no longer matches, so the queue looks at it again.
+    { mkdir -p "$STATE_DIR/refused" && sha256sum "$task_file" > "$STATE_DIR/refused/$name"; } 2>/dev/null || true
+    notify "⏭ $name refused" "verifier matches deny pattern; --allow-verify to override" request
+    SKIPPED+=("$name (verify denied)")
+    continue
+  fi
+
+  if git -C "$REPO" rev-parse --verify --quiet "refs/heads/$branch" >/dev/null; then
+    if ((REUSE_BRANCH == 0)); then
+      note "$name :: SKIPPED (branch $branch exists; --reuse-branch to override)"
+      SKIPPED+=("$name (branch exists)")
+      continue
+    fi
+    warn "$name: reusing $branch -- the agent inherits whatever is already on it"
+  fi
+
+  note "$name :: $verify"
+  notify "▶ $name" "$title"
+
+  if ((DRY_RUN)); then
+    note "  base=$base model=${model:-<pi default>} retries=$max_retries timeout=${timeout_ms}ms"
+    note "  prompt: $(fm_body "$task_file" | wc -l) lines, branch $branch"
+    SUCCEEDED+=("$name (dry-run)")
+    continue
+  fi
+
+  # --- 1. worktree (the blast-radius control) + a private verifier pane --------
+  wt_json=$("$HERDR_BIN" worktree create --cwd "$REPO" --branch "$branch" \
+                --base "$base" --label "$name" --no-focus 2>&1) || {
+    warn "$name: worktree create failed: $(jq -r '.error.message // "unknown"' <<<"$wt_json" 2>/dev/null)"
+    write_artifact "setup failed (worktree create)"
+    block_task   # without this a 2-minute sweep retries the same broken task forever
+    notify_md "⚠ $name setup failed" "worktree create · .agent-queue/$name.md" "$STATE_DIR/$name.md" request
+    FAILED+=("$name (setup)")
+    continue
+  }
+  ws=$(jqr '.result.workspace.workspace_id' <<<"$wt_json")
+  wt_path=$(jqr '.result.worktree.path' <<<"$wt_json")
+  agent_pane=$(jqr '.result.root_pane.pane_id' <<<"$wt_json")
+  if [[ -z "$wt_path" || -z "$agent_pane" ]]; then
+    write_artifact "setup failed (unreadable worktree response)"
+    FAILED+=("$name (setup)")
+    continue
+  fi
+
+  # The agent owns the root pane. The verifier needs a shell of its own: an idle
+  # agent still holds that terminal and is not sitting at a prompt.
+  split_json=$("$HERDR_BIN" pane split "$agent_pane" --direction down --ratio 0.3 \
+                    --cwd "$wt_path" --no-focus 2>&1) || {
+    warn "$name: could not create the verifier pane"
+    write_artifact "setup failed (no verifier pane)"
+    FAILED+=("$name (setup)")
+    continue
+  }
+  verify_pane=$(jqr '.result.pane.pane_id' <<<"$split_json")
+  [[ -n "$verify_pane" ]] || { FAILED+=("$name (setup)"); continue; }
+  {
+    echo "run=$RUN_ID worktree=$wt_path"
+    echo "agent_pane=$agent_pane verify_pane=$verify_pane workspace=$ws"
+  } >>"$LOG_FILE"
+  # Resolve the gates before the first prompt: the artifact names what was protected
+  # even on a run that dies before the verifier, and the reviewer sees a derived list
+  # rather than having to guess one.
+  resolve_gate_paths "$task_file" "$verify"
+
+  # --- 2. one fresh agent per task (a wait never tracks turns) -----------------
+  start_args=(agent start "$ag_name" --kind "$PI_KIND" --pane "$agent_pane" --timeout "$READY_TIMEOUT_MS")
+  pi_args=()
+  [[ -n "$model" ]] && pi_args+=(--model "$model")
+  [[ "$APPROVE_PROJECT" == "true" ]] && pi_args+=(--approve)
+  ((${#pi_args[@]})) && start_args+=(-- "${pi_args[@]}")
+
+  if ! "$HERDR_BIN" "${start_args[@]}" >"$LOG_FILE.start" 2>&1; then
+    warn "$name: pi did not become ready in ${READY_TIMEOUT_MS}ms -- $(
+      jq -r '.error.code + ": " + .error.message' "$LOG_FILE.start" 2>/dev/null ||
+        head -c 200 "$LOG_FILE.start")"
+    write_artifact "pi did not become ready"
+    notify_md "⚠ $name" "pi failed to start in $wt_path · .agent-queue/$name.md" "$STATE_DIR/$name.md" request
+    FAILED+=("$name (start)")
+    continue
+  fi
+
+  attempt=0
+  green=0
+  nudged=0   # 1 = a turn already hit the response cap; retries shrink instead of repeating
+  rc_last="n/a"
+  outcome="not green"
+  while ((attempt <= max_retries)); do
+    if ((attempt == 0)); then
+      prompt_text=$(fm_body "$task_file")
+      prompt_text+="$(editing_contract)"
+      ((AGENT_COMMITS)) && prompt_text+="$(commit_contract)"
+    else
+      diag=$("$HERDR_BIN" pane read "$verify_pane" --source recent-unwrapped --lines 80 2>/dev/null || true)
+      prompt_text="The verifier is still failing.
+
+Command: $verify
+Exit code: $rc_last
+
+Trailing output:
+\`\`\`
+$diag
+\`\`\`
+
+Fix it. Re-run that command yourself. Stop when it exits 0.
+Do not change the verifier, weaken assertions, skip tests, or mark anything done."
+      ((nudged)) && prompt_text="${NUDGE_TEXT}${prompt_text}"
+      prompt_text+="$(editing_contract)"
+      ((AGENT_COMMITS)) && prompt_text+="$(commit_contract)"
+    fi
+
+    if ! agent_prompt "$ag_name" "$prompt_text" "$timeout_ms"; then
+      # A failed wait is NOT proof nothing was sent. Re-read, then decide.
+      cur=$(agent_status "$ag_name")
+      {
+        echo "attempt $attempt: prompt error=${PROMPT_ERR:-none} agent_status=${cur:-unknown}"
+        echo "$PROMPT_RAW"
+      } >>"$LOG_FILE"
+
+      case "$cur" in
+        blocked)
+          # pi is asking someone something. Never answer it by re-sending.
+          outcome="blocked (input needed)"
+          "$HERDR_BIN" agent read "$ag_name" --source visible >>"$LOG_FILE" 2>&1 || true
+          notify "⛔ $name needs input" "pi is blocked mid-task -- answer it in pane $agent_pane" request
+          break
+          ;;
+        working)
+          if ((PROMPT_STALL_WATCHDOG)); then
+            # do not claim it used the whole budget; the pane went quiet
+            note "$name: no pane output for ${STALL_AFTER_SECS}s -- leaving it alone, not re-sending"
+            notify "⏳ $name went quiet" "no pane output for ${STALL_AFTER_SECS}s; still working in pane $agent_pane" request
+            outcome="went quiet (${STALL_AFTER_SECS}s)"
+          else
+            note "$name: still working after $((timeout_ms / 60000))min -- leaving it alone, not re-sending"
+            notify "⏳ $name overran" "${PROMPT_ERR} after $((timeout_ms / 60000))min; pane $agent_pane" request
+            outcome="overran (${PROMPT_ERR})"
+          fi
+          break
+          ;;
+        idle | done | "")
+          case "$ON_STALL" in
+            abort)
+              outcome="stalled (${PROMPT_ERR})"
+              break
+              ;;
+            retry)
+              if [[ -z "$cur" ]]; then
+                outcome="agent disappeared"
+                break
+              fi
+              note "$name: ${PROMPT_ERR} with agent $cur -- re-prompting (attempt $((attempt + 1)))"
+              attempt=$((attempt + 1))
+              continue
+              ;;
+            *)
+              note "$name: ${PROMPT_ERR} -- skipping (--on-stall skip)"
+              outcome="stalled (${PROMPT_ERR})"
+              break
+              ;;
+          esac
+          ;;
+        *)
+          warn "$name: agent state is ${cur}; refusing to guess -- stopping this task"
+          notify "⚠ $name unknown state" "${cur}; pane $agent_pane" request
+          outcome="unknown state (${cur})"
+          break
+          ;;
+      esac
+    fi
+
+    { echo "attempt $attempt: agent settled in state ${PROMPT_STATUS:-?}"; } >>"$LOG_FILE"
+
+    # --- verify: unique sentinel per attempt; exit code is the only oracle -----
+    sentinel="AQVERIFY_${RUN_ID}_${name//[^A-Za-z0-9]/}_${attempt}"
+    if ! run_verifier "$verify_pane" "$verify" "$sentinel"; then
+      note "$name: verifier produced no verdict"
+      notify "⚠ $name verify timed out" "$verify (pane $verify_pane)" request
+      outcome="verifier produced no verdict"
+      break
+    fi
+    {
+      echo "attempt $attempt: $verify -> exit $VERIFY_RC"
+      "$HERDR_BIN" pane read "$verify_pane" --source recent-unwrapped --lines 120
+    } >>"$LOG_FILE" 2>&1
+
+    # The oracle has spoken. Before green is *reported*, check that the verifier was
+    # not judging files the agent edited -- every attempt, including the retries.
+    gate_integrity || note "$name: gate integrity -- $GATE_STATE"
+    echo "attempt $attempt: gate integrity: $GATE_STATE" >>"$LOG_FILE" 2>&1
+
+    if [[ "$VERIFY_RC" == "0" ]]; then
+      if ((GATE_TAMPERED)); then
+        # Green is not enough: the thing that decided green is not the thing that was
+        # supposed to. Report it as a failed run rather than a reviewable branch.
+        outcome="gate tampered"
+        break
+      fi
+      green=1
+      outcome="green"
+      break
+    fi
+    rc_last="$VERIFY_RC"
+    note "$name: verifier exit=$VERIFY_RC (attempt $attempt/$max_retries)"
+
+    # Red + a question in the transcript means "wait for a human", not "retry".
+    if agent_asked "$ag_name"; then
+      outcome="needs input (agent asked a question)"
+      "$HERDR_BIN" agent read "$ag_name" --source recent-unwrapped --lines 40 \
+        >>"$LOG_FILE" 2>&1 || true
+      notify "⛔ $name needs input" "$verify -> exit $VERIFY_RC; answer pane $agent_pane" request
+      break
+    fi
+
+    # Red, and the turn that got there ran out of response budget: the work was never
+    # wrong, it just never landed. Spend ONE further turn on it, and only a turn that is
+    # told to work in small pieces -- otherwise the retry is a rerun of the same cut-off.
+    if agent_truncated "$ag_name" "$wt_path"; then
+      "$HERDR_BIN" agent read "$ag_name" --source recent-unwrapped --lines 30 \
+        >>"$LOG_FILE" 2>&1 || true
+      if ((attempt < max_retries)) && ((nudged == 0)); then
+        nudged=1
+        note "$name: response hit the output cap -- retrying in small steps"
+        attempt=$((attempt + 1))
+        continue
+      fi
+      outcome="output truncated (response cap; split the task or raise maxTokens)"
+      notify "✂ $name output truncated" \
+        "$verify -> exit $VERIFY_RC · split the task or raise maxTokens · pane $agent_pane" request
+      break
+    fi
+    ((attempt == max_retries)) && break
+    attempt=$((attempt + 1))   # NOT ((attempt++)): post-increment returns the old
+                               # value, and 0 trips pipefail on the first turn
+  done
+
+  # --- the branch must hold the work, whatever the outcome ---------------------
+  dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null || true)
+  if [[ -n "$dirty" ]]; then
+    if ((AGENT_COMMITS)); then
+      commit_leftovers "$name"
+      dirty=$(git -C "$wt_path" status --porcelain 2>/dev/null || true)
+    else
+      warn "$name: worktree is dirty and --no-commits was given -- nothing was committed"
+    fi
+  fi
+  write_artifact "$outcome"
+
+  if ((green)); then   # review artifact already written: .agent-queue/$name.md
+    note "✅ $name — verifier green → $branch"
+    notify_md "✅ $name" "branch $branch ready for review; .agent-queue/$name.md" "$STATE_DIR/$name.md" "done"
+    SUCCEEDED+=("$name")
+  else
+    note "⚠️  $name — $outcome"
+    # don't double-push: needs-input and blocked already announced themselves
+    case "$outcome" in
+      "needs input"* | "blocked "* | "output truncated"*) : ;;
+      "gate tampered"*)   # its own push: green-but-judged-by-edited-files is a different
+                          # incident from a verifier that simply still fails
+        notify_md "🚧 $name gate tampered — verifier was green" \
+          "${GATE_STATE} · $verify · pane $agent_pane · .agent-queue/$name.md" \
+          "$STATE_DIR/$name.md" request
+        ;;
+      *) notify_md "⚠ $name — $outcome" \
+           "$verify · pane $agent_pane · .agent-queue/$name.md" "$STATE_DIR/$name.md" request ;;
+    esac
+    FAILED+=("$name ($outcome)")
+  fi
+
+  if ((REMOVE_WORKTREES)); then
+    "$HERDR_BIN" worktree remove --workspace "$ws" --force >/dev/null 2>&1 ||
+      warn "$name: worktree remove failed (branch $branch still exists)"
+  fi
+done
+
+# ---- summary ------------------------------------------------------------------
+echo
+note "green   : ${SUCCEEDED[*]:-none}"
+note "needs   : ${FAILED[*]:-none}"
+note "skipped : ${SKIPPED[*]:-none}"
+note "artifacts: $STATE_DIR/ · logs: $LOG_DIR/"
+
+# A task file saved while this batch was running is invisible to it. When watched
+# (or asked), re-scan and re-exec rather than leaving work silently unqueued;
+# bounded so a file touched in a loop cannot spin forever.
+if ((DRAIN && ! DRY_RUN)) && (( ${AQ_PASS:-0} < DRAIN_MAX )); then
+  mapfile -t NEW < <(comm -13 <(printf '%s\n' "${SNAPSHOT[@]}" | sort) \
+                         <(find "$TASKS_DIR" -maxdepth 1 -name '*.md' | sort))
+  if ((${#NEW[@]})); then
+    note "task files landed during this run -- draining (pass $(( ${AQ_PASS:-0} + 1 ))):"
+    printf '  + %s\n' "${NEW[@]}"
+    AQ_PASS=$(( ${AQ_PASS:-0} + 1 )) exec "$0" "${ORIG_ARGS[@]}"
+  fi
+fi
+
+((${#FAILED[@]} == 0)) || exit 1

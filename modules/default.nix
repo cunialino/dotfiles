@@ -15,5 +15,6 @@
     ./mcp
     ./comfy-gen
     ./ntfy
+    ./herdr
   ];
 }

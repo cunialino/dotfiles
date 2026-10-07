@@ -90,6 +90,15 @@ in
                 id = gufoModelName;
                 contextWindow = 262144;
                 input = [ "text" "image" ]; # mmproj-BF16.gguf
+                # pi sends max_tokens from this field and falls back to 16384 when it is
+                # absent (core/provider-composer.js). That default is a trap for agentic
+                # work: 16k output tokens is not much once a model writes whole files, and
+                # a response cut off in the middle lands nothing at all -- pi shows
+                # "Response was truncated before completion", herdr still reports `done`,
+                # and the run is simply lost (measured: three attempts, zero files).
+                # The queue rations turns on one inference unit, so make the cap generous
+                # rather than polite; the agent model is the only one that writes files.
+                maxTokens = 32768;
               }
 
               # llama.cpp router presets (port 11435 behind the swap)

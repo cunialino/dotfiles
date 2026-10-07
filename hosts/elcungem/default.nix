@@ -44,6 +44,11 @@ in
 
     users.users.${username} = {
       isNormalUser = true;
+      # User units (herdr server, the queue's timers) must live without a login
+      # session: without lingering they only start once someone logs in, so an
+      # unattended machine would never run anything -- and `KillUserProcesses`
+      # aside, logging out would take the agents with it.
+      linger = true;
       initialPassword = "changeme";
       openssh.authorizedKeys.keys = [
         "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEfXbFJzHbBlJ6ZhoRoC61UJswWK72bpUA5Diuh1BXGB elia.cunial@gmail.com"

@@ -3,7 +3,7 @@
 if [ $# -eq 1 ]; then 
   CWD="$1"
 else
-  CWD=$(fd -d 1 -t d . ~/builds/ ~/WORK | fzf)
+  CWD=$(fd -d 1 -t d . ~/builds/ ~/WORK ~/.herdr/worktrees/*/ | fzf)
 fi
 
 if [[ $CWD == "" ]]; then
