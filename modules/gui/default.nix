@@ -8,13 +8,57 @@
 with lib;
 let
   cfg = config.modules.gui;
+
+  # Static bash script (see sway-wallpaper.sh), patched to a store bash so it
+  # also runs from sway's `exec`, where PATH is whatever sway happened to inherit.
+  wallpaperScript = pkgs.runCommand "sway-wallpaper" { } ''
+    mkdir -p $out/bin
+    cp ${./sway-wallpaper.sh} $out/bin/sway-wallpaper
+    chmod +x $out/bin/sway-wallpaper
+    patchShebangs $out/bin/sway-wallpaper
+  '';
 in
 {
   options.modules.gui.enable = mkEnableOption "gui";
+
+  options.modules.gui.wallpaper = {
+    dir = mkOption {
+      type = types.str;
+      default = "${config.home.homeDirectory}/wallpapers";
+      description = ''
+        Directory the rotation cycles through. Deliberately outside this repo:
+        the wallpapers themselves never reach git.
+      '';
+    };
+
+    intervalMinutes = mkOption {
+      type = types.ints.positive;
+      default = 15;
+      description = "How long each wallpaper stays up while rotating.";
+    };
+
+    toggleKey = mkOption {
+      type = types.str;
+      default = config.wayland.windowManager.sway.config.modifier + "+Shift+w";
+      defaultText = "<modifier>+Shift+w";
+      description = "Keybinding that switches between the fixed wallpaper and the rotation.";
+    };
+
+    defaultImage = mkOption {
+      type = types.str;
+      default = "${./wallpapers/wally.png}";
+      defaultText = "./wallpapers/wally.png";
+      description = ''
+        The wallpaper sway shows on a cold boot and whenever the rotation is off.
+      '';
+    };
+  };
+
   config = mkIf cfg.enable {
     home.packages =
       with pkgs;
       [
+        wallpaperScript
         firefox
         wireplumber
         wl-clipboard
@@ -24,6 +68,21 @@ in
       ++ (with pkgs.nerd-fonts; [ sauce-code-pro ]);
 
     home.file.".local/share/applications/firefox.desktop".source = ./firefox.desktop;
+
+    home.file.".config/sway-wallpaper/config".text = ''
+      WALLPAPER_DIR="${cfg.wallpaper.dir}"
+      WALLPAPER_INTERVAL_SECS="${toString (cfg.wallpaper.intervalMinutes * 60)}"
+      WALLPAPER_DEFAULT="${cfg.wallpaper.defaultImage}"
+      WALLPAPER_EXTRA_PATH="${
+        lib.makeBinPath [
+          config.wayland.windowManager.sway.package
+          pkgs.coreutils
+          pkgs.findutils
+          pkgs.gnugrep
+          pkgs.util-linux
+        ]
+      }"
+    '';
 
     fonts.fontconfig = {
       enable = true;
@@ -39,6 +98,10 @@ in
     home.activation = {
       refresh-font-cache = lib.hm.dag.entryAfter [ "installPackages" ] ''
         ${pkgs.fontconfig}/bin/fc-cache -f -v
+      '';
+      # The external wallpaper dir has to exist before there is anything to put in it.
+      create-wallpaper-dir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        mkdir -p ${lib.escapeShellArg cfg.wallpaper.dir}
       '';
     };
 
@@ -109,8 +172,17 @@ in
         };
 
         output."*" = {
-          background = "${./wallpapers/wally.png} fill";
+          background = "${cfg.wallpaper.defaultImage} fill";
         };
+
+        startup = [
+          # Reload/restart re-applies `output * background`, which would drop the
+          # rotation for one interval; this puts it straight back if it is on.
+          {
+            command = "sway-wallpaper resume";
+            always = true;
+          }
+        ];
 
         keybindings = lib.mkOptionDefault {
           "${config.wayland.windowManager.sway.config.modifier}+Return" = "exec foot";
@@ -196,6 +268,8 @@ in
 
           "${config.wayland.windowManager.sway.config.modifier}+u" = "workspace prev";
           "${config.wayland.windowManager.sway.config.modifier}+o" = "workspace next";
+
+          "${cfg.wallpaper.toggleKey}" = "exec sway-wallpaper toggle";
         };
 
         window = {
