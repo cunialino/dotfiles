@@ -94,8 +94,8 @@ local termfeatures = vim.g.termfeatures or {}
 termfeatures.osc52 = false
 vim.g.termfeatures = termfeatures
 
-vim.api.nvim_set_keymap("n", "<leader>t", "", { desc = "+Send to REPL (tmux/zellij)", noremap = true, silent = true })
-vim.api.nvim_set_keymap("v", "<leader>t", "", { desc = "+Send to REPL (tmux/zellij)", noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<leader>t", "", { desc = "+Send to REPL (tmux)", noremap = true, silent = true })
+vim.api.nvim_set_keymap("v", "<leader>t", "", { desc = "+Send to REPL (tmux)", noremap = true, silent = true })
 vim.api.nvim_set_keymap("n", "<leader>tt", ":lua require('repl_sender').send_line()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap("v", "<leader>tt", ":lua require('repl_sender').send_visual()<CR>",
   { noremap = true, silent = true })

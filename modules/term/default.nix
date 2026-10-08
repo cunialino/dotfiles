@@ -242,7 +242,7 @@ in
               "z"
               "s"
             ];
-            run = "shell --block -- zellij_sessionizer.sh %h";
+            run = "shell --block -- tmux_sessionizer.sh %h";
             desc = "Start New session in selected dir";
           }
           {

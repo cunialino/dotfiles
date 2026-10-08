@@ -1,11 +1,10 @@
--- repl_sender: pick the right "send code to another pane" backend for the
+-- repl_sender: pick the "send code to another pane" backend for the
 -- multiplexer we are currently running inside.
 --
---   tmux   -> lua/tmux_send
---   zellij -> lua/zellij_send
+--   tmux -> lua/tmux_send
 --
--- tmux wins when both are set, so a `tmux` session nested inside a zellij pane
--- still talks to the pane next to it inside tmux.
+-- tmux is the only multiplexer we support: outside it there is no backend, and
+-- the keymaps below only warn.
 
 local M = {}
 
@@ -13,16 +12,13 @@ local function impl()
   if vim.env.TMUX ~= nil then
     return require("tmux_send")
   end
-  if vim.env.ZELLIJ ~= nil or vim.env.ZELLIJ_SESSION_NAME ~= nil then
-    return require("zellij_send")
-  end
   return nil
 end
 
 local function dispatch(name)
   local mod = impl()
   if not mod then
-    vim.notify("repl_sender: not running inside tmux or zellij", vim.log.levels.WARN)
+    vim.notify("repl_sender: not running inside tmux", vim.log.levels.WARN)
     return
   end
   return mod[name]()
@@ -52,9 +48,6 @@ end
 function M.backend()
   if vim.env.TMUX ~= nil then
     return "tmux"
-  end
-  if vim.env.ZELLIJ ~= nil or vim.env.ZELLIJ_SESSION_NAME ~= nil then
-    return "zellij"
   end
   return "none"
 end

@@ -10,18 +10,15 @@ esac
 shift
 if [[ "${1:-}" == -- ]]; then shift; fi
 
-# One editor per multiplexer session, shared by the editor and Yazi panes.
-# Zellij takes precedence when it is nested inside tmux.
-if [[ -n "${ZELLIJ_SESSION_NAME:-}" ]]; then
-  session="zellij:$ZELLIJ_SESSION_NAME"
-elif [[ -n "${TMUX:-}" ]]; then
+# One editor per tmux session, shared by the editor and Yazi panes.
+if [[ -n "${TMUX:-}" ]]; then
   # The last field of $TMUX is not a reliable current session identifier.
   session="tmux:${TMUX%%,*}:$(tmux display-message -p -t "${TMUX_PANE:?}" '#{session_id}')"
 else
   if [[ "$mode" == launch ]]; then
     exec nvim "$@"
   fi
-  echo "Open an editor with 'n' in the same tmux or Zellij session first." >&2
+  echo "Open an editor with 'n' in the same tmux session first." >&2
   exit 1
 fi
 
