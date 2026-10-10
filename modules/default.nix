@@ -14,5 +14,6 @@
     ./pi-coding-agent
     ./mcp
     ./comfy-gen
+    ./ntfy
   ];
 }

@@ -137,11 +137,25 @@ in
     targets.genericLinux.nixGL.defaultWrapper = "mesa";
     targets.genericLinux.nixGL.installScripts = [ "mesa" ];
 
+    # Everything Wayland that is managed by systemd hangs off this target, which
+    # sway brings up itself (see the systemd block below). Without it a unit like
+    # swaync's is WantedBy a target that never starts, i.e. silently dead.
+    wayland.systemd.target = "sway-session.target";
+
     wayland.windowManager.sway = {
       enable = true;
       package = config.lib.nixGL.wrap pkgs.swayfx;
       checkConfig = false;
-      systemd.enable = false;
+      # sway-session.target, started by sway and stopped when sway exits: the
+      # startup line sway runs imports WAYLAND_DISPLAY & co into the systemd/D-Bus
+      # user environment, `reset-failed`, starts the target, then blocks in
+      # `swaymsg subscribe '[]'` until sway dies and stops it again. So Wayland
+      # services start with the compositor and take their turn down with it --
+      # and a failed one is reset on the next sway start instead of staying dead.
+      systemd.enable = true;
+      # This host runs dbus-broker (NixOS services.dbus.implementation), so use
+      # `systemctl --user import-environment` rather than dbus-update-activation-environment.
+      systemd.dbusImplementation = "broker";
       config = {
         modifier = "Mod4";
 
@@ -270,6 +284,10 @@ in
           "${config.wayland.windowManager.sway.config.modifier}+o" = "workspace next";
 
           "${cfg.wallpaper.toggleKey}" = "exec sway-wallpaper toggle";
+
+          # -sw: start swaync if the unit has not got it up yet, -t: toggle the
+          # control centre (it is also the notification window's only UI).
+          "${config.wayland.windowManager.sway.config.modifier}+n" = "exec swaync-client -t -sw";
         };
 
         window = {
@@ -323,6 +341,89 @@ in
         corner_radius 10
         blur enable
       '';
+    };
+
+    # The notification daemon. Styling is catppuccin's job (autoEnable hands
+    # services.swaync.style to catppuccin/nix, so setting `style` here would be
+    # a conflicting assignment); this is behaviour only.
+    services.swaync = {
+      enable = true;
+
+      settings = {
+        positionX = "right";
+        positionY = "top";
+
+        # Notifications float (overlay), the control centre sits above them. No
+        # exclusive zone is requested either, which matters in the top-right: a
+        # zone would push waybar's pill and relayout every workspace.
+        layer = "overlay";
+        control-center-layer = "top";
+        layer-shell = true;
+
+        # swaync's own style.css has to win over the catppuccin *gtk* theme, which
+        # is otherwise loaded from ~/.config/gtk-4.0/gtk.css.
+        cssPriority = "user";
+        ignore-gtk-theme = true;
+
+        fit-to-screen = false;
+        control-center-width = 480;
+        control-center-height = 860;
+        notification-window-width = 460;
+
+        # ntfy priority 4+ arrives as urgency critical (libnotify has nothing
+        # between normal and critical), which swaync then keeps on screen until
+        # dismissed -- that is the point of "a human is needed", and it is why
+        # ordinary messages must not linger either.
+        timeout = 10;
+        timeout-low = 5;
+        timeout-critical = 0;
+
+        notification-2fa-action = true;
+        notification-inline-replies = false;
+        notification-body-image-height = 160;
+        notification-body-image-width = 440;
+
+        relative-timestamps = true;
+        hide-on-clear = false;
+        hide-on-action = true;
+        text-empty = "Nothing";
+
+        widgets = [
+          "title"
+          "dnd"
+          "notifications"
+        ];
+        widget-config = {
+          title = {
+            text = "Notifications";
+            clear-all-button = true;
+            button-text = "Clear";
+          };
+          dnd.text = "Do Not Disturb";
+          notifications.vexpand = true;
+        };
+      };
+    };
+
+    # The waybar CSS in this module is hand-written, so the notification centre
+    # gets the same font as the bar rather than catppuccin's default.
+    catppuccin.swaync = {
+      font = "SauceCodePro Nerd Font";
+      fontSize = "13";
+    };
+
+    # Pushes that only ever reach a phone are useless while sitting at the
+    # machine, and the rig publishes to ntfy anyway (modules.herdr).
+    modules.ntfy = {
+      enable = lib.mkDefault true;
+      # Read the publishing topic too, so the agent queue's "needs a human"
+      # pushes show up on screen as well as on the phone. Same file, still never
+      # in the repo. mkOptionDefault because list options *replace* their default
+      # on the first definition: plain assignment here would silently drop the
+      # module's own ~/.config/ntfy/topics.
+      topicFiles = lib.mkIf config.modules.herdr.enable (lib.mkOptionDefault [
+        config.modules.herdr.queue.ntfyTopicFile
+      ]);
     };
 
     programs.rofi = {

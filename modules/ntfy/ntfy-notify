@@ -1,0 +1,359 @@
+#!/usr/bin/env bash
+#
+# ntfy-notify -- mirror ntfy topics into desktop notifications (swaync).
+#
+# One long-poll connection per topic (GET <topic>/json?since=all), decoded into
+# notify-send: ntfy priority maps onto the three urgencies libnotify actually
+# has, the click URL and any attachment name ride along in the body, and the
+# app-name is fixed ("ntfy") so swaync groups everything under one source and can
+# be given per-app rules.
+#
+#   ntfy-notify              # what the systemd user service runs, in foreground
+#   ntfy-notify --topics     # debug: show which topics resolve right now
+#
+# Why curl and not `ntfy subscribe`: nixpkgs has no package for binwiederhier's
+# ntfy -- `pkgs.ntfy` is an unrelated Python CLI that also happens to provide a
+# command called `ntfy`, and `ntfy subscribe` is not in it. The subscription API
+# is one unauthenticated GET, and curl is already how modules/herdr publishes,
+# so this does not put a fetched binary between the laptop and a notification.
+# (One thing curl is strictly better at: the Go client swallows non-message
+# events, so the server's 45s keepalives are invisible to it, while here they are
+# what tells a live connection apart from one that went quietly silent.)
+#
+# Why not `ntfy subscribe --from-config`: the topic name *is* the credential on
+# a tailnet-only server with no auth (homelab/base/ntfy), so it must never end
+# up in a file this repository generates. Topics are read from files that exist
+# on the machine at start-up -- the same convention modules.herdr.queue.ntfyTopicFile
+# uses for the publishing side, so one file feeds both.
+#
+# Replay: `since=all` (the default) makes the server re-send whatever is in its
+# cache -- 24h here (NTFY_CACHE_DURATION) -- on every connection. That is the
+# point: a bridge that only exists inside a graphical session would otherwise
+# silently drop everything published while the laptop was closed. The seen-ID
+# ledger under $XDG_RUNTIME_DIR is what keeps a replay from showing the same
+# message twice, and because *every* reconnect replays, a dropped connection
+# (tailscale down, laptop asleep, server restarted) cannot lose a message that
+# is still in the cache -- which is why the reconnect loop below is allowed to be
+# this stupid.
+#
+# Lifecycle: exits 0 with a message when no topic resolves (nothing to do, and
+# no restart loop); waits for *something* to own org.freedesktop.Notifications
+# before subscribing, so it does not care whether swaync or sway came up first;
+# exits non-zero when a delivery fails, so systemd restarts it and the replay
+# catches up on whatever the dead compositor missed.
+#
+# Needs on PATH: bash, curl, jq, notify-send, busctl, coreutils, grep. The NixOS
+# module pins all of them into a wrapper.
+
+set -uo pipefail # no -e on purpose: a bad message must not kill the subscription
+
+# ---- settings (baked in by modules/ntfy where it has an option, otherwise
+# defaults; every one of them is overridable by env) ---------------------------
+SERVER="${NTFY_SERVER:-@server@}"
+# Colon-separated list of files, one topic per line. '#' starts a comment. A line
+# may be a full URL, host/topic, or a bare topic name (expanded with SERVER).
+TOPIC_FILES="${NTFY_TOPIC_FILES:-@topicFiles@}"
+# Colon-separated topics that are safe to commit. Keep this empty for anything
+# you would not want read by the rest of the tailnet.
+EXTRA_TOPICS="${NTFY_TOPICS:-@topics@}"
+# Value of the `since=` query parameter: all | 10m | <unix ts> | "" (live only).
+SINCE="${NTFY_SINCE:-@replaySince@}"
+DEDUPE="${NTFY_DEDUPE:-@dedupe@}"
+APP_NAME="${NTFY_APP_NAME:-@appName@}"
+# Give up waiting for a notification daemon after this many seconds (0 = wait
+# forever, which is the right default on a machine that is sometimes headless).
+DAEMON_WAIT_SECS="${NTFY_DAEMON_WAIT_SECS:-@daemonWaitSecs@}"
+# How long to keep hammering a daemon that refuses to take the notification
+# before exiting for systemd to restart the whole thing (and replay).
+SEND_RETRIES="${NTFY_SEND_RETRIES:-5}"
+# Reconnect pause after a stream ends for any reason (server error, tailnet down,
+# curl's own --max-time expiring).
+RECONNECT_SECS="${NTFY_RECONNECT_SECS:-10}"
+# The server sends a keepalive every NTFY_KEEPALIVE_INTERVAL (45s here), so a
+# connection that has said nothing for this long is a lie: drop it and reconnect
+# rather than believing a stream that will never deliver again. 0 disables.
+IDLE_TIMEOUT_SECS="${NTFY_IDLE_TIMEOUT_SECS:-180}"
+# Hard lifetime of one connection. Reconnecting hourly is cheaper than trusting a
+# TCP stream forever, and with `since=all` plus the ledger a reconnect is free.
+STREAM_MAX_SECS="${NTFY_STREAM_MAX_SECS:-3600}"
+# Seen-ID ledger size. ntfy IDs are 10-12 chars, so this is a few tens of kB.
+SEEN_MAX="${NTFY_SEEN_MAX:-2000}"
+
+state_dir="${XDG_RUNTIME_DIR:-/tmp}/ntfy-notify"
+seen_file="$state_dir/seen"
+
+log() { printf 'ntfy-notify: %s\n' "$*" >&2; }
+
+# ---- topics ------------------------------------------------------------------
+# A topic can never contain '/', so the shape of the line decides how to expand
+# it. Bad lines are skipped loudly rather than subscribed to as nonsense.
+expand_topic() {
+  local t="$1"
+  case "$t" in
+    http://* | https://*) printf '%s\n' "$t" ;;
+    */*)                  printf 'https://%s\n' "$t" ;;
+    *[!A-Za-z0-9_-]* | '')
+      printf ''
+      ;;
+    *) printf '%s/%s\n' "${SERVER%/}" "$t" ;;
+  esac
+}
+
+# label <topic-url> -- short name for logs; the last path segment, which is the
+# topic itself. It is printed on screen with every message, so treat the topic
+# name as what it is: a secret you are showing on your own monitor.
+label() { local t="${1%/}"; printf '%s' "${t##*/}"; }
+
+resolve_topics() {
+  local file line expanded
+  declare -A seen=()
+  local -a sources=()
+  local IFS=':'
+  read -ra sources <<<"$TOPIC_FILES"
+  for file in "${sources[@]}"; do
+    [[ -n "$file" ]] || continue
+    if [[ ! -r "$file" ]]; then
+      log "no topics from ${file} (not readable)"
+      continue
+    fi
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      line="${line%%#*}"
+      line="${line//[[:space:]]/}"
+      [[ -n "$line" ]] || continue
+      expanded="$(expand_topic "$line")"
+      if [[ -z "$expanded" ]]; then
+        log "ignoring '${line}' in ${file}: not a topic name, host/topic, or URL"
+        continue
+      fi
+      [[ -n "${seen[$expanded]:-}" ]] && continue
+      seen["$expanded"]=1
+      printf '%s\n' "$expanded"
+    done <"$file"
+  done
+  read -ra sources <<<"$EXTRA_TOPICS"
+  for line in "${sources[@]}"; do
+    [[ -n "$line" ]] || continue
+    expanded="$(expand_topic "$line")"
+    [[ -n "$expanded" ]] || {
+      log "ignoring configured topic '${line}'"
+      continue
+    }
+    [[ -n "${seen[$expanded]:-}" ]] && continue
+    seen["$expanded"]=1
+    printf '%s\n' "$expanded"
+  done
+}
+
+# ---- seen-ID ledger ---------------------------------------------------------
+seen_before() {
+  [[ "$DEDUPE" == "true" ]] || return 1
+  grep -qxF -- "$1" "$seen_file" 2>/dev/null
+}
+
+mark_seen() {
+  [[ "$DEDUPE" == "true" ]] || return 0
+  mkdir -p "$state_dir" || return 0
+  printf '%s\n' "$1" >>"$seen_file" || return 0
+  if (( $(wc -l <"$seen_file") > SEEN_MAX )); then
+    tail -n "$SEEN_MAX" "$seen_file" >"${seen_file}.tmp" 2>/dev/null &&
+      mv -f "${seen_file}.tmp" "$seen_file" 2>/dev/null
+  fi
+}
+
+# ---- notification daemon ----------------------------------------------------
+# libnotify has no "is anyone listening" call, and sending a probe would put a
+# notification on screen, so ask the bus instead.
+daemon_ready() {
+  busctl --user call org.freedesktop.DBus /org/freedesktop/DBus \
+    org.freedesktop.DBus NameHasOwner s org.freedesktop.Notifications 2>/dev/null |
+    grep -q 'b true'
+}
+
+wait_for_daemon() {
+  local waited=0
+  while ! daemon_ready; do
+    if ((DAEMON_WAIT_SECS > 0 && waited >= DAEMON_WAIT_SECS)); then
+      log "no notification daemon after ${DAEMON_WAIT_SECS}s (is swaync running?); exiting"
+      return 1
+    fi
+    ((waited == 0)) && log "waiting for a notification daemon…"
+    sleep 5
+    waited=$((waited + 5))
+  done
+}
+
+# ---- message -> notification ------------------------------------------------
+# Why notify-send's stderr is kept: "the daemon is gone" and "the daemon refused
+# this one message" need different answers, and the journal is the only place
+# either can be read afterwards.
+send_error=""
+
+send_notification() { # send_notification <urgency> <summary> <body>
+  local urgency="$1" summary="$2" body="$3" attempt=1 out
+  send_error=""
+  while true; do
+    if out=$(notify-send -a "$APP_NAME" -u "$urgency" -- "$summary" "$body" 2>&1); then
+      return 0
+    fi
+    send_error="$out"
+    if ((attempt >= SEND_RETRIES)); then
+      return 1
+    fi
+    attempt=$((attempt + 1))
+    sleep 1
+  done
+}
+
+handle_message() { # handle_message <raw json line>
+  local json="$1"
+  local event
+  event=$(jq -r '.event // "message"' <<<"$json" 2>/dev/null) || return 0
+  [[ "$event" == "message" ]] || return 0 # keepalive/open/... are not notifications
+
+  local id
+  id=$(jq -r '.id // empty' <<<"$json" 2>/dev/null)
+  [[ -n "$id" ]] || return 0
+  seen_before "$id" && return 0
+
+  local title body prio click tags attachment
+  title=$(jq -r '.title // empty' <<<"$json" 2>/dev/null)
+  body=$(jq -r '.message // empty' <<<"$json" 2>/dev/null)
+  prio=$(jq -r '.priority // 3' <<<"$json" 2>/dev/null)
+  click=$(jq -r '.click // empty' <<<"$json" 2>/dev/null)
+  # ntfy tags are either emoji (already pretty) or names like "warning"; only the
+  # emoji are worth putting in the summary, names would be noise.
+  tags=$(jq -r '(.tags // []) | map(select(test("[^ -~]"))) | join("")' <<<"$json" 2>/dev/null)
+  attachment=$(jq -r 'if .attachment then (.attachment.name // .attachment.url // "") else "" end' <<<"$json" 2>/dev/null)
+
+  local summary="$title"
+  [[ -n "$summary" ]] || summary="ntfy · $(label "${topic_url:-}")"
+  [[ -n "$tags" ]] && summary="$tags $summary"
+
+  local text="$body"
+  # ntfy's own body for a file upload is "You received a file: x.png", so only
+  # add the line when the message does not already name the attachment.
+  [[ -z "$attachment" || "$text" == *"$attachment"* ]] ||
+    text="${text:+$text$'\n'}📎 $attachment"
+  # swaync has no click-to-open, so the URL has to be readable/copyable text.
+  [[ -z "$click" || "$text" == *"$click"* ]] || text="${text:+$text$'\n'}$click"
+  [[ -n "$text" ]] || text="(no body)"
+
+  # libnotify has exactly three urgencies -- low, normal, critical -- and says so
+  # with a non-zero exit rather than clamping (`notify-send -u high` is a hard
+  # error), so ntfy's 4 has to land somewhere. 4 and 5 both go critical: on the
+  # rig that pushes here, 4 is "this rig needs a human" and 5 is "answer now"
+  # (see modules/herdr), and critical is the one level swaync never times out.
+  # Anything unparseable stays normal rather than screaming.
+  local urgency=normal
+  case "$prio" in
+    1 | 2) urgency=low ;;
+    4 | 5) urgency=critical ;;
+  esac
+
+  if send_notification "$urgency" "$summary" "$text"; then
+    mark_seen "$id"
+  elif daemon_ready; then
+    # The daemon is up and refused *this* message. Burn it: since every
+    # reconnect replays, refusing to mark it seen would restart-loop the bridge
+    # on one message and deliver nothing else. This is also the only place a
+    # notify-send complaint ever surfaces.
+    log "the daemon refused '${summary}' (${send_error:-no error output}); skipping it"
+    mark_seen "$id"
+  else
+    # The daemon went away mid-run (sway restarted). Ending this subscription is
+    # enough: main() restarts the unit, the replay comes back with this message
+    # in it, and the ledger makes sure only the undelivered ones are shown.
+    log "delivery failed for '${summary}' and no daemon answered; exiting for a replay"
+    exit 1
+  fi
+}
+
+# ---- subscriptions ----------------------------------------------------------
+# topic_url is global-by-convention: handle_message falls back to it for the
+# summary of a title-less message. Each subscription runs in its own subshell, so
+# the assignment cannot leak between topics.
+read_stream() { # reads the JSON stream on stdin until EOF or silence
+  local line rc
+  while true; do
+    # $? straight after the read: an `if` around it would replace the status with
+    # its own, and the difference between "timed out" and "eof" is the whole point.
+    IFS= read -r -t "$IDLE_TIMEOUT_SECS" line
+    rc=$?
+    if ((rc != 0)); then
+      # >128 is the -t timeout; 1 is EOF (curl is gone, and it already put its
+      # own complaint in the journal). 0 as IDLE_TIMEOUT_SECS means no timeout.
+      ((rc > 128)) && log "no keepalive or message for ${IDLE_TIMEOUT_SECS}s, dropping the connection"
+      return 0
+    fi
+    [[ -n "$line" ]] && handle_message "$line"
+  done
+}
+
+subscribe() { # subscribe <topic-url>
+  local url="$1" stream_url
+  topic_url="$url"
+  stream_url="${url%/}/json"
+  [[ -n "$SINCE" ]] && stream_url+="?since=${SINCE}"
+  while true; do
+    log "listening to $(label "$url") (since ${SINCE:-now})"
+    # curl's stderr goes to the journal, not into the loop: an error line is not
+    # a message. --no-buffer because a buffered notification is a late one.
+    read_stream < <(exec curl -fsSN --no-buffer --max-time "$STREAM_MAX_SECS" "$stream_url")
+    log "stream for $(label "$url") ended, retrying in ${RECONNECT_SECS}s"
+    sleep "$RECONNECT_SECS"
+  done
+}
+
+main() {
+  case "${1:-}" in
+    --topics)
+      resolve_topics
+      return 0
+      ;;
+    -h | --help)
+      printf 'usage: ntfy-notify [--topics|--help]\n\n'
+      printf 'Subscribes to every topic resolved from NTFY_TOPIC_FILES/NTFY_TOPICS and\n'
+      printf 'turns each message into a desktop notification. Foreground only: this is\n'
+      printf 'the ExecStart of the ntfy-notify.service user unit.\n'
+      return 0
+      ;;
+  esac
+
+  local -a topics=()
+  mapfile -t topics < <(resolve_topics)
+  if ((${#topics[@]} == 0)); then
+    log "no topics configured. Write one per line to ${TOPIC_FILES%%:*} (chmod 600), e.g."
+    log "  printf 'https://%s/%s\n' '${SERVER%/}' \"\$(head -c 8 /dev/urandom | od -An -tx1 | tr -d ' \n')\" > ${TOPIC_FILES%%:*}"
+    return 0
+  fi
+
+  wait_for_daemon || return 1
+
+  local -a pids=()
+  local url
+  for url in "${topics[@]}"; do
+    (subscribe "$url") &
+    pids+=("$!")
+  done
+
+  on_signal() {
+    trap - TERM INT
+    log "stopping (${#pids[@]} subscriptions)"
+    kill "${pids[@]}" 2>/dev/null
+    # systemd reaps whatever is left in the cgroup, including the ntfy clients.
+    exit 0
+  }
+  trap on_signal TERM INT
+
+  # subscribe() retries by itself forever, so the only way a child gets here is
+  # a delivery that failed for good: the daemon is gone (sway restarted) and the
+  # honest thing to do is restart the unit, let the replay bring the missed
+  # messages back, and let the ledger hide the ones already shown.
+  wait -n "${pids[@]}" 2>/dev/null
+  local rc=$?
+  log "a subscription exited (rc ${rc}); restarting for a replay"
+  kill "${pids[@]}" 2>/dev/null
+  return 1
+}
+
+main "$@"
