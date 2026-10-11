@@ -23,7 +23,7 @@ if [ -r "$config_file" ]; then
   . "$config_file"
 fi
 
-wall_dir="${WALLPAPER_DIR:-$HOME/wallpapers}"
+wall_dir="${WALLPAPER_DIR:-$HOME/builds/wallpapers/output/}"
 interval_secs="${WALLPAPER_INTERVAL_SECS:-900}"
 # Empty means: leave whatever sway's own config set up.
 default_image="${WALLPAPER_DEFAULT:-}"
