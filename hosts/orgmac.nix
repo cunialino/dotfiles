@@ -19,11 +19,9 @@
       ai.enable = true;
       opencode.enable = true;
       pi-coding-agent.enable = true;
-      mcp.enable = true;
-      mcp.servers = {
-        graphiti.url = "https://graphiti.tail2f38ea.ts.net/mcp";
-        k8s-ddg-search.url = "https://ddg.tail2f38ea.ts.net/mcp";
-      };
+      # No MCP servers on orgmac, deliberately: this is a work box and it should
+      # have no route into the home cluster -- neither the kube-vip LAN addresses
+      # nor the ts.net ingresses. pi runs here, it just runs without servers.
     };
     home.packages = with pkgs; [
       awscli2

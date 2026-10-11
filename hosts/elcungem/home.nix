@@ -65,9 +65,13 @@
         };
       };
 
+      # MCP servers on the cluster reached through their kube-vip addresses
+      # (myai: base/graphiti -> .201, base/ddg-search -> .202) instead of the
+      # Tailscale ingresses: plain HTTP on the LAN, no tsnet round trip and no
+      # dependency on tailscaled being up. Only reachable from the LAN.
       mcp.servers = {
-        graphiti.url = "https://graphiti.tail2f38ea.ts.net/mcp";
-        k8s-ddg-search.url = "https://ddg.tail2f38ea.ts.net/mcp";
+        graphiti.url = "http://192.168.0.201:8000/mcp";
+        k8s-ddg-search.url = "http://192.168.0.202/mcp";
       };
     };
 
