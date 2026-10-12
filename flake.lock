@@ -143,11 +143,11 @@
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
-        "lastModified": 1791137065,
-        "narHash": "sha256-bDVzLlO2SNDzPf0YoDEexH4xmkSVL/et4MGY9bJ3vkY=",
+        "lastModified": 1791785383,
+        "narHash": "sha256-Q9N8NqllFtPTzT9y5LiOB0WwsJ4GDZqfsgM5QqKpHkk=",
         "owner": "cunialino",
         "repo": "myai",
-        "rev": "f829e1341fcaa1086e088af14eefb42a0d665df1",
+        "rev": "e79c7352d6bfd7b4e5ab3d5e305b746da54dca8d",
         "type": "github"
       },
       "original": {
