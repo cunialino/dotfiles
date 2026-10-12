@@ -24,7 +24,7 @@ in
   options.modules.gui.wallpaper = {
     dir = mkOption {
       type = types.str;
-      default = "${config.home.homeDirectory}/wallpapers";
+      default = "${config.home.homeDirectory}/builds/wallpapers/output";
       description = ''
         Directory the rotation cycles through. Deliberately outside this repo:
         the wallpapers themselves never reach git.
@@ -33,7 +33,7 @@ in
 
     intervalMinutes = mkOption {
       type = types.ints.positive;
-      default = 15;
+      default = 1;
       description = "How long each wallpaper stays up while rotating.";
     };
 
