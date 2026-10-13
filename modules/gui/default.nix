@@ -311,7 +311,7 @@ in
               criteria = {
                 app_id = ".*";
               };
-              command = "opacity 0.8";
+              command = "opacity 0.6";
             }
           ];
         };
