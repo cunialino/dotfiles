@@ -8,6 +8,17 @@
     # AI workloads (Open WebUI deploy + canonical ComfyUI workflow). Referenced
     # by modules/comfy-gen to share one workflow source with the myai repo.
     myai.url = "github:cunialino/myai";
+    # llama.cpp upstream master. Only for the /v1/systemone decision endpoint, which
+    # merged on 2026-10-02 (PR #29818, merge commit a4cb4c6) while nixpkgs still
+    # packages 0.5.0 = upstream 7fe450e of 2026-09-23. flake = false because we want
+    # the source tree, not llama.cpp's own flake graph; the overlay in
+    # hosts/strix_halo turns it into the llama-cpp (and therefore llama-cpp-rocm)
+    # of this system. `nix flake update llama-cpp` moves it; drop the input and the
+    # overlay and the box is back on nixpkgs' build.
+    llama-cpp = {
+      url = "github:ggml-org/llama.cpp/master";
+      flake = false;
+    };
     # gufo: Strix Halo inference engine (Qwen3.8 Flash-Next + Qwen-Image-2.1).
     # Replaces halogen as this agent's backend. Only ONE derivation builds -- every
     # ROCm dependency it needs is already on cache.nixos.org -- so it does not put

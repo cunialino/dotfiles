@@ -54,6 +54,10 @@ let
   # share the box with gufo: flash_serve held ~70 GiB while gufo needed ~98 GiB,
   # which is what killed gufo on `hipMalloc failed for blk.8.ffn_down_exps.weight`.
 
+  # llama.cpp comes from upstream master, not from nixpkgs -- see nixpkgs.overlays
+  # below the `in`. Setting this to false puts the box back on nixpkgs' 0.5.0.
+  llamaCppMain = true;
+
   # Native ROCm from nixpkgs (ROCm 7.2.3; the hip arch list ships gfx1151, so no
   # HSA override tricks are needed on Strix Halo). llama.cpp runs from there.
   #
@@ -123,6 +127,68 @@ in
   imports = [
     ./hardware-config.nix
     sys_dir
+  ];
+
+  # -------------------------------------------------------------------------
+  # llama.cpp from upstream master, by overlay
+  #
+  # nixpkgs pins llama-cpp 0.5.0 = upstream 7fe450e (2026-09-23). The /v1/systemone
+  # decision endpoint merged on 2026-10-02 (PR #29818), so the packaged build
+  # cannot serve it -- the installed binary's route table stops at
+  # /v1/{chat,completions,embeddings,health,messages,models,rerank,responses}.
+  # An overlay on the source is cheaper here than a nixpkgs bump: the alternative
+  # moves every package on the box, including the ROCm stack that the HIP build
+  # and ComfyUI's container ride on.
+  #
+  # One entry covers both attributes: pkgs/by-name/ll/llama-cpp-rocm/package.nix is
+  # literally `llama-cpp.override { rocmSupport = true; }`, and it takes llama-cpp
+  # from the final package set, so the override propagates to the -rocm variant
+  # that llama-cpp.service and llama-decider.service use.
+  #
+  # The web UI is switched off rather than maintained. nixpkgs builds tools/ui with
+  # fetchNpmDeps, and that hash belongs to the packaged tag: tracking master means
+  # re-hashing it on every bump, and the npm-config hook hard-fails if npmDeps is
+  # simply nulled out, so the hook comes out of nativeBuildInputs too. Nothing here
+  # opens the UI -- both servers bind to loopback and every client reaches them
+  # through llama-swap on 11434.
+  # -------------------------------------------------------------------------
+
+  nixpkgs.overlays = lib.optionals llamaCppMain [
+    (
+      final: prev:
+      {
+        # gfx1151 only, and it has to be set here rather than on llama-cpp-rocm:
+        # pkgs/by-name/ll/llama-cpp-rocm/package.nix is
+        #   { llama-cpp }: llama-cpp.override { rocmSupport = true; }
+        # so that wrapper takes one argument and `rocmGpuTargets` reaches the real
+        # package only through this attribute.
+        #
+        # nixpkgs defaults to its whole ROCm list -- gfx900 through gfx1201,
+        # sixteen arches -- because it publishes one binary for every AMD GPU. That
+        # is free while the build comes off cache.nixos.org and ruinous for a source
+        # override, where nothing is cached and every arch is its own set of HIP
+        # kernels. This board has exactly one, and it is already inside nixpkgs'
+        # list, so the target is unchanged and only the count is. If the box ever
+        # gains a second AMD GPU, this is the line to widen.
+        llama-cpp = (
+          prev.llama-cpp.override { rocmGpuTargets = [ "gfx1151" ]; }
+        ).overrideAttrs (
+          finalAttrs: prevAttrs:
+          {
+            version = "main-${inputs.llama-cpp.shortRev or "unlocked"}";
+            src = inputs.llama-cpp;
+
+            npmDeps = null;
+            preConfigure = "";
+            nativeBuildInputs = lib.filter (
+              d: lib.getName d != "npm-config-hook"
+            ) (prevAttrs.nativeBuildInputs or [ ]);
+            cmakeFlags = (prevAttrs.cmakeFlags or [ ]) ++ [ "-DLLAMA_BUILD_UI=OFF" ];
+          }
+        );
+
+      }
+    )
   ];
 
   home-manager.users.${username} = import ./home.nix;

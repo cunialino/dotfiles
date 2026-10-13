@@ -115,6 +115,23 @@
       }
     },
     "llama-cpp": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791915739,
+        "narHash": "sha256-7kli7M6qHjmpxG3Ho4rumAIUpFX6K1aopid77bNshPQ=",
+        "owner": "ggml-org",
+        "repo": "llama.cpp",
+        "rev": "1b70350c92563449576bcbbf552994b1d1ed847d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ggml-org",
+        "ref": "master",
+        "repo": "llama.cpp",
+        "type": "github"
+      }
+    },
+    "llama-cpp_2": {
       "inputs": {
         "flake-parts": "flake-parts",
         "nixpkgs": [
@@ -139,7 +156,7 @@
     },
     "myai": {
       "inputs": {
-        "llama-cpp": "llama-cpp",
+        "llama-cpp": "llama-cpp_2",
         "nixpkgs": "nixpkgs_3"
       },
       "locked": {
@@ -271,6 +288,7 @@
         "catppuccin": "catppuccin",
         "gufo": "gufo",
         "home-manager": "home-manager",
+        "llama-cpp": "llama-cpp",
         "myai": "myai",
         "nixgl": "nixgl",
         "nixpkgs": "nixpkgs_5"
