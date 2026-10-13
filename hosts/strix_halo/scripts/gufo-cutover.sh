@@ -290,6 +290,20 @@ stage_preflight() {
     exit 1
   fi
 
+  # The always-on System One reader is the one thing the pool shares with
+  # permanently: vllm-d3-nano measured 3.44 GiB of MemAvailable next to a loaded
+  # gufo, 2.42 GiB of it on the device side -- i.e. NOT visible in the process's
+  # RSS, which read 1.1 GiB. It is supposed to be there (OOMScoreAdjust makes it
+  # the one that dies, never gufo), but it is why a cold load now starts from
+  # ~117 GiB rather than ~121, so print it instead of letting the floor below look
+  # like it came from nowhere.
+  if systemctl is-active --quiet llama-decision.service; then
+    mc=$(systemctl show llama-decision.service -p MemoryCurrent --value)
+    say "      llama-decision.service up: MemoryCurrent $(numfmt --from=iec "${mc:-0}" 2>/dev/null || echo "${mc} B") (always-on reader, counted against the floor)"
+  else
+    say "      llama-decision.service not running"
+  fi
+
   say "      MemAvailable: $(numfmt --from=iec --to=iec $(mem_avail_kb)K 2>/dev/null || echo "$(mem_avail_kb) kB")   (floor: $((MEM_NEEDED_KB / 1048576)) GiB; the real gate is flash_serve being gone)"
   if halogen_engine_running; then
     say "      flash_serve is running and holding ~70 GiB of unified memory: $(pgrep -x flash_serve | tr '\n' ' ')"

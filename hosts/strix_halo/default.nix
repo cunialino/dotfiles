@@ -11,6 +11,61 @@ let
   llamaModelsDir = "/var/lib/llama-models";
   comfyDataDir = "/var/lib/comfyui";
 
+  # vllm-d3-nano (vllm-sr Decision 3.0, 2.39 B) is the always-on decision model:
+  # a "System One" reader that answers typed questions -- choice, noul, score --
+  # in one forward pass, no generation. llama.cpp knows it natively
+  # (general.architecture = qwen35, qwen35.decision.type = vllm-d3, log line
+  # "decision model type: vllm-d3", /v1/models reports
+  # architecture.output_modalities = ["decisions"]), so the endpoint is
+  # /v1/systemone rather than chat. Weights are the official GGUF, placed by hand
+  # under ${llamaModelsDir} like every other model tree here, so the command is
+  # recorded:
+  #
+  #   hf download ggml-org/vllm-d3-nano-GGUF vllm-d3-nano-Q8_0.gguf \
+  #     --local-dir /var/lib/llama-models/d3-nano
+  #
+  # 2552358432 bytes, sha256
+  # 5da453f497bdadfa1890e914c1aa73815ad869e50711925a581c53079123328e -- the same
+  # digest the HF API reports as the file's LFS oid.
+  #
+  # The mmproj (365 MB) is deliberately NOT on disk: the d3 family also reads
+  # images and video, nothing here sends either, and the vision encoder is not in
+  # this file (input_modalities stays ["text"] without a projector), so it would
+  # be 365 MB of cold storage, not a capability.
+  #
+  # Q8_0 over BF16 (4.79 GB) for the reason that already governed Julia: the
+  # answers are probabilities, and a quantised embedding is a quantised answer.
+  # Julia could afford that because the file was 168 MB; nano can afford it
+  # because 2.4 GiB is what fits (see the budget on the unit). Note the contrast
+  # with internlm/Intern-Decision-2B, whose calibration temperature (2.1005, fitted
+  # on BF16) makes quantising it a change of contract -- that model is not a
+  # llama.cpp decision model either (/v1/systemone answers 501 "This model is not a
+  # decision model", output_modalities ["text"]), so it needs hand-rolled logprobs
+  # at the answer slot: the decider-0.8b mistake again, and why it is not here.
+  # The d3 GGUF ships qwen35.decision.temperature.{choice,score,noul} = 1.0, so
+  # llama.cpp applies no correction and Q8_0 is the shipping configuration.
+  #
+  # Chosen against this box's memory ceiling, not against the leaderboard. Of the
+  # ggml-org decision collection, what fits beside a loaded gufo is d3-edge (768 MB
+  # Q8_0, Jev Decision Index 0.3.2 = 20.2), Julia-1 (160 MB, not on that board),
+  # d3-lite (1.03 GB, 32.3) and nano; d3-mini (4.9 GB, 52.6) and every 4B-and-up
+  # entry -- Kev-4B, lev, Clef-Flash, Clef/OpenJev/vllm-d3 at 27 GB -- are not.
+  # nano is the largest that still fits and the best of what does (38.9, on the
+  # board's Pareto frontier, first among the twelve entries within 0.75-1.33x its
+  # size).
+  #
+  # Julia-1 stays on disk under ${llamaModelsDir}/julia-1 as the rollback: same
+  # /v1/systemone contract, 0.68 GiB instead of 3.4, answers in 24-58 ms instead of
+  # 160-230 ms, and its measurements are kept in git history. Rolling back is these
+  # three bindings plus -c/-b/-ub back to 8192.
+  #
+  # Named for the job, not the weights: the unit is llama-decision, so the next
+  # swap (Clef, OpenJev, a bigger d3 on a bigger box) is again these three bindings
+  # plus the flags the note on the unit documents.
+  decisionId = "d3-nano";
+  decisionGguf = "${llamaModelsDir}/d3-nano/vllm-d3-nano-Q8_0.gguf";
+  decisionPort = 11436;
+
   # gufo replaces halogen as this agent's backend. Models live in their own tree;
   # the files come from the pinned `hf download`s documented in
   # modules/pi-coding-agent (gufo docs qualify exact revisions, not "latest").
@@ -143,7 +198,7 @@ in
   # One entry covers both attributes: pkgs/by-name/ll/llama-cpp-rocm/package.nix is
   # literally `llama-cpp.override { rocmSupport = true; }`, and it takes llama-cpp
   # from the final package set, so the override propagates to the -rocm variant
-  # that llama-cpp.service and llama-decider.service use.
+  # that llama-cpp.service and llama-decision.service use.
   #
   # The web UI is switched off rather than maintained. nixpkgs builds tools/ui with
   # fetchNpmDeps, and that hash belongs to the packaged tag: tracking master means
@@ -246,12 +301,15 @@ in
       enable = true;
       interfaces.${eth}.allowedTCPPorts = [
         22
-        # llama-swap is the only model-serving port. 8731 is closed for good now
+        # 11434 is llama-swap, the switchable models: 8731 is closed for good now
         # that halogen is off the config; gufo answers on 8732 behind the swap.
+        # 11436 is llama-decision (d3-nano, always on) published directly because
+        # llama-swap has no /v1/systemone route to proxy it -- see the unit.
         # 8188 stays open on purpose --
         # ComfyUI's web UI and `comfy-gen --server` talk to it directly, but the
         # service itself is still only started/stopped by llama-swap.
         11434
+        11436
         8188
       ];
     };
@@ -377,13 +435,188 @@ in
   systemd.services.podman-comfyui.unitConfig.PartOf = [ "llama-cpp.service" ];
 
   # -------------------------------------------------------------------------
-  # llama-swap: the only serving path
+  # llama-decision: the always-on System One reader (vllm-d3-nano)
+  #
+  # Always on means wantedBy multi-user.target: this is the one inference unit on
+  # the box that comes up with the host and stays up. It costs 3.4-3.6 GiB of the
+  # 124 -- 2.42 GiB of it on the device side (2.37 GiB of Q8_0 weights + 448 MiB of
+  # compute buffers + 48 MiB of KV at -c 4096, which is what llama.cpp itself
+  # projects), the rest host anon (HIP context, rocblas scratch, staging) -- and
+  # answers in 160-230 ms on the 90-280 token states this box actually sees, so
+  # unlike every other unit here it is worth paying for permanently: never having
+  # to wait for a model to load is the point.
+  #
+  # The cost is the whole argument, so it is measured rather than assumed. With
+  # gufo loaded and serving, MemAvailable has dropped to 5,823 MiB (median 10,268
+  # over 604 requests), there is no swap, and the OOM killer has already taken gufo
+  # twice (Oct 14 21:12, Oct 15 09:24) at the footprint that existed BEFORE this
+  # unit was this big. So the rule is not "make room", it is "be sure who dies if
+  # room runs out", and it is never gufo:
+  #   * this unit dies first (OOMScoreAdjust=800, and the cgroup caps below); the
+  #     reader going dark and reloading is a bad minute, gufo going dark is a dead
+  #     agent mid-turn;
+  #   * gufo is last (OOMScoreAdjust=-500) and its working set is kept out of
+  #     reclaim's way with MemoryLow -- a protection, not a reservation: unlike
+  #     memory.min it never refuses an allocation, it just makes this cgroup the
+  #     last one the kernel takes pages from.
+  # MemoryHigh/MemoryMax bound the unit's own footprint, and are set above the
+  # measured cost on purpose: clamp them to 2.5 GiB and the reader does not die
+  # gracefully, it thrashes its own pages and answers slowly forever. Note they are
+  # not the primary guarantee -- the ~2.4 GiB llama.cpp puts on the device goes
+  # through the amdgpu/TTM pool, not through the memory controller, which is exactly
+  # why process RSS read 1.1 GiB while MemAvailable fell 3.4 GiB.
+  #
+  # Why it is NOT a llama-swap row, and answers on its own published port:
+  #   * llama-swap has no /v1/systemone. The string appears 0 times in its
+  #     binaries (build 249 and master alike) and POST :11434/v1/systemone is a
+  #     404. A row would be a proxy that cannot forward the only endpoint worth
+  #     calling;
+  #   * the router is a shared unit, so a row is only ever as always-on as the
+  #     biggest preset beside it: holder teardown is
+  #     `systemctl stop llama-cpp.service`, and the agent group stops that holder
+  #     whenever this agent gets a turn;
+  #   * always-on *on the router* would mean persistent=true on a group whose
+  #     member is the router itself, i.e. nothing could ever unload up to
+  #     `models-max = 2` presets of 23-65 GiB -- precisely the memory gufo needs
+  #     back (~98 GiB) when the agent group takes over.
+  # One llama-server per unit keeps the holders honest; this one has no holder at
+  # all.
+  #
+  # Calling it. This GGUF is a native decision model: llama.cpp logs "decision
+  # model type: vllm-d3" for it and /v1/models reports
+  # architecture.output_modalities = ["decisions"]. `questions` is an OBJECT keyed
+  # by field id, each {type: choice|noul|score, criteria: {label: description}} --
+  # an array of question objects is rejected with "\"questions\" must be a
+  # non-empty object" (and criteria, not options, is the required key). So there is no generation and
+  # no sampling -- one forward pass over `state` yields per question a choice
+  # (softmax over the criteria labels), a noul (probability of the question being
+  # true) or a score (position on the criteria scale). No --temp/--jinja/--top-p
+  # here on purpose: the previous reader on this port (decider-0.8b) needed a
+  # hand-rolled logprobs readout at the answer slot because llama.cpp does not
+  # recognise it as a decision model at all -- its GGUF carries no *.decision.*
+  # keys -- which is also why that model is gone from the config.
+  #
+  # Two limits of these encoder-style models, both measured here, both easy to
+  # trip (the launch post's commenters hit the first one blind):
+  #   * the input has to fit in ONE batch, so --ubatch-size, not --ctx-size, is
+  #     the real ceiling: at -ub 2048 a 5611-token state comes back "input (5611
+  #     tokens) is too large to process. increase the physical batch size (current
+  #     batch size: 2048)";
+  #   * per-request context is ctx/parallel -- kv_unified stays false for this
+  #     class -- so -c 8192 -np 4 would cap a single state at 2048 tokens.
+  # Hence -np 1 with -c = -b = -ub = 8192, one slot holding the model's entire
+  # trained context; llama.cpp will not go past it anyway ("the slot context
+  # (32768) exceeds the training context of the model (8192) - capping").
+  # Concurrency queues instead of splitting the context, which for a ~50 ms read
+  # is the right trade.
+  #
+  # Measured here (2026-10-17, main-1b70350, gufo resident on the same iGPU):
+  #   launch -> /health 200      ~4 s, 3.44 GiB of MemAvailable
+  #   275 tok, choice + noul     0.327 s cold / 0.16-0.23 s warm
+  #                              (billing p=0.99991, confidence 0.9991)
+  #   3607 tok                   1.65 s -> ~2.2 k tok/s of prefill
+  #   MemAvailable 8.94 -> 5.34 GiB with it serving, back to 8.94 on kill
+  # That is ~4x Julia-1's read time (0.024-0.058 s) for 24x the weights, which is
+  # the trade being made: 16-23 readings/s still, against a queue that gufo itself
+  # already holds at 20-35 s. The 13.4 ms in the d3 card is an MI325X.
+  #
+  # Answer quality still lives in the criteria descriptions, not in the state or
+  # the parameter count: with one-word labels the same ticket flipped between
+  # billing and sales on Julia, with the fuller descriptions it held billing at
+  # 99.4-99.9%. Write the criteria; nano inherits that rule rather than replacing
+  # it. What nano should buy is the long-label-list and knowledge cases where the
+  # 144 M model said it was weak (its own card: Banking77 64/100 against a Jev
+  # reference of 87/100). Re-check the workflow's own questions before trusting
+  # either number.
+  #
+  systemd.services.llama-decision = {
+    description = "llama.cpp: vllm-d3-nano decision model (always on, /v1/systemone)";
+    after = [ "network.target" ];
+    wants = [ "network.target" ];
+    unitConfig.ConditionPathExists = decisionGguf;
+    # Three strikes like gufo, so an OOM death does not reload 2.4 GB in a loop and
+    # turn one bad minute into a permanent load on the same pool. These are [Unit]
+    # keys -- putting them in serviceConfig would have systemd drop them ("Unknown
+    # key ... in section [Service]"), the same trap this file already records for
+    # ConditionPathIsNonEmpty.
+    startLimitIntervalSec = 300;
+    startLimitBurst = 3;
+    serviceConfig = {
+      Type = "simple";
+      # Same reasoning as llama-cpp.service: elia is in render/video, has
+      # unlimited memlock and can read ${llamaModelsDir} (0750 elia:users).
+      User = username;
+      Group = "users";
+      ExecStart = ''
+        ${pkgs.llama-cpp-rocm}/bin/llama-server \
+          --host 0.0.0.0 --port ${toString decisionPort} \
+          --model ${decisionGguf} \
+          --alias ${decisionId} \
+          --n-gpu-layers 999 \
+          --ctx-size 4096 \
+          --parallel 1 \
+          --batch-size 4096 \
+          --ubatch-size 4096 \
+          --flash-attn on \
+          --poll 0
+      '';
+
+      # 4096, where Julia ran at 8192. nano's n_ctx_train is 262144, so this is a
+      # budget choice and not the model's ceiling -- and since -ub is the real
+      # ceiling for this class (see the two limits above), it is also a choice
+      # about the largest state that can be answered at all. The evidence: 2,404
+      # reads served off Julia, largest 987 tokens, median 87. 4096 is 4x the
+      # largest one ever seen; 8192 would cost another ~0.45 GiB of device-side
+      # buffers to cover states that have not occurred. If one does occur, llama.cpp
+      # says so out loud ("input (N tokens) is too large to process. increase the
+      # physical batch size") rather than answering from a truncated state.
+      #
+      # No --sleep-idle-seconds, unlike the router's presets: releasing a 2.4 GiB
+      # model to save nothing buys back a reload on the next question, and being
+      # instantly answerable is the whole reason this one stays up. --poll 0 is
+      # what keeps it from burning the GPU while idle (same fix as the router).
+      # GPU_MAX_HW_QUEUES=1 for the reason documented on llama-cpp.service.
+      Environment = [ "GPU_MAX_HW_QUEUES=1" ];
+
+      KillSignal = "SIGTERM";
+      TimeoutStopSec = 60;
+      Restart = "on-failure";
+      RestartSec = 5;
+      LimitMEMLOCK = "infinity";
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+
+      # The ordering: this reader is the kernel's first candidate, gufo's last. See
+      # the budget note above the unit for why OOMScoreAdjust, not memory.max, is
+      # the guarantee that actually holds here.
+      OOMScoreAdjust = 800;
+      MemoryHigh = "4G";
+      MemoryMax = "4.5G";
+      # Answers, never calls home. IPFilter is on the cgroup and filters
+      # INBOUND as well as outbound, so the LAN has to be in this list for a client
+      # on 192.168.0.0/24 to connect at all -- the firewall is what keeps that off
+      # the internet, and nothing here may initiate a connection anywhere.
+      IPAddressAllow = [
+        "127.0.0.0/8"
+        "::1/128"
+        "192.168.0.0/24"
+      ];
+      IPAddressDeny = "any";
+    };
+    wantedBy = [ "multi-user.target" ];
+  };
+
+  # -------------------------------------------------------------------------
+  # llama-swap: the serving path for everything switchable
   #
   # One OpenAI-compatible entry point on 11434, owning the GPU schedule through
-  # two exclusive groups on a 124 GiB unified-memory box:
+  # groups on a 124 GiB unified-memory box:
   #
-  #   agent    swap=true   exclusive=true   -> [qwen3.8-flash-next]        (this agent)
-  #   genai    swap=false  exclusive=true   -> [7 llama.cpp presets, comfyui]
+  #   agent    swap=true   exclusive=true  -> [qwen3.8-flash-next]                  (this agent)
+  #   genai    swap=false  exclusive=true  -> [7 llama.cpp presets, comfyui]
+  #
+  # llama-decision is not in this table: it is an always-on model on its own port,
+  # because llama-swap has no /v1/systemone to route.
   #
   # exclusive=true is the point: a request for a member of either group unloads
   # every model of the *other* group. genai uses swap=false because its members
@@ -618,6 +851,17 @@ in
       LimitMEMLOCK = "infinity";
       NoNewPrivileges = true;
       PrivateTmp = true;
+
+      # Memory ordering with the always-on readers (see llama-decision): gufo is
+      # the agent, so when the pool runs out it is the last thing the kernel takes
+      # and the first thing reclaim leaves alone. OOMScoreAdjust only orders the
+      # kill; MemoryLow is what stops reclaim evicting 107 GiB of weights that are
+      # already resident, and it is memory.low rather than memory.min precisely
+      # because memory.min would refuse allocations elsewhere on the box instead of
+      # merely preferring to take them from someone else.
+      OOMScoreAdjust = -500;
+      MemoryLow = "64G";
+
       # A server may answer, never call home. Cgroup-scoped (systemd's IPFilter)
       # rather than uid-keyed, so it survives uid changes. Both units bind to
       # loopback, so anything leaving this cgroup towards a non-loopback address
