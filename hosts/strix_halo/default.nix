@@ -277,6 +277,17 @@ in
       User = username;
       Group = "users";
       LimitMEMLOCK = "infinity";
+
+      # ROCm leaves the GPU busy at idle when several HW queues are in play;
+      # upstream's fix is to default GPU_MAX_HW_QUEUES=1 on HIP (llama.cpp#24237).
+      # Checked against the installed build (llama-cpp 0.5.0 b11146, commit
+      # 7fe450e): `strings` over the binary and bin/libggml-hip.so finds no
+      # GPU_MAX_HW_QUEUES at all, so that default is NOT in this build and the
+      # var has to come from the unit. Set once here -- it is read by HIP at
+      # context creation, so it must be in the environment of llama-server
+      # itself, not of the unit's wrapper, and the router children inherit it.
+      # Drop this once nixpkgs' llama-cpp-rocm carries #24237.
+      Environment = [ "GPU_MAX_HW_QUEUES=1" ];
     };
   };
 
