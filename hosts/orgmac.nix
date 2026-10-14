@@ -17,7 +17,14 @@
       gui.enable = false;
       tmux.enable = true;
       ai.enable = true;
-      opencode.enable = true;
+      opencode = {
+        enable = true;
+        macNotifications = {
+          enable = true;
+          destination = "d00f192@host.lima.internal";
+          identityFile = "/home/d00f192.linux/.ssh/mac_notify";
+        };
+      };
       pi-coding-agent.enable = true;
       # No MCP servers on orgmac, deliberately: this is a work box and it should
       # have no route into the home cluster -- neither the kube-vip LAN addresses

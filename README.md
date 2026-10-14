@@ -30,6 +30,32 @@ nixos-install --flake github:cunialino/dotfiles#<system_name>
 
 `<system_name>` must be defined in the flake.nix `host_os` attrset.
 
+## OpenCode notifications on orgmac
+
+The `orgmac` Home Manager configuration installs a local OpenCode plugin that
+sends macOS notifications over SSH when a response finishes, a permission request
+or question needs input, or a session errors. Child-agent completion notifications
+are skipped. Notifications are sent even while the terminal is focused.
+
+The Mac must have Remote Login enabled for `d00f192`. The VM uses the existing
+private key at `~/.ssh/mac_notify`, whose public key must be installed on the Mac.
+The key stays outside the dotfiles and Nix store. Test the connection in the VM:
+
+```bash
+ssh -i ~/.ssh/mac_notify -o IdentitiesOnly=yes -o BatchMode=yes \
+  d00f192@host.lima.internal \
+  "osascript -e 'display notification \"Connection works\" with title \"OpenCode\"'"
+```
+
+Apply the configuration from the dotfiles directory:
+
+```bash
+home-manager switch --flake path:.#orgmac
+```
+
+Quit and restart OpenCode to load the plugin. Notification delivery failures are
+logged by OpenCode and do not interrupt the response.
+
 ## Tailscale 
 
 I did not find a way to declare this with nix, but to use Tailscale exit nodes 
