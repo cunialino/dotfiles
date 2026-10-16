@@ -11,6 +11,69 @@ let
   llamaModelsDir = "/var/lib/llama-models";
   comfyDataDir = "/var/lib/comfyui";
 
+  # ---------------------------------------------------------------------------
+  # ComfyUI image
+  #
+  # No ROCm 10 in nixpkgs, so the base image stays docker.io/rocm/pytorch and nix
+  # cannot build the image itself. What nix CAN own is the image's identity: the
+  # tag below is a content hash of the Containerfile plus the ComfyUI pin, so any
+  # edit to either one produces a tag that does not exist yet, and
+  #
+  #   * systemd.services.comfyui-image-build builds it at switch time -- the unit
+  #     text embeds the tag, so bumping the pin changes the unit and a switch
+  #     re-runs it (steady state: it exits immediately, the tag exists);
+  #   * an ExecStartPre on podman-comfyui.service builds it lazily too, so
+  #     llama-swap can never start ComfyUI on a tag that is missing (switch with
+  #     no network, or a start before the eager build got there).
+  #
+  # The eager unit makes `nixos-rebuild switch` wait on the pull, which is the
+  # point -- but if that ever hurts, either drive it from a timer instead of
+  # wantedBy, or wrap ExecStart in `systemd-run --collect` so the unit returns
+  # immediately and the build happens in the background. The lazy hook still
+  # guarantees correctness either way.
+  # ---------------------------------------------------------------------------
+  comfyuiVersion = "v0.41.0";
+  comfyuiContainerfile = ./containers/comfyui.Containerfile;
+  comfyuiImageTag = builtins.substring 0 12 (
+    builtins.hashString "sha256" "${builtins.readFile comfyuiContainerfile}\n${comfyuiVersion}\n"
+  );
+  comfyuiImage = "localhost/comfyui-rocm:rocm10-${comfyuiImageTag}";
+
+  # This runs on the host, not as a nix build: it needs network and it writes into
+  # the rootful store, which is where the quadlet container looks for its image
+  # (a rootless `podman build` would be invisible to podman-comfyui.service).
+  # The Containerfile has no COPY, so an empty directory is a complete context.
+  comfyuiImageBuild = pkgs.writeShellScript "comfyui-image-build" ''
+    set -euo pipefail
+    podman=${pkgs.podman}/bin/podman
+    tag=${comfyuiImage}
+
+    # llama-swap's GPU holder and a switch can want the image at the same moment.
+    # Absolute flock: when this runs as podman-comfyui's ExecStartPre it inherits
+    # that unit's PATH (podman, coreutils, findutils, grep, sed, systemd), which
+    # has no util-linux in it.
+    exec 9>/run/lock/comfyui-image.lock
+    ${pkgs.util-linux}/bin/flock 9
+
+    if "$podman" image exists "$tag"; then
+      echo "comfyui image $tag already present"
+      exit 0
+    fi
+
+    # Retired tags pile up (~32 GB nominal each, though layers are shared so only
+    # the delta is new). Deleting images is destructive, so it stays a manual
+    # command; once the new tag is known good, drop the others:
+    #   podman images --format '{{.Repository}}:{{.Tag}}' | grep '^localhost/comfyui-rocm:rocm10-' | grep -v "$tag" | xargs -r podman rmi
+    echo "building $tag (ComfyUI ${comfyuiVersion}); ~10 GB download on a cold cache"
+    "$podman" build \
+      --build-arg COMFYUI_VERSION=${comfyuiVersion} \
+      --label ai.cunialino.comfyui.version=${comfyuiVersion} \
+      --label ai.cunialino.comfyui.hash=${comfyuiImageTag} \
+      -t "$tag" \
+      -f ${comfyuiContainerfile} \
+      ${pkgs.emptyDirectory}
+  '';
+
   # vllm-d3-nano (vllm-sr Decision 3.0, 2.39 B) is the always-on decision model:
   # a "System One" reader that answers typed questions -- choice, noul, score --
   # in one forward pass, no generation. llama.cpp knows it natively
@@ -347,11 +410,12 @@ in
     oci-containers = {
       backend = "podman";
 
-      # ROCm 10 image is built out-of-band from ./containers/comfyui.Containerfile
-      # (no ROCm 10 in nixpkgs). Build it on the host before switching:
-      #   podman build -t localhost/comfyui-rocm:rocm10 -f containers/comfyui.Containerfile .
+      # Image tag is derived from the Containerfile + ComfyUI pin above, and
+      # systemd.services.comfyui-image-build (switch time) plus an ExecStartPre on
+      # podman-comfyui.service build it. Nothing to do by hand any more; the old
+      # `podman build -t localhost/comfyui-rocm:rocm10 ...` is only for debugging.
       containers.comfyui = {
-        image = "localhost/comfyui-rocm:rocm10";
+        image = comfyuiImage;
         pull = "never";
         autoStart = false;
         ports = [ "8188:8188" ];
@@ -367,6 +431,30 @@ in
 
     };
   };
+
+  # Builds the ComfyUI image when the Containerfile/pin changes. Type=oneshot and
+  # RemainAfterExit so a switch starts it once; a no-op when the tag exists.
+  systemd.services.comfyui-image-build = {
+    description = "Build ${comfyuiImage} for the current ComfyUI pin";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = comfyuiImageBuild;
+      # cold cache: base pull + ComfyUI requirements + the RES4LYF deps
+      TimeoutStartSec = 3600;
+    };
+  };
+
+  # Lazy backstop for every path that starts ComfyUI (llama-swap's GPU holder,
+  # a manual systemctl). Quadlet already sets ExecStartPre to `podman rm -f`, so
+  # append rather than overwrite; the unit has TimeoutStartSec=0, so a long build
+  # cannot be killed mid-pull.
+  systemd.services.podman-comfyui.serviceConfig.ExecStartPre = lib.mkAfter [
+    "+${comfyuiImageBuild}"
+  ];
 
   # ---------------------------------------------------------------------------
   # Native ROCm inference (llama.cpp only; ComfyUI stays a podman container)
