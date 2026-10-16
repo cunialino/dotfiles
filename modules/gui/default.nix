@@ -17,6 +17,24 @@ let
     chmod +x $out/bin/sway-wallpaper
     patchShebangs $out/bin/sway-wallpaper
   '';
+
+  # Region screenshot (see sway-screenshot.sh): slurp + grim into ~/pics, plus a
+  # copy on the clipboard. Same reason as above for baking in the PATH -- sway's
+  # `exec` does not guarantee grim, slurp or even date are reachable.
+  screenshotScript = pkgs.runCommand "sway-screenshot" { } ''
+    mkdir -p $out/bin
+    cp ${./sway-screenshot.sh} $out/bin/sway-screenshot
+    chmod +x $out/bin/sway-screenshot
+    sed -i 's|@EXTRA_PATH@|${
+      lib.makeBinPath [
+        pkgs.grim
+        pkgs.slurp
+        pkgs.wl-clipboard
+        pkgs.coreutils
+      ]
+    }|' $out/bin/sway-screenshot
+    patchShebangs $out/bin/sway-screenshot
+  '';
 in
 {
   options.modules.gui.enable = mkEnableOption "gui";
@@ -59,9 +77,12 @@ in
       with pkgs;
       [
         wallpaperScript
+        screenshotScript
         firefox
         wireplumber
         wl-clipboard
+        grim
+        slurp
         noto-fonts
         noto-fonts-color-emoji
       ]
@@ -203,7 +224,10 @@ in
           "${config.wayland.windowManager.sway.config.modifier}+d" = "exec rofi -show drun";
 
           "${config.wayland.windowManager.sway.config.modifier}+Shift+q" = "kill";
-          "${config.wayland.windowManager.sway.config.modifier}+Shift+S" = "sticky enable";
+          # Mod+Shift+S went to the screenshot; sticky (swayfx "always on top",
+          # also what the firefox PiP rule relies on) moved one key over.
+          "${config.wayland.windowManager.sway.config.modifier}+Shift+S" = "exec sway-screenshot";
+          "${config.wayland.windowManager.sway.config.modifier}+Shift+t" = "sticky enable";
 
           "${config.wayland.windowManager.sway.config.modifier}+j" = "focus down";
           "${config.wayland.windowManager.sway.config.modifier}+k" = "focus up";
