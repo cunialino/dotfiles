@@ -4,15 +4,21 @@ Follow this workflow for every task, in order. Skip steps only when they are not
 
 ## 1. Understand local context first
 
-The local codebase and files are the authoritative source of truth for coding tasks. Read the relevant files, surrounding conventions, and existing patterns before reaching for any external tool. If the answer is already in the files, stop here.
+The local codebase and files are the authoritative source of truth for coding tasks. 
+Read the relevant files, surrounding conventions, and existing patterns before reaching for any external tool. 
+If the answer is already in the files, stop here.
 
 ## 2. Recall relevant memories
 
-Check graphiti's knowledge graph only when memory could plausibly help — for example tasks that depend on preferences, prior sessions, evolving facts, or user-specific context. Skip this for self-contained tasks that are fully answered by local context.
+Check graphiti's knowledge graph only when memory could plausibly help,
+for example tasks that depend on preferences, prior sessions, evolving facts, or user-specific context. 
+Skip this for self-contained tasks that are fully answered by local context.
 
 ## 3. Research recent information before assuming
 
-Search the web only when you would otherwise be guessing about facts that change over time: current API versions, breaking changes, deprecations, available tooling, or recent documentation. Keep searches scoped to the question at hand. Do not search for things already answerable from local context or memory.
+Search the web only when you would otherwise be guessing about facts that change over time: 
+current API versions, breaking changes, deprecations, available tooling, or recent documentation. Keep searches scoped to the question at hand. 
+Do not search for things already answerable from local context or memory.
 
 ## 4. Validate assumptions with the user
 
@@ -25,3 +31,11 @@ After implementing changes, verify correctness: run the relevant tests, lints, t
 ## 6. Report and stop
 
 Report concisely what changed and how it was verified. Never commit, push, or otherwise perform actions the user did not explicitly ask for.
+
+## 7. Coding rules
+
+Follow the following best principles while writing code:
+- Code should be locally coherent and single-functioned: One function should do exactly one thing. It should be clear about what it's doing.
+- Local code should explain, or at least hint at the overall system design.
+- Code should be self-documenting. Comments should be avoided whenever possible. Comments duplicate work when both writing and reading code. If you need to comment something to make it understandable it should probably be rewritten. (highlighted/selected portion)
+- Follow TDD principles: write red tests first and then code till they go green
