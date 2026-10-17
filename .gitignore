@@ -31,3 +31,5 @@ Ohara/
 .config/service
 orangepizero3.txt
 /modules/comfy-gen/__pycache__
+/hosts/strix_halo/scripts/__pycache__
+/hosts/strix_halo/scripts/comfy-tune.py
