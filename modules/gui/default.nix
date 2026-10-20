@@ -64,7 +64,7 @@ in
 
     defaultImage = mkOption {
       type = types.str;
-      default = "${./wallpapers/wally.png}";
+      default = "${./wallpapers/custom_valley.png}";
       defaultText = "./wallpapers/wally.png";
       description = ''
         The wallpaper sway shows on a cold boot and whenever the rotation is off.
