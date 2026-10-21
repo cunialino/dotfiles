@@ -296,14 +296,30 @@ let
   #                   warm-keeper, and llama-swap's own stop is the release.
   # -------------------------------------------------------------------------
 
-  # Flip after measuring, not before. See the note above.
-  llamacppPerInstance = false;
+  # Flip after measuring, not before. See the note above -- and the numbers are
+  # now in (llamacppMeasured): the whole roster together is 175.85 GiB against a
+  # 124 GiB box, which is what the note was afraid of.
+  #
+  # true, because the thing that makes residency safe without models-max is the
+  # matrix, and the matrix needs one process per row to work at all: it evicts per
+  # model, and on the shared back end "evict one model" is "stop the router for
+  # the other five" (measured: 502 on the next sibling request). So this flag and
+  # routing.router.use move together -- the router block above keys off it rather
+  # than carrying its own knob, so the two cannot drift apart.
+  llamacppPerInstance = true;
 
   # Idle unload for the llama.cpp rows in split mode, seconds of no requests.
   # This is what models-max = 2 became: not a capacity cap (llama-swap has no
   # such knob) but the bound on how long a walk through the presets can leave
   # 20-something GiB resident. Keep it well under "a working session".
-  llamacppRowTtl = 300;
+  #
+  #
+  # 120 rather than 300, for the first switch under matrix. Co-residency is no
+  # longer this knob's job -- no set declares more than llamacppCoResidentBudgetGiB
+  # -- but the eviction order has never been observed on the real binary, and 120
+  # caps how long a wrong answer stays resident. Move to 300 once
+  # up{job="llamacpp"} shows presets being evicted by cost and not by accident.
+  llamacppRowTtl = 120;
 
   # Flags every instance shares -- the [*] of the old config.ini, minus the two
   # router-only keys in llamacppRouterOnlyArgs.
@@ -443,6 +459,122 @@ let
   };
 
   llamacppPresetNames = builtins.attrNames llamacppPresets;
+
+  # -------------------------------------------------------------------------
+  # What each model actually holds, and what may hold it at the same time
+  #
+  # Measured on this box 2026-10-21 against the live router: one preset asked for
+  # through llama-swap, the agent group evicted first so nothing else held the
+  # GPU, then that instance's own GTT read out of the amdgpu collector by pid
+  # (llamacpp_preset_child_pid -> amdgpu_process_gtt_bytes, both already in
+  # /run/alloy/textfile). On this hardware GTT is the whole reservation -- weights
+  # plus the instance's KV at its own ctx-size -- which is why lk (41.60 GiB, the
+  # smaller file) costs more than ori (28.42) and why the gguf size on disk is not
+  # a usable input. loadSec is that same request's end-to-end latency including
+  # the load: what evicting the model costs whoever asks for it next.
+  #
+  # Observations, not settings. Re-measuring is the sweep again (one request per
+  # preset, one grep), never an edit here.
+  # -------------------------------------------------------------------------
+  llamacppMeasured = {
+    "deepseek-ocr" = { gib = 5.14; loadSec = 4; };
+    "ori" = { gib = 28.42; loadSec = 27; };
+    "qwen3.6" = { gib = 29.08; loadSec = 12; };
+    "ornith-og" = { gib = 35.12; loadSec = 14; };
+    "ornith-1.5-35b" = { gib = 36.45; loadSec = 15; };
+    "lk" = { gib = 41.60; loadSec = 13; };
+
+    # 103265861632 bytes on gufo-llm.service's own DRM fd. Reload measured 17 s
+    # warm / 61 s cold, and an eviction here does not cost somebody a slow first
+    # token: it costs an in-flight agent turn its backing model. The cost below is
+    # deliberately not that number (see llamacppMatrixEvictCosts).
+    "${gufoServedName}" = { gib = 96.17; loadSec = 61; };
+
+    # ComfyUI holds 0.15 GiB of GTT idle -- a torch process with nothing loaded --
+    # and its working set mid-generation is NOT measured. loadSec is container
+    # start to /system_stats answering. No gib: an unmeasured number does not
+    # belong in a capacity rule, so image work keeps the GPU to itself (see
+    # llamacppMatrixSets) until a generation is measured the same way.
+    "comfyui" = { loadSec = 20; };
+    "qwen-image-2.1" = { loadSec = 20; };
+  };
+
+  # What the genai presets may hold together: 124 GiB unified, minus the ~7 GiB
+  # the box reports used with no model loaded at all, minus llama-decision's
+  # 2.52 GiB (resident always, never swapped, never in a row here), minus ~10 GiB
+  # that stays free because there is no swap on this host and compute buffers at
+  # --batch-size 4096 / --parallel 4 arrive without warning. Text only.
+  #
+  # 80 admits every pair -- the largest, lk + ornith-1.5-35b, is 78.05 -- and only
+  # those triples built around deepseek-ocr. Raising it past ~96 is how three of
+  # them get loaded at once; lowering it below 78 splits the two big ones.
+  llamacppCoResidentBudgetGiB = 80.0;
+
+  # Every subset of the roster whose measured footprints fit the budget, keeping
+  # only the maximal ones. Matrix permits any subset of a declared set, so [ori]
+  # adds nothing beside [ori, lk] and the short list is the one a reader can check
+  # by hand (6 presets, 64 subsets). Heaviest first, because ties in the solver
+  # break on definition order.
+  llamacppResidencySets =
+    let
+      gib = s: builtins.foldl' (t: n: t + llamacppMeasured.${n}.gib) 0.0 s;
+      # Seed is [ [] ], not []: folding over [[]] doubles the list once per model,
+      # folding over [] doubles nothing and yields no subsets at all -- which
+      # renders as a matrix with only the agent and image sets, i.e. every preset
+      # routable alone. Caught by reading the generated yaml, not by the build.
+      subsets = builtins.foldl' (acc: n: acc ++ map (s: s ++ [ n ]) acc) [ [ ] ] llamacppPresetNames;
+      fits = builtins.filter (s: s != [ ] && gib s <= llamacppCoResidentBudgetGiB) subsets;
+      maximal = builtins.filter (
+        s: ! builtins.any (o: builtins.length o > builtins.length s
+          && builtins.all (x: builtins.elem x o) s)
+        fits
+      ) fits;
+    in
+    builtins.sort (a: b: gib a > gib b) maximal;
+
+  # The matrix itself. Not hand-written: the capacity rule is the measured
+  # numbers, so it is generated from them and stays true when a preset is added
+  # or a footprint re-measured. Note what this is NOT -- the solver is
+  # cost-ordered, not memory-aware, and upstream's position is that the admin
+  # supplies configurations that work. The expressions are the capacity rule
+  # (a third model can only be admitted by a set that has room for it); the costs
+  # only decide which of the outside models pays for it.
+  llamacppMatrixSets =
+    let
+      # "[a, b]" -> "( a & b )", single member -> bare id. Members sorted so the
+      # expression is stable when the roster order changes.
+      expr = s: if builtins.length s == 1 then builtins.head s
+        else "( ${builtins.concatStringsSep " & " (builtins.sort (a: b: a < b) s)} )";
+    in
+    # An empty enumeration fails quietly and badly: with no residency set every
+    # preset can only run alone, so the box still works and every switch between
+    # presets pays a full reload. Assert the shape instead. The number also moves
+    # when the budget or the roster does, which is the moment worth looking at.
+    assert builtins.length llamacppResidencySets >= 2;
+    {
+      # The agent alone: 96.17 of 124 GiB. Not a preference, arithmetic -- no
+      # preset fits beside it, the smallest pair being 101.31 GiB.
+      agent = gufoServedName;
+
+      # Image work alone, see the comfyui note above.
+      image = "comfyui";
+    }
+    // lib.optionalAttrs qwenImageEnabled { image_qwen = "qwen-image-2.1"; }
+    // builtins.listToAttrs (map (s: {
+      name = "fits_${builtins.concatStringsSep "_" (builtins.sort (a: b: a < b) s)}";
+      value = expr s;
+    }) llamacppResidencySets);
+
+  # Cost of losing a loaded model = seconds to bring it back, straight from the
+  # sweep. Relative, which is all the solver reads. The agent is the one value not
+  # taken from its own measurement: 61 s understates it, and above every preset
+  # combined (101) it says what is actually meant -- keep the agent up if there is
+  # any set at all that does not evict it.
+  llamacppMatrixEvictCosts = builtins.listToAttrs (map (n: {
+    name = n;
+    value = if n == gufoServedName then 200 else llamacppMeasured.${n}.loadSec;
+  }) (llamacppPresetNames ++ [ "comfyui" gufoServedName ]
+    ++ lib.optionals qwenImageEnabled [ "qwen-image-2.1" ]));
 
   # Unit name of a preset. In split mode this is also the label that ties a
   # preset to its memory: amdgpu-metrics.sh reads the cgroup of every GPU process,
@@ -1262,10 +1394,18 @@ in
           };
         }
         // lib.optionalAttrs qwenImageEnabled {
-          # A row that is not in a group is not routable at all -- the group
-          # router builds its process map from group membership alone
-          # (router/group.go) -- so the entry disappears together with its member
-          # below. ID must equal the gufo-image unit's --served-model-name: the
+          # Gated out of both engines, which is not the same thing in each: under
+          # `group` a row in no group is not routable at all (the engine builds its
+          # process map from group membership alone, router/group.go), while under
+          # `matrix` a model in no set IS routable but only ever alone. Turning the
+          # row off entirely is the one behaviour both engines agree on, so the
+          # entry disappears rather than being left unroutable-by-omission.
+          #
+          # As of 2026-10-21 this backend does not load at all: gufo-image exits on
+          # "cannot read Qwen-Image metadata:
+          # /var/lib/gufo-models/qwen-image-2.1-lr/text_encoder/config.json" and
+          # then hits start-limit-hit. The weights on disk are incomplete; nothing
+          # in this file can fix that. ID must equal the gufo-image unit's --served-model-name: the
           # body is forwarded untouched, so this is exactly the string clients
           # send. The LoRA lives at ${qImageLrDir} on disk; clients never see it.
           "qwen-image-2.1" = {
@@ -1276,21 +1416,64 @@ in
           };
         };
 
-      routing.router = {
-        use = "group";
-        settings.groups = {
-          agent = {
-            swap = true;
-            exclusive = true;
-            members = [ gufoServedName ];
+      # Which engine, and why the answer depends on llamacppPerInstance.
+      #
+      # group (router mode): one process behind every row, so llama-swap cannot
+      # unload one model without unloading all of them. The only eviction this
+      # engine can express that the shared backend survives is group-wide, which
+      # is exactly what agent/genai say.
+      #
+      # matrix (split mode): eviction is per model, and with one process per row
+      # per-model eviction is real -- stopping a row stops that unit and nothing
+      # else. The combination was tested and does not work the other way: matrix
+      # on the shared backend produced HTTP 502 on the next sibling request
+      # (dial tcp 127.0.0.1:11520: connect: connection refused) where the group
+      # engine on the same topology returned 200 for all of them. So the engine
+      # follows the lifecycle rather than being set independently.
+      #
+      # What matrix buys, with numbers instead of flags: gufo runs alone because
+      # nothing fits beside it, any two presets fit, three mostly do not, and the
+      # model that pays for a new arrival is the cheapest to reload. groups could
+      # not express any of that; it had genai = "everything at once, unbounded",
+      # which is only safe while llama.cpp's models-max holds the back end down.
+      routing.router =
+        if llamacppPerInstance then {
+          use = "matrix";
+          settings.matrix = {
+            evict_costs = llamacppMatrixEvictCosts;
+            sets = llamacppMatrixSets;
           };
-          genai = {
-            # all members may run at once
-            swap = false;
-            exclusive = true;
-            members = llamacppPresetNames ++ [ "comfyui" ]
-            ++ lib.optionals qwenImageEnabled [ "qwen-image-2.1" ];
+        } else {
+          use = "group";
+          settings.groups = {
+            agent = {
+              swap = true;
+              exclusive = true;
+              members = [ gufoServedName ];
+            };
+            genai = {
+              # all members may run at once
+              swap = false;
+              exclusive = true;
+              members = llamacppPresetNames ++ [ "comfyui" ]
+              ++ lib.optionals qwenImageEnabled [ "qwen-image-2.1" ];
+            };
           };
+        };
+
+      # The agent goes to the front of the queue. This is not a latency
+      # preference, it is an outage note: FIFO means a request for any model waits
+      # behind whatever the router is trying to bring up, and a row whose backend
+      # cannot load holds the whole box for healthCheckTimeout. Observed 2026-10-21
+      # 23:02 -> 23:17 -- gufo-image exited on a missing text_encoder/config.json,
+      # llama-swap retried the dead port for 15 minutes, and every other model
+      # including this agent was blocked behind it. Priority cannot fix that
+      # broken row, but it does mean the agent is served as soon as it is the
+      # router's turn instead of last.
+      routing.scheduler = {
+        use = "fifo";
+        settings.fifo.priority = {
+          "${gufoServedName}" = 10;
         };
       };
     };
