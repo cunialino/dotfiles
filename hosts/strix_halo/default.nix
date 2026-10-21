@@ -240,6 +240,30 @@ let
   # llama-swap already runs as. See the note in swapUnitHolder for why sudo is
   # unavailable inside that unit's sandbox.
 
+  # ---------------------------------------------------------------------------
+  # Loopback endpoints of the serving stack, i.e. what Alloy reads (see
+  # modules.alloy at the bottom of this file -- the router among them, but as the
+  # subject of the textfile collector rather than as a scrape target). Kept as
+  # bindings next to
+  # decisionPort so that moving a port is one edit and the scrape config cannot
+  # drift from the unit that owns it.
+  # ---------------------------------------------------------------------------
+  llamaSwapPort = 11434;
+  llamaRouterPort = 11435;
+  gufoLlmPort = 8732;
+  gufoImagePort = 8189;
+  comfyuiPort = 8188;
+
+  # The router's presets are the [sections] of ${llamaModelsDir}/config.ini; the
+  # list is deliberately not repeated here. What the monitoring needs from it is
+  # "which preset is resident", and that is read from the process table by
+  # modules.alloy.textfile.llamacpp (see sys_mods/alloy/llamacpp-metrics.sh)
+  # rather than scraped: GET /metrics?model=<preset> on the router is proxied to
+  # that instance through the same queue as a completion, so naming a preset is
+  # what loads it, and models-max evicts the LRU to make room. A hand-kept list
+  # of these ids also rots -- it used to carry glm-4.5-air, which is a llama-swap
+  # row with no router section, and read as a dead target rather than as drift.
+
 in
 {
   imports = [
@@ -638,6 +662,7 @@ in
       ExecStart = ''
         ${pkgs.llama-cpp-rocm}/bin/llama-server \
           --host 0.0.0.0 --port ${toString decisionPort} \
+          --metrics \
           --model ${decisionGguf} \
           --alias ${decisionId} \
           --n-gpu-layers 999 \
@@ -996,5 +1021,216 @@ in
       IPAddressDeny = "any";
     };
     wantedBy = [ ];
+  };
+
+  # ---------------------------------------------------------------------------
+  # Metrics out: Alloy -> Prometheus in the cluster
+  #
+  # Push, not scrape. This box is not a k3s node and its serving ports stay its
+  # own business (nothing reaches in over the LAN for monitoring); Alloy reads
+  # loopback and remote_writes to the cluster's Prometheus, which has a VIP of
+  # its own on 192.168.0.203 -- so the destination survives rescheduling, which
+  # is the reason to push to a VIP rather than to a node address. The receiver
+  # needs `--web.enable-remote-write-receiver`, and 9090 is opened on the
+  # cluster interfaces by the k3s module for exactly this traffic.
+  #
+  # Alloy keeps a WAL on disk, so a cluster that is down for an hour is a gap
+  # that closes by itself, not a hole in the history.
+  #
+  # What each source contributes:
+  #   * node  -- Alloy's built-in node_exporter. `node_memory_*` is the host
+  #     half of the unified pool: on a machine where the iGPU's memory IS RAM,
+  #     MemAvailable is the number that says whether the next model loads or the
+  #     OOM killer does (the history of that is the MemoryLow/OOMScoreAdjust
+  #     notes on gufo-llm and llama-decision).
+  #   * amdgpu.* -- the textfile collector (sys_mods/alloy/amdgpu-metrics.sh).
+  #     gtt_used is where weights land on this APU; vram_used is the 1 GiB BAR
+  #     and nearly useless on its own. Per-process GTT + RSS, labelled with the
+  #     owning systemd unit, is the "who took the memory" answer.
+  #   * comfyui.* -- also textfile: ComfyUI has no /metrics upstream, so the
+  #     collector translates its /system_stats and /prompt (queue depth, torch's
+  #     own view of the pool). Its GPU footprint, like every other workload's,
+  #     comes from the amdgpu per-process series.
+  #   * gufo, llama-swap, llama-decision -- the serving stack's own counters
+  #     (tokens, cache hit rate, queue, spec-decode acceptance). All three are
+  #     processes that are already up and answer /metrics themselves, so a scrape
+  #     is never what starts them.
+  #   * llamacpp.* -- which of these two it is depends on llamacppPerInstance,
+  #     and the difference is the reason the split is worth doing:
+  #
+  #     router mode (llamacppPerInstance = false): textfile, never a scrape. The
+  #     router loads by model name and answers /metrics by proxying the request to
+  #     that model through the same queue as a completion, so scraping it per
+  #     preset is what loads every preset (models-max then evicts the LRU to make
+  #     room, and the box spends the day loading and unloading because a dashboard
+  #     asked whether they were loaded). The collector says what is resident
+  #     without asking (llamacpp_preset_loaded) and reports the port it answers on
+  #     while it is.
+  #
+  #     split mode (llamacppPerInstance = true): a real scrape job, one target per
+  #     preset on its own loopback port, labelled preset= and unit=. There the
+  #     answer is the instance's own, so a scrape can never load anything -- which
+  #     is precisely what the __param_model assertion in sys_mods/alloy refuses,
+  #     and what the router makes unavoidable. Read the two together:
+  #       up{job="llamacpp",preset="ori"}  ==  resident AND answering, which the
+  #       textfile's loaded=1 could not say (it was process existence, and read 1
+  #       across the whole load window). "Configured" is no longer a metric -- it
+  #       is llamacppPresets in this file, and the unit= label is what joins a
+  #       preset to amdgpu_process_gtt_bytes, i.e. per-preset memory attribution
+  #       for the first time. Targets that are not resident fail to connect; that
+  #       is the expected state and it costs nothing.
+  # ---------------------------------------------------------------------------
+  modules.alloy = {
+    enable = true;
+
+    pushUrl = "http://192.168.0.203:9090/api/v1/write";
+
+    # The push leaves over eth; nothing else may. Same rule as the gufo units.
+    allowedNetworks = [
+      "127.0.0.0/8"
+      "::1/128"
+      "192.168.0.0/24"
+    ];
+
+    nodeExporter = {
+      enable = true;
+      # 10s, to meet the collector halfway. textfile.interval above is 10s, so at
+      # 15s the pool totals were on average 5s old on the graph and up to 10s --
+      # which on a box whose whole failure mode is a pool drained to 0 GiB is the
+      # wrong direction of wrong. Below 10s would be pointless for amdgpu/ComfyUI
+      # (same number, shipped twice) and the kernel series do not need it either.
+      #
+      # Cost, measured rather than guessed: the box ships ~89 samples/s today
+      # (central Prometheus is taking ~14.7k/s), 867 of those series being this
+      # job. 10s adds ~29/s -- about 0.2% of the server's ingest, and no new
+      # series, so the head stays where it is.
+      scrapeInterval = "10s";
+      scrapeTimeout = "5s";
+    };
+
+    # Kept slow on purpose: 749 series of pipeline internals, and the counters
+    # that matter here (remote_write failures, WAL pending) move over minutes.
+    selfScrape = true;
+    selfScrapeInterval = "30s";
+
+    textfile = {
+      # 10 s: fine for "is anything eating the pool" and cheap enough to run
+      # forever. The GRBM read inside amdgpu_top is what costs (it keeps the
+      # iGPU from its deepest sleep), not the scrape.
+      interval = "10s";
+      amdgpu.enable = true;
+      comfyui = {
+        enable = true;
+        url = "http://127.0.0.1:${toString comfyuiPort}";
+      };
+      llamacpp = {
+        # Router-only: with one instance per preset there is nothing to infer
+        # from /proc, and the collector's llamacpp_router_up would sit at 0.
+        #
+        # Flipping this off does NOT stop the metrics: the collector owns
+        # /run/alloy/textfile/llamacpp.prom only while it runs, and node_exporter's
+        # textfile collector re-exports whatever sits on the path. After the switch
+        # to per-instance the file was 24 minutes dead (mtime 23:26:49) and
+        # Prometheus was still being handed all 20 series -- fresh samples, frozen
+        # values, indistinguishable from an idle box on the other end. Delete it
+        # when toggling:
+        #   sudo rm /run/alloy/textfile/llamacpp.prom
+        # (a reboot clears it too; /run is not persistent.)
+        enable = !llamacppPerInstance;
+        url = "http://127.0.0.1:${toString llamaRouterPort}";
+        configIni = "${llamaModelsDir}/config.ini";
+        # The instance list (GET /v1/models) is answered by the router itself and
+        # would add "queued/loading" to "resident". Left off until the first
+        # interval has been watched for a join: request line in llama-cpp.service
+        # -- see the option description.
+        probeModels = false;
+      };
+    };
+
+    jobs = [
+      {
+        name = "gufo";
+        description = "gufo: /metrics on both units (loopback). Down == that engine is not loaded.";
+        targets = [
+          {
+            addr = "127.0.0.1:${toString gufoLlmPort}";
+            labels = { service = "gufo-llm.service"; };
+          }
+          {
+            addr = "127.0.0.1:${toString gufoImagePort}";
+            labels = { service = "gufo-image.service"; };
+          }
+        ];
+        # 5s like the rest, against the warning written here earlier -- and the
+        # warning was checked rather than kept: over 6 h at 30s this job received
+        # 720 of 720 scrapes with zero changes in up, through prefills of this
+        # agent's 100k-token sessions included. /metrics is not fragile here; what
+        # it costs is one extra read per 5s on a single worker.
+        #
+        # Timeout stays below the interval (module rule: an overlapping timeout
+        # turns a slow answer into a backlog). If up{job="gufo"} ever starts
+        # moving without the unit moving --
+        #   changes(up{job="gufo"}[6h])
+        # -- this line, 5s -> 10s, is the one to walk back. Nothing else depends
+        # on gu being polled fast.
+        scrapeInterval = "5s";
+        scrapeTimeout = "4s";
+      }
+      {
+        name = "llama-swap";
+        description = "llama-swap: always on, host counters of the serving path (llamaswap_*).";
+        targets = [
+          { addr = "127.0.0.1:${toString llamaSwapPort}"; }
+        ];
+        # 5s. This is the job that shows a swap in progress, and a swap is 4-27 s
+        # here; a Go process answering from memory, with no worker to get in front
+        # of. 50 series, so the whole job is 10 samples/s.
+        scrapeInterval = "5s";
+        scrapeTimeout = "3s";
+      }
+      {
+        name = "llama-decision";
+        description = "llama-decision (d3-nano): always on, needs --metrics in its ExecStart.";
+        targets = [
+          { addr = "127.0.0.1:${toString decisionPort}"; }
+        ];
+        scrapeInterval = "5s";
+        scrapeTimeout = "3s";
+      }
+    ]
+    ++ lib.optionals llamacppPerInstance [
+      {
+        name = "llamacpp";
+        description = ''
+          llama.cpp presets: one target each, on its own loopback port. A scrape
+          here cannot load a model -- it lands on the instance that is already
+          running -- so down means not resident, and the tokens/KV/queue series
+          only exist while the preset is up. unit= joins to
+          amdgpu_process_gtt_bytes{unit=...}, which is the per-preset footprint
+          the matrix evict_costs are meant to be written from.
+
+          5s, because residency here is short and the events are the point: the
+          first measurement on this box (23:43, qwen3.6 resident 24 s) produced no
+          up sample at all at 30s. Loads run 4-27 s, so the interval has to sit
+          under the shortest of them to see one happen at all -- 5s gives the
+          4-second deepseek-ocr load a single sample, which is all an up needs to
+          be true.
+
+          Six loopback targets, and five of them are refused almost all the time:
+          that is the expected state, it is what down is for, and it costs a
+          connect that fails immediately. 38 series across the job = ~8 samples/s
+          worst case.
+        '';
+        targets = map (n: {
+          addr = "127.0.0.1:${toString llamacppPresets.${n}.port}";
+          labels = {
+            preset = n;
+            unit = llamacppUnit n;
+          };
+        }) llamacppPresetNames;
+        scrapeInterval = "5s";
+        scrapeTimeout = "3s";
+      }
+    ];
   };
 }

@@ -112,6 +112,13 @@ in
       interfaces."${cfg.eth}" = {
         allowedTCPPorts = [
           9100
+          # Prometheus, on its VIP (192.168.0.203). Opened for the remote_write
+          # push from machines that are not cluster nodes (elcunhalo today);
+          # nothing in-cluster needs it, since pods reach the service directly.
+          # If the VIP ever starts fronting a NodePort instead of 9090, the
+          # nodePort has to be allowed here too -- kube-vip hands the packet to
+          # the node's port, and this input chain is what drops it otherwise.
+          9090
           6443
           2112
           4240
