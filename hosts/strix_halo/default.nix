@@ -240,13 +240,277 @@ let
   # llama-swap already runs as. See the note in swapUnitHolder for why sudo is
   # unavailable inside that unit's sandbox.
 
+  # -------------------------------------------------------------------------
+  # llama.cpp presets: one roster, two lifecycles
+  #
+  # llamacppPresets is the single source of truth for the llama.cpp models on
+  # this box -- id, display name, port, weights, per-model flags. It feeds the
+  # router's preset file (generated, llamacppIni), the systemd units, the
+  # llama-swap rows and the genai member list, and the Alloy scrape targets.
+  # Adding a model is one entry here plus the weights on disk.
+  #
+  # It replaces ${llamaModelsDir}/config.ini as the roster. That file was
+  # hand-edited and had already drifted: 6 [sections] against 7 llama-swap rows,
+  # glm-4.5-air being a row with no section and no weights directory under
+  # ${llamaModelsDir} -- a row that cannot be served and nothing compared the
+  # two numbers to say so. It is gone from the roster. The file itself is left
+  # on disk; nothing reads it after the switch.
+  #
+  # llamacppPerInstance picks the lifecycle, and only the lifecycle:
+  #
+  #   false (router)  ONE llama-server --models-preset <generated ini> on
+  #                   ${llamaRouterPort}. Every preset row shares that one
+  #                   process, so llama-swap's bookkeeping (one id == one
+  #                   process) is a fiction, and genai's swap=false is what
+  #                   keeps the fiction harmless -- the only eviction that ever
+  #                   happens is "the whole group at once", which is exactly the
+  #                   granularity a shared unit survives. llama.cpp's own
+  #                   models-max = 2 is the memory bound: at most two instances
+  #                   resident, LRU-evicted, with --kv-unified pooling their KV.
+  #
+  #   true (split)    one llama-server per preset: its own port, its own holder,
+  #                   its own unit. id == process == unit becomes true, which is
+  #                   what both per-preset metrics and a per-combination router
+  #                   (llama-swap's matrix, #643/#646) need. GET /metrics on a
+  #                   preset's own port is that instance's own answer, so a
+  #                   scrape never loads anything, and
+  #                   amdgpu_process_gtt_bytes{unit=...} attributes memory per
+  #                   preset instead of lumping six into llama-cpp.service.
+  #                   See the note above modules.alloy.jobs below.
+  #
+  #                   The cost, and the reason this is off until measured:
+  #                   models-max goes with the router, so nothing bounds
+  #                   residency but the agent group's exclusivity and
+  #                   llamacppRowTtl below -- and each instance sizes its own KV
+  #                   rather than sharing a pool. Six presets at ctx-size 262144
+  #                   are over 124 GiB by a wide margin, and the box has no
+  #                   swap. Measure one instance's footprint (the unit's own
+  #                   GTT, amdgpu_process_gtt_bytes{unit="llama-cpp-ori.service"})
+  #                   with gufo unloaded before flipping this; that is also the
+  #                   number the matrix evict_costs would be written from.
+  #
+  #                   sleep-idle-seconds is dropped from the flags in this mode
+  #                   on purpose: a --metrics scrape wakes a sleeping instance
+  #                   (the same trap that keeps llamacpp-metrics.sh from probing
+  #                   /health), so keeping it would make the scrape job a
+  #                   warm-keeper, and llama-swap's own stop is the release.
+  # -------------------------------------------------------------------------
+
+  # Flip after measuring, not before. See the note above.
+  llamacppPerInstance = false;
+
+  # Idle unload for the llama.cpp rows in split mode, seconds of no requests.
+  # This is what models-max = 2 became: not a capacity cap (llama-swap has no
+  # such knob) but the bound on how long a walk through the presets can leave
+  # 20-something GiB resident. Keep it well under "a working session".
+  llamacppRowTtl = 300;
+
+  # Flags every instance shares -- the [*] of the old config.ini, minus the two
+  # router-only keys in llamacppRouterOnlyArgs.
+  llamacppSharedArgs = {
+    "n-gpu-layers" = 999;
+    metrics = true;
+    "cache-prompt" = true;
+    parallel = 4;
+    threads = 8;
+    "flash-attn" = true;
+    "kv-unified" = 1;
+    "cache-type-k" = "q8_0";
+    "cache-type-v" = "q8_0";
+    jinja = 1;
+
+    # Idle GPU load. llama.cpp's default --poll 50 busy-polls for work: upstream's
+    # recipe for always-on deployments is --poll 0 (poll-batch and spec-draft-poll
+    # both inherit --poll, so setting it once is enough -- they are explicit here
+    # only so the inheritance is visible).
+    poll = 0;
+    "poll-batch" = 0;
+  };
+
+  # Router-only: how many instances may be resident at once (LRU-evicted), and
+  # letting go of the GPU under an idle instance. The latter is llama.cpp#19379's
+  # caveat -- sleep-idle releases compute but keeps the child attached with a few
+  # hundred MiB (rocblas reserves its own scratch on the first call), so this
+  # bounds busy GPU, not memory. Both are meaningless without a router.
+  llamacppRouterOnlyArgs = {
+    "models-max" = 2;
+    "sleep-idle-seconds" = 300;
+  };
+
+  # id = the llama-swap row id = the --alias the instance reports = the label on
+  # amdgpu_process_gtt_bytes in split mode. Ports are explicit rather than derived
+  # from position, so adding a preset in the middle cannot move another one.
+  llamacppPresets = {
+    "qwen3.6" = {
+      displayName = "Qwen3.6";
+      port = 11441;
+      args = {
+        model = "${llamaModelsDir}/qwen3.6-35b-a3b/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf";
+        mmproj = "${llamaModelsDir}/qwen3.6-35b-a3b/mmproj-F16.gguf";
+        "batch-size" = 2048;
+        "ubatch-size" = 2048;
+        temp = 0.6;
+        "top-k" = 20;
+        "top-p" = 0.95;
+        "min-p" = 0;
+        "presence-penalty" = 0.0;
+        "repeat-penalty" = 1.0;
+        "ctx-size" = 262144;
+        "spec-type" = "draft-mtp";
+        "spec-draft-n-max" = 3;
+      };
+    };
+
+    ori = {
+      displayName = "Ori";
+      port = 11442;
+      args = {
+        model = "${llamaModelsDir}/orion/TheDrummer_Orion-26B-A4B-v1-Q6_K_L.gguf";
+        mmproj = "${llamaModelsDir}/orion/mmproj-TheDrummer_Orion-26B-A4B-v1-f16.gguf";
+        "ctx-size" = 262144;
+        "batch-size" = 2048;
+        "ubatch-size" = 2048;
+      };
+    };
+
+    lk = {
+      displayName = "Lk";
+      port = 11443;
+      args = {
+        model = "${llamaModelsDir}/gemma4-31B-loki/Gemma-4-31B-Loki-Scotoma-V2.0-Swa-4096.Q5_K_M.gguf";
+        mmproj = "${llamaModelsDir}/gemma4-31B-loki/Gemma-4-31B-Loki-Scotoma-V2.0-Swa-4096.mmproj-f16.gguf";
+        "ctx-size" = 262144;
+      };
+    };
+
+    deepseek-ocr = {
+      displayName = "DeepSeek-OCR";
+      port = 11444;
+      args = {
+        model = "${llamaModelsDir}/deepseek-ocr/DeepSeek-OCR-Q8_0.gguf";
+        mmproj = "${llamaModelsDir}/deepseek-ocr/mmproj-DeepSeek-OCR-Q8_0.gguf";
+        temp = 0.0;
+        "top-k" = 1;
+        "top-p" = 1.0;
+        "min-p" = 0.0;
+        "presence-penalty" = 0.0;
+        "repeat-penalty" = 1.0;
+        "ctx-size" = 16384;
+      };
+    };
+
+    ornith-og = {
+      displayName = "Ornith-OG";
+      port = 11445;
+      args = {
+        model = "${llamaModelsDir}/ornith-og/Ornith-1.5-35B-A3B-CRACK-Q6_K.gguf";
+        mmproj = "${llamaModelsDir}/ornith-og/mmproj-Ornith-1.5-35B-A3B-f16.gguf";
+        "batch-size" = 2048;
+        "ubatch-size" = 2048;
+        temp = 0.6;
+        "top-k" = 20;
+        "top-p" = 0.95;
+        "min-p" = 0.0;
+        "presence-penalty" = 0.0;
+        "repeat-penalty" = 1.0;
+        "ctx-size" = 262144;
+        "spec-type" = "draft-mtp";
+        "spec-draft-n-max" = 3;
+        "image-min-tokens" = 1024;
+      };
+    };
+
+    "ornith-1.5-35b" = {
+      displayName = "Ornith-1.5-35B";
+      port = 11446;
+      args = {
+        model = "${llamaModelsDir}/ornith-1.5-35b-a3b/Ornith-1.5-35B-A3B-Q6_K_L.gguf";
+        mmproj = "${llamaModelsDir}/ornith-1.5-35b-a3b/mmproj-Ornith-1.5-35B-A3B-f16.gguf";
+        "batch-size" = 2048;
+        "ubatch-size" = 2048;
+        temp = 0.6;
+        "top-k" = 20;
+        "top-p" = 0.95;
+        "min-p" = 0.0;
+        "presence-penalty" = 0.0;
+        "repeat-penalty" = 1.0;
+        "ctx-size" = 262144;
+        "spec-type" = "draft-mtp";
+        "spec-draft-n-max" = 3;
+        "image-min-tokens" = 1024;
+      };
+    };
+  };
+
+  llamacppPresetNames = builtins.attrNames llamacppPresets;
+
+  # Unit name of a preset. In split mode this is also the label that ties a
+  # preset to its memory: amdgpu-metrics.sh reads the cgroup of every GPU process,
+  # so the unit name IS the per-preset memory attribution.
+  llamacppUnit = name: "llama-cpp-${name}.service";
+
+  # The same renderer services.llama-cpp uses, so router and instance flags are
+  # spelled identically (and `metrics = true` becomes a bare --metrics, not
+  # `--metrics true`).
+  llamacppArgsToFlags = args:
+    lib.cli.toCommandLine (optionName: {
+      option =
+        if builtins.stringLength optionName > 1 then "--${optionName}" else "-${optionName}";
+      sep = " ";
+      explicitBool = false;
+      formatArg = lib.generators.mkValueStringDefault { };
+    }) args;
+
+  # Values as the hand-written config.ini spelled them: `true`, not `1`, and 0.6,
+  # not 0.600000. Nix renders a float with %f and a bool as 1/0 (which is also
+  # what makes `metrics = true` become a bare --metrics on the command line, so
+  # the bools stay bools); a parser reads either, but a generated file that diffs
+  # against the file it replaces line for line is one a human can review, and
+  # `metrics = 1` is not a token anyone reading this unit next is sure about.
+  trimTrailingZeros = s:
+    if lib.strings.hasSuffix "0" s then
+      trimTrailingZeros (builtins.substring 0 (builtins.stringLength s - 1) s)
+    else
+      s;
+
+  llamacppIniValue = v:
+    if builtins.isBool v then (if v then "true" else "false")
+    else if builtins.isFloat v then
+      let
+        parts = lib.strings.splitString "." (toString v);
+        frac = trimTrailingZeros (builtins.elemAt parts 1);
+      in
+      "${builtins.head parts}.${if frac == "" then "0" else frac}"
+    else
+      toString v;
+
+  llamacppIniSection = name: args: ''
+    [${name}]
+    ${lib.concatStringsSep "\n" (lib.mapAttrsToList (k: v: "${k} = ${llamacppIniValue v}") args)}
+  '';
+
+  # The preset file for router mode. Generated, so the roster and the file cannot
+  # disagree -- the drift that produced the glm-4.5-air row. Keys come out in
+  # alphabetical order (they are attribute sets); llama.cpp reads them by name.
+  llamacppIni = pkgs.writeText "llama-cpp-presets.ini" (
+    ''
+      # Generated by this flake (hosts/strix_halo: llamacppSharedArgs and
+      # llamacppPresets). Edit there; edits here are lost at the next switch.
+    ''
+    + lib.concatStringsSep "\n" (
+      [ (llamacppIniSection "*" (llamacppSharedArgs // llamacppRouterOnlyArgs)) ]
+      ++ map (n: llamacppIniSection n llamacppPresets.${n}.args) llamacppPresetNames
+    )
+  );
+
   # ---------------------------------------------------------------------------
   # Loopback endpoints of the serving stack, i.e. what Alloy reads (see
-  # modules.alloy at the bottom of this file -- the router among them, but as the
-  # subject of the textfile collector rather than as a scrape target). Kept as
-  # bindings next to
+  # modules.alloy at the bottom of this file). Kept as bindings next to
   # decisionPort so that moving a port is one edit and the scrape config cannot
-  # drift from the unit that owns it.
+  # drift from the unit that owns it. The llama.cpp presets carry their own port
+  # in llamacppPresets, loopback-only and reached through llama-swap like these;
+  # llamaRouterPort is the single port they all share when llamacppPerInstance is
+  # false.
   # ---------------------------------------------------------------------------
   llamaSwapPort = 11434;
   llamaRouterPort = 11435;
@@ -254,21 +518,207 @@ let
   gufoImagePort = 8189;
   comfyuiPort = 8188;
 
-  # The router's presets are the [sections] of ${llamaModelsDir}/config.ini; the
-  # list is deliberately not repeated here. What the monitoring needs from it is
-  # "which preset is resident", and that is read from the process table by
-  # modules.alloy.textfile.llamacpp (see sys_mods/alloy/llamacpp-metrics.sh)
-  # rather than scraped: GET /metrics?model=<preset> on the router is proxied to
-  # that instance through the same queue as a completion, so naming a preset is
-  # what loads it, and models-max evicts the LRU to make room. A hand-kept list
-  # of these ids also rots -- it used to carry glm-4.5-air, which is a llama-swap
-  # row with no router section, and read as a dead target rather than as drift.
+  # What the monitoring does with the presets depends on llamacppPerInstance, and
+  # both cases exist because of one llama.cpp detail: in router mode GET /metrics
+  # is not a management endpoint -- it is a task result produced by ONE loaded
+  # context -- so the router answers it by proxying the request to the instance
+  # named by ?model=, through the same queue as a completion. Naming a preset is
+  # what loads it. Hence the textfile collector in router mode
+  # (modules.alloy.textfile.llamacpp, sys_mods/alloy/llamacpp-metrics.sh: residency
+  # read from /proc, nothing sent to the router) and a plain scrape job in split
+  # mode, where each preset answers on its own port and a scrape cannot load a
+  # thing. See the llamacpp.* bullet above modules.alloy for the metric-by-metric
+  # version of this.
+
+  # ROCm leaves the GPU busy at idle when several HW queues are in play;
+  # upstream's fix is to default GPU_MAX_HW_QUEUES=1 on HIP (llama.cpp#24237).
+  # Checked against the installed build (llama-cpp 0.5.0 b11146, commit 7fe450e):
+  # `strings` over the binary and bin/libggml-hip.so finds no GPU_MAX_HW_QUEUES at
+  # all, so that default is NOT in this build and the var has to come from the
+  # unit. It must be in the environment of llama-server itself, not of the unit's
+  # wrapper -- read by HIP at context creation -- and in router mode the children
+  # inherit it from there. Drop this once nixpkgs' llama-cpp-rocm carries #24237.
+  llamacppEnvironment = [ "LLAMA_CACHE=/var/cache/llama-cpp" "GPU_MAX_HW_QUEUES=1" ];
+
+  # ---------------------------------------------------------------------------
+  # The llama.cpp units, as an inline module.
+  #
+  # A module rather than a few lines of config because the unit names in split
+  # mode are generated from the roster, which needs a whole
+  # `systemd.services = <set>` assignment -- and this file already assigns
+  # `systemd.services.<name>` by path in half a dozen places, which Nix reads as
+  # the key `systemd.services` defined twice. Its own module is how a generated
+  # set gets in.
+  # ---------------------------------------------------------------------------
+  llamacppUnitsModule = { ... }: {
+    # DynamicUser cannot read ${llamaModelsDir} (0750 elia:users); run as elia,
+    # who is in `render`/`video` and already gets unlimited memlock. Everything else
+    # the per-preset units below carry is services.llama-cpp's own hardening,
+    # repeated because those units are not built by that module (it is only enabled
+    # in router mode).
+    #
+    # One assignment for both modes: a second `systemd.services = ...` in the same
+    # file is a duplicate key, and router mode needs llama-cpp plus ComfyUI's two
+    # lines in here while split mode needs one unit per preset and ComfyUI left to
+    # its own row.
+    systemd.services =
+      let
+        # -----------------------------------------------------------------------
+        # Split mode: one llama-server per preset.
+        #
+        # Same shape as the router unit and the same rule as every other inference
+        # unit here: NOT wantedBy multi-user.target. llama-swap starts them through
+        # swapUnitHolder and stops them on the way out, which is now a per-preset
+        # stop -- `systemctl stop llama-cpp-ori.service` takes Ori and nothing else.
+        #
+        # Restart=on-failure with a tight StartLimit is the one deviation from the
+        # module. A preset that dies of OOM must not come back every few seconds and
+        # fight the next model for the pool; three tries and the unit goes to failed,
+        # where it stays until someone resets it. The holder cannot see that: it ran
+        # `systemctl start` once and llama-swap still believes the row is loaded, so
+        # recovery is `systemctl reset-failed <unit> && systemctl start <unit>`. The
+        # same gap exists in router mode -- rarer, because the router dying takes
+        # the whole group with it -- and closing it means a health check inside the
+        # holder, which is a separate call.
+        # -----------------------------------------------------------------------
+        instanceUnits = builtins.listToAttrs (
+          map (
+            name:
+            {
+              name = "llama-cpp-${name}";
+              value = {
+                description = "llama.cpp: ${llamacppPresets.${name}.displayName} (${name})";
+                wants = [ "network.target" ];
+                after = [ "network.target" ];
+
+                serviceConfig = {
+                  ExecStart = toString [
+                    (lib.getExe' pkgs.llama-cpp-rocm "llama-server")
+                    (llamacppArgsToFlags (
+                      llamacppSharedArgs
+                      // llamacppPresets.${name}.args
+                      // {
+                        # What the instance reports as its model name, so it has to
+                        # be the llama-swap row id: the body is forwarded untouched.
+                        alias = name;
+                        host = "127.0.0.1";
+                        port = llamacppPresets.${name}.port;
+                      }
+                    ))
+                  ];
+                  ExecReload = "${lib.getExe' pkgs.coreutils "kill"} -HUP $MAINPID";
+                  Restart = "on-failure";
+                  RestartSec = 30;
+
+                  DynamicUser = false;
+                  User = username;
+                  Group = "users";
+                  # Shared with the router-mode unit's state/cache dirs: prompt cache
+                  # and nothing per-preset.
+                  StateDirectory = "llama-cpp";
+                  CacheDirectory = "llama-cpp";
+                  WorkingDirectory = "/var/lib/llama-cpp";
+                  Environment = llamacppEnvironment;
+                  LimitMEMLOCK = "infinity";
+
+                  AmbientCapabilities = [ "" ];
+                  CapabilityBoundingSet = [ "" ];
+                  LockPersonality = true;
+                  MemoryDenyWriteExecute = true;
+                  NoNewPrivileges = true;
+                  # Required for GPU support.
+                  PrivateDevices = false;
+                  PrivateMounts = true;
+                  PrivateTmp = true;
+                  PrivateUsers = true;
+                  ProcSubset = "pid";
+                  ProtectClock = true;
+                  ProtectControlGroups = true;
+                  ProtectHome = true;
+                  ProtectHostname = true;
+                  ProtectKernelLogs = true;
+                  ProtectKernelModules = true;
+                  ProtectKernelTunables = true;
+                  ProtectProc = "invisible";
+                  ProtectSystem = "strict";
+                  RemoveIPC = true;
+                  RestrictAddressFamilies = [
+                    "AF_INET"
+                    "AF_INET6"
+                    "AF_UNIX"
+                  ];
+                  RestrictNamespaces = true;
+                  RestrictRealtime = true;
+                  RestrictSUIDSGID = true;
+                  SystemCallArchitectures = "native";
+                  SystemCallErrorNumber = "EPERM";
+                  SystemCallFilter = [
+                    "@system-service"
+                    "~@privileged"
+                  ];
+                };
+
+                unitConfig.StartLimitIntervalSec = 600;
+                unitConfig.StartLimitBurst = 3;
+              };
+            }
+          ) llamacppPresetNames
+        );
+      in
+      (lib.optionalAttrs (!llamacppPerInstance) {
+        llama-cpp = {
+          wantedBy = lib.mkForce [ ];
+          serviceConfig = {
+            DynamicUser = lib.mkForce false;
+            User = username;
+            Group = "users";
+            LimitMEMLOCK = "infinity";
+            # Only what the module does not set. It already exports
+            # LLAMA_CACHE=/var/cache/llama-cpp for this unit; the split units, who
+            # have no module behind them, take the whole llamacppEnvironment.
+            Environment = [ "GPU_MAX_HW_QUEUES=1" ];
+          };
+
+          # ComfyUI rides the llama.cpp router's lifecycle. Every llama.cpp preset
+          # is one router unit, so hooking the container to that unit covers all of
+          # them at once -- llama-swap has no "start this model alongside that one"
+          # primitive (its only preload hook, hooks.on_startup, fires when
+          # llama-swap boots).
+          #
+          # In split mode both this and the PartOf= below are gone: ComfyUI has its
+          # own row, and that row's holder stops podman-comfyui.service when
+          # llama-swap evicts it, which is the thing PartOf= was approximating.
+          # Hanging it off one of six preset units would be worse than the hack it
+          # replaces.
+          #
+          # Wants=, not Requires=: a failing ComfyUI must never take the chat
+          # presets down, and `systemctl stop podman-comfyui.service` by hand must
+          # not stop the router. No After= either -- ComfyUI's cold torch import runs
+          # in parallel with llama-server instead of delaying it.
+          unitConfig.Wants = [ "podman-comfyui.service" ];
+        };
+
+        # One-way stop propagation (systemd.unit(5), PartOf=): stopping or
+        # restarting llama-cpp.service propagates here, never the reverse. This is
+        # what unloads the container when the `agent` group takes the GPU --
+        # llama-swap evicts the llama holder, the holder stops the router unit, the
+        # container follows. Note it also fires when the llama-swap UI stops any one
+        # preset row, which already drops the whole shared router (see the
+        # `presetRow` binding below).
+        podman-comfyui.unitConfig.PartOf = [ "llama-cpp.service" ];
+      })
+      // (lib.optionalAttrs llamacppPerInstance instanceUnits);
+  };
 
 in
+
 {
   imports = [
     ./hardware-config.nix
     sys_dir
+    # The llama.cpp units, generated from the roster. See its comment in the let
+    # block for why they cannot live in this attrset.
+    llamacppUnitsModule
   ];
 
   # -------------------------------------------------------------------------
@@ -489,62 +939,33 @@ in
   # enabling this.
   # ---------------------------------------------------------------------------
 
-  services.llama-cpp = {
+  services.llama-cpp = lib.optionalAttrs (!llamacppPerInstance) {
     enable = true;
     package = pkgs.llama-cpp-rocm;
+    # Deliberately only these three. services.llama-cpp renders every entry of
+    # `settings` onto the command line, and the shared flags are already in the
+    # preset file's [*] -- passing them twice would make the router unit differ
+    # from the one running today for no reason, and "which value wins" (CLI vs
+    # the per-preset section) is not a question worth having.
     settings = {
-      # config.ini holds absolute host paths, so the same file the container read
-      # works verbatim here (router mode: one process, every preset selectable by
-      # the requested model name).
-      models-preset = "${llamaModelsDir}/config.ini";
+      # Generated from the roster above; absolute host paths for the weights, so
+      # the same shape the hand-written config.ini had (router mode: one process,
+      # every preset selectable by the requested model name).
+      models-preset = "${llamacppIni}";
       host = "127.0.0.1";
       # llama-swap owns 11434 now; the router answers on a loopback-only port and
       # is reached through it.
-      port = 11435;
+      port = llamaRouterPort;
     };
   };
 
-  # DynamicUser cannot read ${llamaModelsDir} (0750 elia:users); run as elia,
-  # who is in `render`/`video` and already gets unlimited memlock.
-  systemd.services.llama-cpp = {
-    wantedBy = lib.mkForce [ ];
-    serviceConfig = {
-      DynamicUser = lib.mkForce false;
-      User = username;
-      Group = "users";
-      LimitMEMLOCK = "infinity";
 
-      # ROCm leaves the GPU busy at idle when several HW queues are in play;
-      # upstream's fix is to default GPU_MAX_HW_QUEUES=1 on HIP (llama.cpp#24237).
-      # Checked against the installed build (llama-cpp 0.5.0 b11146, commit
-      # 7fe450e): `strings` over the binary and bin/libggml-hip.so finds no
-      # GPU_MAX_HW_QUEUES at all, so that default is NOT in this build and the
-      # var has to come from the unit. Set once here -- it is read by HIP at
-      # context creation, so it must be in the environment of llama-server
-      # itself, not of the unit's wrapper, and the router children inherit it.
-      # Drop this once nixpkgs' llama-cpp-rocm carries #24237.
-      Environment = [ "GPU_MAX_HW_QUEUES=1" ];
-    };
-  };
-
-  # ComfyUI rides the llama.cpp router's lifecycle. Every llama.cpp preset is one
-  # router unit, so hooking the container to that unit covers all of them at
-  # once -- llama-swap has no "start this model alongside that one" primitive
-  # (its only preload hook, hooks.on_startup, fires when llama-swap boots).
-  #
-  # Wants=, not Requires=: a failing ComfyUI must never take the chat presets
-  # down, and `systemctl stop podman-comfyui.service` by hand must not stop the
-  # router. No After= either -- ComfyUI's cold torch import runs in parallel with
-  # llama-server instead of delaying it.
-  systemd.services.llama-cpp.unitConfig.Wants = [ "podman-comfyui.service" ];
-
-  # One-way stop propagation (systemd.unit(5), PartOf=): stopping or restarting
-  # llama-cpp.service propagates here, never the reverse. This is what unloads
-  # the container when the `agent` group takes the GPU -- llama-swap evicts the
-  # llama holder, the holder stops the router unit, the container follows. Note
-  # it also fires when the llama-swap UI stops any one preset row, which already
-  # drops the whole shared router (see the `preset` binding below).
-  systemd.services.podman-comfyui.unitConfig.PartOf = [ "llama-cpp.service" ];
+  # The llama.cpp units -- the router unit's overrides in router mode, one unit
+  # per preset in split mode, and ComfyUI's Wants=/PartOf= -- live in
+  # llamacppUnitsModule, defined in the let block above next to the roster. They
+  # have to be there: generated unit names need a whole `systemd.services = <set>`
+  # assignment, and this file already assigns systemd.services.<name> by path,
+  # which Nix reads as the same key defined twice.
 
   # -------------------------------------------------------------------------
   # llama-decision: the always-on System One reader (vllm-d3-nano)
@@ -779,24 +1200,40 @@ in
       # left to duplicate -- the list is one clean row per model.
       #
       # The IDs are what the upstreams match, not labels: llama-swap forwards the
-      # request body untouched, so an ID must be a llama.cpp router preset (a
-      # [section] in ${llamaModelsDir}/config.ini) or gufo's --served-model-name.
-      # Display names carry no backend prefix; ids are already unique across all
-      # models, so nothing here can collide.
+      # request body untouched, so an ID must be a llama.cpp preset id (a key of
+      # llamacppPresets, which is both the [section] name in the generated preset
+      # file and, in split mode, the instance's --alias) or gufo's
+      # --served-model-name. Display names carry no backend prefix; ids are
+      # already unique across all models, so nothing here can collide.
       models =
         let
-          # All llama.cpp presets are ONE llama-server in router mode: one holder,
-          # one port. The sharp edge that comes with sharing it -- the holder's
-          # teardown is `systemctl stop llama-cpp.service`, so stopping any single
-          # row here (llama-swap UI, /api/models/<id>/stop) drops the router for
-          # the rest of them. Nothing else unloads them: genai is swap=false and
-          # there is no TTL, so in practice they go only when the agent group
-          # takes the GPU.
-          preset = name: {
-            inherit name;
-            cmd = swapUnitHolder "llama-cpp.service";
-            proxy = "http://127.0.0.1:11435";
+          # One row per preset, straight off the roster. Both lifecycles keep the
+          # same row id and display name; what changes is what stands behind it.
+          #
+          # Router mode: one holder, one port, every row the same llama-server.
+          # The sharp edge that comes with sharing it -- the holder's teardown is
+          # `systemctl stop llama-cpp.service`, so stopping any single row here
+          # (llama-swap UI, /api/models/<id>/stop) drops the router for the rest
+          # of them. Nothing else unloads them: genai is swap=false, so in
+          # practice they go only when the agent group takes the GPU. That is
+          # also why NO ttl is set on these rows in router mode: an idle unload
+          # there is not an idle Ori going away, it is the whole router.
+          #
+          # Split mode: holder and port per preset, so a stop stops one model, a
+          # scrape hits one model, and `ttl` becomes meaningful -- it is what
+          # replaced llama.cpp's models-max = 2 (llamacppRowTtl).
+          presetRow = name: p: {
+            name = p.displayName;
+            cmd = swapUnitHolder (
+              if llamacppPerInstance then llamacppUnit name else "llama-cpp.service"
+            );
+            proxy = "http://127.0.0.1:${
+              toString (if llamacppPerInstance then p.port else llamaRouterPort)
+            }";
             checkEndpoint = "/health";
+          }
+          // lib.optionalAttrs llamacppPerInstance {
+            ttl = llamacppRowTtl;
           };
         in
         {
@@ -807,14 +1244,14 @@ in
             checkEndpoint = "/health";
           };
 
-          "qwen3.6" = preset "Qwen3.6";
-          "glm-4.5-air" = preset "GLM-4.5-Air";
-          "ori" = preset "Ori";
-          "lk" = preset "Lk";
-          "deepseek-ocr" = preset "DeepSeek-OCR";
-          "ornith-1.5-35b" = preset "Ornith-1.5-35B";
-          "ornith-og" = preset "Ornith-OG";
-
+          # glm-4.5-air is gone: it was a row with no preset behind it and no
+          # weights under ${llamaModelsDir}. See the roster note above.
+        }
+        // builtins.listToAttrs (map (n: {
+          name = n;
+          value = presetRow n llamacppPresets.${n};
+        }) llamacppPresetNames)
+        // {
           "comfyui" = {
             name = "ComfyUI";
             cmd = swapUnitHolder "podman-comfyui.service";
@@ -851,16 +1288,7 @@ in
             # all members may run at once
             swap = false;
             exclusive = true;
-            members = [
-              "qwen3.6"
-              "glm-4.5-air"
-              "ori"
-              "lk"
-              "deepseek-ocr"
-              "ornith-1.5-35b"
-              "ornith-og"
-              "comfyui"
-            ]
+            members = llamacppPresetNames ++ [ "comfyui" ]
             ++ lib.optionals qwenImageEnabled [ "qwen-image-2.1" ];
           };
         };
@@ -891,12 +1319,15 @@ in
   };
 
 
-  # ConditionPathIsNonEmpty is only valid in [Path] units; systemd drops it here
-  # ("Unknown key ... in section [Unit]"), so the service used to start with no
-  # models and crash-loop on "preset file does not exist". Gate on the preset file
-  # itself: llama-server aborts if it is missing, and a failed condition is a clean
-  # skip instead of a start-limit-hit.
-  systemd.services.llama-cpp.unitConfig.ConditionFileNotEmpty = "${llamaModelsDir}/config.ini";
+  # The ConditionFileNotEmpty that used to sit here gated on
+  # ${llamaModelsDir}/config.ini, because llama-server aborts when --models-preset
+  # names a file that is not there and the unit crash-looped instead of failing
+  # cleanly. The preset file is generated into the store now, so the condition
+  # would always be true; the failure mode it guarded is gone by construction.
+  #
+  # What DID survive the change, and is worth knowing: (ConditionPathIsNonEmpty is
+  # only valid in [Path] units -- systemd drops it in [Unit] with "Unknown key",
+  # which is how the crash loop was written in the first place.)
 
   # -------------------------------------------------------------------------
   # gufo: Qwen3.8 Flash-Next (this agent's backend) and Qwen-Image-2.1
@@ -1138,7 +1569,7 @@ in
         # (a reboot clears it too; /run is not persistent.)
         enable = !llamacppPerInstance;
         url = "http://127.0.0.1:${toString llamaRouterPort}";
-        configIni = "${llamaModelsDir}/config.ini";
+        configIni = "${llamacppIni}";
         # The instance list (GET /v1/models) is answered by the router itself and
         # would add "queued/loading" to "resident". Left off until the first
         # interval has been watched for a join: request line in llama-cpp.service
