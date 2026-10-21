@@ -323,17 +323,33 @@ let
 
   # Flags every instance shares -- the [*] of the old config.ini, minus the two
   # router-only keys in llamacppRouterOnlyArgs.
+  #
+  # The value TYPE here is the argument's arity on the command line, and it is not
+  # free: a Nix bool renders as a bare --flag, which is what --metrics,
+  # --cache-prompt, --jinja and --kv-unified (--x/--no-x pairs in this build)
+  # actually want, while a string or number renders as `--flag value`.
+  #
+  # flash-attn is the trap and is spelled "on" for the reason: llama.cpp declares
+  # it with an OPTIONAL value ([on|off|auto]), so it reads the following token as
+  # its value however it is written. A bare --flash-attn in front of --host dies
+  # with "error while handling argument --flash-attn: unknown value: '--host'",
+  # which is what every per-instance unit on this box did on its first start
+  # (23:28, all six, start-limit-hit inside 90 s). Router mode could never show
+  # this: the preset file is parsed by common_params, which knows each key's
+  # arity, and a hand-rolled CLI renderer does not. Transcribed from the old
+  # config.ini as `flash-attn = true` / `kv-unified = 1` / `jinja = 1`, all three
+  # accepted by that parser and two of the three wrong for the command line.
   llamacppSharedArgs = {
     "n-gpu-layers" = 999;
     metrics = true;
     "cache-prompt" = true;
     parallel = 4;
     threads = 8;
-    "flash-attn" = true;
-    "kv-unified" = 1;
+    "flash-attn" = "on";
+    "kv-unified" = true;
     "cache-type-k" = "q8_0";
     "cache-type-v" = "q8_0";
-    jinja = 1;
+    jinja = true;
 
     # Idle GPU load. llama.cpp's default --poll 50 busy-polls for work: upstream's
     # recipe for always-on deployments is --poll 0 (poll-batch and spec-draft-poll
@@ -584,7 +600,16 @@ let
   # The same renderer services.llama-cpp uses, so router and instance flags are
   # spelled identically (and `metrics = true` becomes a bare --metrics, not
   # `--metrics true`).
+  # Args this build declares with an optional value -- the greedy kind that
+  # swallows the next token when rendered bare. Checked against `llama-server
+  # --help` of the pinned build (llama-cpp-main-1b70350), where flash-attn is the
+  # only one the roster uses; anything listed here has to be given as a string.
+  llamacppOptionalValueArgs = [ "flash-attn" ];
+
   llamacppArgsToFlags = args:
+    # Not a bool, please: see the flash-attn note on llamacppSharedArgs for what
+    # this assert is paying for.
+    assert lib.all (k: builtins.isString (args.${k} or "")) llamacppOptionalValueArgs;
     lib.cli.toCommandLine (optionName: {
       option =
         if builtins.stringLength optionName > 1 then "--${optionName}" else "-${optionName}";
