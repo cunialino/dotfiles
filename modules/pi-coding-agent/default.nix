@@ -15,6 +15,19 @@ let
   # unloads the others.
   gufoModelName = "qwen3.8-flash-next";
 
+  # The guard is a single-file Pi extension whose settings are baked in at build
+  # time: herdr and civetta start pi without the environment a shell would carry,
+  # and a `PI_GUARD_*` override still works for one session because the generated
+  # file reads them as `process.env.X ?? <configured value>`.
+  commandGuardExtension = pkgs.replaceVars ./command-guard.ts {
+    endpoint = cfg.commandGuard.endpoint;
+    model = cfg.commandGuard.model;
+    threshold = toString cfg.commandGuard.threshold;
+    mode = cfg.commandGuard.mode;
+    timeoutMs = toString cfg.commandGuard.timeoutMs;
+    tools = builtins.toJSON cfg.commandGuard.tools;
+  };
+
 in
 {
   options.modules.pi-coding-agent = {
@@ -48,6 +61,92 @@ in
         `codemode` or `hidden`; see
         <https://pi.dev/docs/latest/mcp> ("Control tool exposure").
       '';
+    };
+
+    commandGuard = {
+      enable = lib.mkEnableOption ''
+        the Pi command guard, which asks a decision model whether a command is
+        dangerous before it runs
+      '';
+
+      endpoint = lib.mkOption {
+        type = lib.types.str;
+        default = "http://192.168.0.6:11436/v1/systemone";
+        description = ''
+          System One classifier endpoint: `POST`, questions in the `choice`,
+          `score` and `noul` shapes Pi speaks natively. It sits next to the swap
+          on the same box as the provider baseUrl above, and deliberately not
+          behind it -- the swap answers chat completions only and returns 404 for
+          this route.
+        '';
+      };
+
+      model = lib.mkOption {
+        type = lib.types.str;
+        default = "d3-nano";
+        description = ''
+          Model id served at {option}`endpoint`. The guard registers it with Pi as
+          the classifier model `decision/<id>` -- also what a `codemode` script
+          sees under `models.getAvailableOfType("classifier")`. Classifier models
+          never appear in `/model`, so this cannot become the agent model by
+          accident.
+        '';
+      };
+
+      threshold = lib.mkOption {
+        type = lib.types.addCheck lib.types.number (value: value >= 0 && value <= 1);
+        default = 0.5;
+        description = ''
+          Probability of damage at which a call needs approval. Measured on
+          d3-nano with the guard's own question: `cargo test --release` 0.01,
+          `echo hi` 0.05, `git push --force origin main` 0.69, `rm -rf ~` 0.99.
+          The reading is soft rather than parsed -- an `rm -rf` of a path that
+          looks disposable scored 0.45 -- so this trades false prompts against
+          misses instead of eliminating either.
+        '';
+      };
+
+      mode = lib.mkOption {
+        type = lib.types.enum [ "observe" "confirm" "block" ];
+        default = "observe";
+        description = ''
+          What a dangerous verdict costs the run. `observe` records it and lets the
+          command through; `confirm` asks the user, and blocks where there is no UI
+          to ask with -- which is every herdr and civetta run; `block` refuses
+          without asking.
+
+          Every judged command lands in
+          {file}`~/.pi/agent/command-guard.log` whatever the mode, with `allow`,
+          `block` or `would-block` -- the last being what `observe` let past. That
+          file is the promotion path: read a day of real work there, then switch.
+          `jq -r 'select(.action != "allow") | [.danger, .command] | @tsv'` is the
+          whole review.
+        '';
+      };
+
+      timeoutMs = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 5000;
+        description = ''
+          Deadline for one classification, measured at 50-250ms on the Strix
+          Halo. Judging a command therefore costs nothing visible; the deadline
+          is for a server that is down rather than slow, and a command with no
+          answer counts as dangerous -- that is what separates a guard from a
+          decoration.
+        '';
+      };
+
+      tools = lib.mkOption {
+        type = with lib.types; listOf str;
+        default = [ "bash" "powershell" ];
+        example = [ "bash" "edit" "write" ];
+        description = ''
+          Tool calls the guard judges. Only tools that carry their action in a
+          `command` argument can be judged by the guard's question, so `edit` and
+          `write` would need a question of their own first. Commands the user
+          types with `!` never reach `tool_call` and are not gated.
+        '';
+      };
     };
   };
 
@@ -167,6 +266,14 @@ in
           // lib.optionalAttrs (toolExposure != { }) { inherit toolExposure; }
         ) config.modules.mcp.servers;
       };
+    };
+
+    # Pi discovers plain `.ts` files in `extensions/` and jiti compiles them in
+    # process, so a read-only store path is the whole installation. The guard
+    # registers its classifier itself through `pi.registerProvider`, which is why
+    # none of this appears in `programs.pi-coding-agent.models`.
+    home.file.".pi/agent/extensions/command-guard.ts" = lib.mkIf cfg.commandGuard.enable {
+      source = commandGuardExtension;
     };
   };
 }

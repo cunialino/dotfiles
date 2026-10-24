@@ -20,7 +20,20 @@
       tmux.enable = true;
       bw.enable = true;
       ai.enable = true;
-      pi-coding-agent.enable = true;
+      # `commandGuard` puts a decision model behind every `bash` call: pi asks
+      # d3-nano on the Halo (port 11436, next to the swap) what it thinks of the
+      # command before it runs. `observe` means the answer is written to
+      # ~/.pi/agent/command-guard.log and nothing is stopped -- the verdicts get
+      # reviewed there before they start costing a run, and `confirm` (or `block`
+      # for the unattended queue, which has no UI to answer with) is the promotion.
+      # Endpoint, threshold and timeout default in modules/pi-coding-agent.
+      pi-coding-agent = {
+        enable = true;
+        commandGuard = {
+          enable = true;
+          mode = "observe";
+        };
+      };
       mcp.enable = true;
       comfy-gen.enable = true;
 
