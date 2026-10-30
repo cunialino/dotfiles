@@ -933,6 +933,24 @@ in
               d: lib.getName d != "npm-config-hook"
             ) (prevAttrs.nativeBuildInputs or [ ]);
             cmakeFlags = (prevAttrs.cmakeFlags or [ ]) ++ [ "-DLLAMA_BUILD_UI=OFF" ];
+
+            # ctestCheckHook builds its --exclude-from-file out of `disabledTests`,
+            # so this adds to nixpkgs' own list (the network-bound tests) instead of
+            # replacing it.
+            disabledTests = (prevAttrs.disabledTests or [ ]) ++ [
+              # tests/test_conversion_fp8.py is a Python test of convert_hf_to_gguf:
+              # it imports numpy, torch and safetensors. nixpkgs' check env is
+              # python3.withPackages [ jinja2 ], which is enough for every other test
+              # in this suite (test-jinja-py passes) and nothing more. Making it run
+              # here means putting torch -- gigabytes of check-time dependency, on a
+              # ROCm box where the fork between a CPU torch and a HIP one is exactly
+              # the fight worth avoiding -- inside the build of a package this host
+              # uses for one thing: /v1/systemone. The Python converter is upstream's
+              # CI's problem, not ours.
+              # Drop the entry if nixpkgs ever ships the python deps for it, or if
+              # master stops registering the test.
+              "test-conversion-fp8"
+            ];
           }
         );
 
