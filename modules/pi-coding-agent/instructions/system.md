@@ -39,3 +39,8 @@ Follow the following best principles while writing code:
 - Local code should explain, or at least hint at the overall system design.
 - Code should be self-documenting. Comments should be avoided whenever possible. Comments duplicate work when both writing and reading code. If you need to comment something to make it understandable it should probably be rewritten. (highlighted/selected portion)
 - Follow TDD principles: write red tests first and then code till they go green
+
+## 8. No ai-slop
+
+Always write code and text with a human reader in mind, do not bloat files with comments
+and keep the git messages coincise. Apply this rule regardless of current repo structure.
