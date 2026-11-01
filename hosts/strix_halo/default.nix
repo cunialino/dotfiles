@@ -33,6 +33,9 @@ let
   # guarantees correctness either way.
   # ---------------------------------------------------------------------------
   comfyuiVersion = "v0.41.0";
+
+  comfyuiModelId = "comfyui_auto";
+
   comfyuiContainerfile = ./containers/comfyui.Containerfile;
   comfyuiImageTag = builtins.substring 0 12 (
     builtins.hashString "sha256" "${builtins.readFile comfyuiContainerfile}\n${comfyuiVersion}\n"
@@ -146,13 +149,21 @@ let
   gufoServedName = "qwen3.8-flash-next";
   gufoCacheDir = "/var/lib/gufo/cache";
 
-  # Qwen-Image-2.1 serves the LoRA'd variant (qwen-image-2.1-lr) through the
-  # `genai` group. The gate exists because image generation drops gufo's ~31 GiB
-  # image pipeline into the swap=false `genai` group -- the largest single chunk
-  # of the coexistence risk on a box with 124 GiB and no swap. Leave true to keep
-  # the row routable, or set to false to take it offline; the gufo-image.service
-  # unit stays defined and hand-startable either way.
-  qwenImageEnabled = true;
+  # Qwen-Image-2.1 serves the LoRA'd variant (qwen-image-2.1-lr). The gate exists
+  # because image generation drops gufo's ~31 GiB image pipeline on the box: in the
+  # matrix it is a set of its own (`image_qwen`), which says it may share the pool
+  # with nothing -- the largest single chunk of coexistence risk on 124 GiB with no
+  # swap. Leave true to keep the row routable, or set to false to take it offline;
+  # the gufo-image.service unit stays defined and hand-startable either way.
+  #
+  # False, and not for capacity: the backend has not started since 2026-10-21
+  # ("cannot read Qwen-Image metadata: .../qwen-image-2.1-lr/text_encoder/
+  # config.json", then start-limit-hit -- the weights on disk are incomplete).
+  # A routable row in front of a backend that cannot come up is not a dead model,
+  # it is a queue block: FIFO holds every other request behind it for
+  # healthCheckTimeout (900 s), which is the 2026-10-21 23:02 -> 23:17 lockout
+  # written up under the scheduler below. Flip it back with the weights.
+  qwenImageEnabled = false;
 
   # halogen -- the container that served this agent before gufo -- is off the
   # config entirely: no unit, no podman bridge, no egress table, no pi provider.
@@ -518,7 +529,7 @@ let
     # start to /system_stats answering. No gib: an unmeasured number does not
     # belong in a capacity rule, so image work keeps the GPU to itself (see
     # llamacppMatrixSets) until a generation is measured the same way.
-    "comfyui" = { loadSec = 20; };
+    "${comfyuiModelId}" = { loadSec = 20; };
     "qwen-image-2.1" = { loadSec = 20; };
   };
 
@@ -580,7 +591,7 @@ let
       agent = gufoServedName;
 
       # Image work alone, see the comfyui note above.
-      image = "comfyui";
+      image = comfyuiModelId;
     }
     // lib.optionalAttrs qwenImageEnabled { image_qwen = "qwen-image-2.1"; }
     // builtins.listToAttrs (map (s: {
@@ -596,7 +607,7 @@ let
   llamacppMatrixEvictCosts = builtins.listToAttrs (map (n: {
     name = n;
     value = if n == gufoServedName then 200 else llamacppMeasured.${n}.loadSec;
-  }) (llamacppPresetNames ++ [ "comfyui" gufoServedName ]
+  }) (llamacppPresetNames ++ [ comfyuiModelId gufoServedName ]
     ++ lib.optionals qwenImageEnabled [ "qwen-image-2.1" ]));
 
   # Unit name of a preset. In split mode this is also the label that ties a
@@ -1045,7 +1056,6 @@ in
         # service itself is still only started/stopped by llama-swap.
         11434
         11436
-        8188
       ];
     };
     interfaces = {
@@ -1357,7 +1367,7 @@ in
   # encoder resident, so the group can still walk past the 124 GiB the box has
   # (and there is no swap). Exclusivity only protects the agent. Qwen-Image-2.1
   # (the LoRA'd qwen-image-2.1-lr variant) is the third big resident chunk here;
-  # it is routable via qwenImageEnabled above.
+  # qwenImageEnabled above gates it, and is currently false.
   #
   # Backend lifecycles stay systemd's job -- llama-swap toggles the units and
   # health-checks their loopback ports. That keeps ComfyUI's container isolation
@@ -1450,13 +1460,37 @@ in
           value = presetRow n llamacppPresets.${n};
         }) llamacppPresetNames)
         // {
-          "comfyui" = {
+          "${comfyuiModelId}" = {
             name = "ComfyUI";
             cmd = swapUnitHolder "podman-comfyui.service";
-            proxy = "http://127.0.0.1:8188";
+
+            # The holder keeps the row up; killing it only reaps the holder. Without
+            # cmdStop llama-swap reports the row unloaded while the container -- and
+            # the ~100 GiB it holds -- is still running, which is upstream's whole
+            # point about Docker/Podman backends. Same command the holder's TERM
+            # trap runs, so the double call is idempotent.
+            cmdStop = "systemctl stop podman-comfyui.service";
+
+            # podman waits 10 s of its own before SIGKILL (measured on this host:
+            # "StopSignal SIGTERM failed to stop container comfyui in 10 seconds,
+            # resorting to SIGKILL"), and the global unloadTimeout is 10 s. At the
+            # default llama-swap gives up mid-stop and moves on with the GPU held.
+            unloadTimeout = 60;
+
+            proxy = "http://127.0.0.1:${toString comfyuiPort}";
             # Health-check on /system_stats: it answers 200 only once the server
             # is actually up (this backend has nothing on /health).
             checkEndpoint = "/system_stats";
+
+            # No ttl, deliberately, and the reason is upstream's open #1252: a
+            # POST /prompt returns in milliseconds and the render then runs with no
+            # HTTP request open at all, so llama-swap cannot tell an idle ComfyUI
+            # from one mid-generation -- neither a TTL expiry nor a matrix eviction
+            # waits for the queue. A ttl here would fire inside a long sweep. The
+            # `image` set already frees the GPU the moment another model is asked
+            # for; `curl -X POST http://127.0.0.1:11434/api/models/unload/${comfyuiModelId}`
+            # releases it on demand, and a ttl is what to add once #1252 lands a
+            # queue-aware busy check.
           };
         }
         // lib.optionalAttrs qwenImageEnabled {
@@ -1477,7 +1511,7 @@ in
           "qwen-image-2.1" = {
             name = "Qwen-Image-2.1";
             cmd = swapUnitHolder "gufo-image.service";
-            proxy = "http://127.0.0.1:8189";
+            proxy = "http://127.0.0.1:${toString gufoImagePort}";
             checkEndpoint = "/health";
           };
         };
@@ -1521,7 +1555,7 @@ in
               # all members may run at once
               swap = false;
               exclusive = true;
-              members = llamacppPresetNames ++ [ "comfyui" ]
+              members = llamacppPresetNames ++ [ comfyuiModelId ]
               ++ lib.optionals qwenImageEnabled [ "qwen-image-2.1" ];
             };
           };
@@ -1683,7 +1717,7 @@ in
       Group = "gufo";
       ExecStart = ''
         ${gufo}/bin/gufo serve image \
-          --host 127.0.0.1 --port 8189 \
+          --host 127.0.0.1 --port ${toString gufoImagePort} \
           --model ${qImageLrDir} \
           --served-model-name qwen-image-2.1
       '';
@@ -1830,15 +1864,11 @@ in
     jobs = [
       {
         name = "gufo";
-        description = "gufo: /metrics on both units (loopback). Down == that engine is not loaded.";
+        description = "gufo: /metrics on the LLM unit (loopback). Down == that engine is not loaded.";
         targets = [
           {
             addr = "127.0.0.1:${toString gufoLlmPort}";
             labels = { service = "gufo-llm.service"; };
-          }
-          {
-            addr = "127.0.0.1:${toString gufoImagePort}";
-            labels = { service = "gufo-image.service"; };
           }
         ];
         # 5s like the rest, against the warning written here earlier -- and the

@@ -1,8 +1,21 @@
 #!/usr/bin/env python3
 """Generate an image from a ComfyUI workflow via its REST API.
 
-Runs anywhere that can reach the ComfyUI server (e.g. another PC on the LAN).
-Python stdlib only -- no ComfyUI install needed on the machine you run it from.
+Runs anywhere that can reach llama-swap (e.g. another PC on the LAN). Python
+stdlib only -- no ComfyUI install needed on the machine you run it from.
+
+llama-swap owns the ComfyUI process, so nothing here needs root, and by default
+the whole session -- queueing, history, the finished image -- goes to
+``<swap>/comfyui``, the swap's dedicated passthrough for the ``comfyui_auto``
+row. That is the default for two reasons, not merely the way to start the thing:
+a request on a path llama-swap does not ignore *is* the start request, and
+starting ComfyUI is what evicts whatever model holds the GPU, which no
+unprivileged client can arrange any other way; and this box does not publish
+:8188 on the LAN while it does publish 11434, so the swap is the only route that
+works off the box at all. ``--server`` opts out and speaks to ComfyUI directly,
+in which case the swap is used only to start it. Browsers take the same route as
+the default and open ``http://<host>:11434/comfyui/``, so their tab is visible
+to the scheduler too.
 
 The workflow is supplied in ComfyUI *API format* -- the same ``Save (API Format)``
 export Open WebUI consumes. The canonical copy lives in the ``myai`` repo and is
@@ -12,19 +25,28 @@ bundled into the Nix closure at build time (see modules/comfy-gen/default.nix), 
 This ROCm build serves outputs at ``/api/view`` rather than the stock ``/file``,
 so the download URL below uses that endpoint.
 
-Example (from another PC, server at 192.168.0.6:8188):
-    comfy-gen --server http://192.168.0.6:8188 \
-        --workflow workflow.json \
-        --prompt "a serene alpine lake at sunrise, highly detailed" \
+Example (llama-swap on the GPU box is the default endpoint):
+    comfy-gen --prompt "a serene alpine lake at sunrise, highly detailed" \
         --out alpine.png
+
+The same render against a ComfyUI that is already up, nothing proxied:
+    comfy-gen --server http://192.168.0.6:8188 --out alpine.png
 """
 
 import argparse
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
+
+# llama-swap fronts the whole GPU box, so it is the only address a client needs.
+DEFAULT_SWAP = "http://192.168.0.6:11434"
+
+# The swap's passthrough for the comfyui_auto row: the prefix is stripped and the
+# query string kept, so ComfyUI's own paths work unchanged behind it.
+COMFY_PREFIX = "/comfyui"
 
 
 def http_get(server, path, timeout=120):
@@ -74,6 +96,62 @@ def resolve_workflow(args):
         return args.workflow
     print(f"workflow not found: {args.workflow}")
     print("run with --list to see bundled workflow names")
+    raise SystemExit(1)
+
+
+def comfy_is_up(server):
+    """One short probe on /system_stats, the endpoint this backend answers 200 on
+    only once the server really is up. Through the swap it is itself a start
+    request, abandoned after 3 s; ``wake`` below is the one held open."""
+    try:
+        http_get(server, "/system_stats", timeout=3)
+        return True
+    except (urllib.error.URLError, OSError):
+        return False
+
+
+def _wake_request(url):
+    """Throwaway start request. The answer is a web page nobody asked for and a
+    failure here is not this thread's problem: either llama-swap starts the model
+    or the caller's readiness poll runs out."""
+    try:
+        http_get(url, "", timeout=1200)
+    except Exception:
+        pass
+
+
+def wake(swap):
+    """Start ComfyUI through llama-swap and do not wait on the response: /comfyui/
+    holds the request until the container answers, and all it returns is the web
+    UI. Readiness is watched on ComfyUI itself instead."""
+    print(f"  asking {swap}{COMFY_PREFIX}/ to start it "
+          "(evicts whatever model the swap has loaded)")
+    threading.Thread(
+        target=_wake_request, args=(swap + COMFY_PREFIX + "/",), daemon=True
+    ).start()
+
+
+def ensure_running(args):
+    """Guarantee a ComfyUI to talk to, starting it through llama-swap if needed.
+    Same procedure on both routes: the readiness probe is pointed at wherever the
+    session runs (the swap by default), and one long-lived request is fired at the
+    swap so a start survives the probe being abandoned at 3 s."""
+    print(f"comfyui endpoint: {args.server}")
+    if comfy_is_up(args.server):
+        return
+    if args.no_wake:
+        print(f"error: no ComfyUI at {args.server}, and --no-wake was given.")
+        print(f"  start it with:  curl {args.swap}{COMFY_PREFIX}/ &")
+        raise SystemExit(1)
+    t0 = time.time()
+    wake(args.swap)
+    while time.time() - t0 < args.wake_timeout:
+        if comfy_is_up(args.server):
+            print(f"  up after {time.time() - t0:.0f}s")
+            return
+        time.sleep(5)
+    print(f"error: ComfyUI did not come up at {args.server} in {args.wake_timeout}s "
+          f"(swap said nothing either; look at: journalctl -u podman-comfyui.service)")
     raise SystemExit(1)
 
 
@@ -173,7 +251,18 @@ def main():
     ap = argparse.ArgumentParser(
         description="Generate an image from a ComfyUI workflow via API."
     )
-    ap.add_argument("--server", default="http://192.168.0.6:8188")
+    ap.add_argument("--swap", default=os.environ.get("LLAMA_SWAP") or DEFAULT_SWAP,
+                    help="llama-swap base URL; ComfyUI is reached through its "
+                    "/comfyui passthrough (default %(default)s, or $LLAMA_SWAP)")
+    ap.add_argument("--server", help="ComfyUI URL to use directly rather than through "
+                    "the swap. Only worth it when ComfyUI is already up and reachable "
+                    "to you: this box does not publish :8188, and the swap starts it")
+    ap.add_argument("--no-wake", action="store_true",
+                    help="fail if ComfyUI is down instead of asking llama-swap for it. "
+                    "Needs --server: a proxied request is a start request, so there is "
+                    "nothing to skip on the default route")
+    ap.add_argument("--wake-timeout", type=int, default=600,
+                    help="seconds to wait for llama-swap to bring ComfyUI up")
     ap.add_argument(
         "-l",
         "--list",
@@ -192,7 +281,8 @@ def main():
     ap.add_argument("--out", default="output.png")
     ap.add_argument("--poll", type=int, default=5, help="seconds between history polls")
     args = ap.parse_args()
-    args.server = args.server.rstrip("/")
+    args.swap = args.swap.rstrip("/")
+    args.server = args.server.rstrip("/") if args.server else args.swap + COMFY_PREFIX
 
     if args.list:
         list_workflows()
@@ -200,11 +290,19 @@ def main():
     if not args.workflow:
         print("error: --workflow is required (or use --list to see bundled names)")
         raise SystemExit(1)
+    if args.no_wake and args.server == args.swap + COMFY_PREFIX:
+        print("error: --no-wake needs --server: every request through llama-swap is a")
+        print("  start request, so the default route cannot ask about ComfyUI without it.")
+        raise SystemExit(1)
 
     # The bundled workflow is already in ComfyUI API format (node-id keyed),
     # so it is used directly -- no object_info conversion required.
+    # Resolve the graph before waking anything: a bad --workflow should not cost
+    # whoever was holding the GPU their model.
     wf = json.load(open(resolve_workflow(args)))
     override(wf, args)
+
+    ensure_running(args)
 
     res = http_json(args.server, "/prompt", {"prompt": wf, "outputs": {}})
     if "prompt_id" not in res:

@@ -43,9 +43,10 @@ let
     '';
 
   # Drives the running ComfyUI (comfyui-rocm) over its REST API: queues a
-  # workflow, waits for completion, and downloads the result. Works from any
-  # machine that can reach the server. This ROCm build serves outputs at
-  # /api/view rather than the stock /file endpoint.
+  # workflow, waits for completion, and downloads the result. ComfyUI is reached
+  # through llama-swap's /comfyui passthrough, so this works from any machine that
+  # can reach the swap -- and starting ComfyUI is the swap's job, not the client's.
+  # This ROCm build serves outputs at /api/view rather than the stock /file.
   comfyGen =
     pkgs.writeShellApplication {
       name = "comfy-gen";
