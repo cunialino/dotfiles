@@ -173,11 +173,18 @@ let
   # which is what killed gufo on `hipMalloc failed for blk.8.ffn_down_exps.weight`.
 
   # llama.cpp comes from upstream master, not from nixpkgs -- see nixpkgs.overlays
-  # below the `in`. Setting this to false puts the box back on nixpkgs' 0.5.0.
+  # below the `in`. Setting this to false puts the box back on nixpkgs' build, which
+  # since the bump is 0.7.0 = b11669 and DOES carry /v1/systemone: false is a working
+  # rollback now, not a broken one.
   llamaCppMain = true;
 
+  llamaCppRocm10 = true;
+
+  rocm10Pkgs = inputs.nixpkgs-rocm10.legacyPackages.${pkgs.system};
+
   # Native ROCm from nixpkgs (ROCm 7.2.3; the hip arch list ships gfx1151, so no
-  # HSA override tricks are needed on Strix Halo). llama.cpp runs from there.
+  # HSA override tricks are needed on Strix Halo). llama.cpp runs from there with
+  # llamaCppRocm10 = false; with it true the HIP build rides the fork's 10.1 scope.
   #
   # ComfyUI deliberately stays on podman. Every nix-native route ends in a
   # from-source ROCm torch build, and nixpkgs 26.11's torch 2.13 does not even
@@ -881,13 +888,15 @@ in
   # -------------------------------------------------------------------------
   # llama.cpp from upstream master, by overlay
   #
-  # nixpkgs pins llama-cpp 0.5.0 = upstream 7fe450e (2026-09-23). The /v1/systemone
-  # decision endpoint merged on 2026-10-02 (PR #29818), so the packaged build
-  # cannot serve it -- the installed binary's route table stops at
+  # Written while nixpkgs pinned 0.5.0 = upstream 7fe450e (2026-09-23) and the
+  # /v1/systemone decision endpoint had only just merged (2026-10-02, PR #29818): the
+  # packaged route table stopped at
   # /v1/{chat,completions,embeddings,health,messages,models,rerank,responses}.
-  # An overlay on the source is cheaper here than a nixpkgs bump: the alternative
-  # moves every package on the box, including the ROCm stack that the HIP build
-  # and ComfyUI's container ride on.
+  # The bump to 0.7.0 = b11669 closed that gap -- /v1/systemone ships in nixpkgs
+  # now -- so this overlay is no longer load-bearing, and llamaCppMain = false is a
+  # working config. What the master pin buys is master, plus one cost: the build
+  # number and commit come from nixpkgs' expression, so `--version` names the
+  # packaged release (b11669 / 620d222) rather than the rev actually built.
   #
   # One entry covers both attributes: pkgs/by-name/ll/llama-cpp-rocm/package.nix is
   # literally `llama-cpp.override { rocmSupport = true; }`, and it takes llama-cpp
@@ -920,7 +929,14 @@ in
         # list, so the target is unchanged and only the count is. If the box ever
         # gains a second AMD GPU, this is the line to widen.
         llama-cpp = (
-          prev.llama-cpp.override { rocmGpuTargets = [ "gfx1151" ]; }
+          prev.llama-cpp.override {
+            rocmGpuTargets = [ "gfx1151" ];
+            rocmPackages =
+              if llamaCppRocm10 then
+                rocm10Pkgs.rocmPackages_10.gfx1151
+              else
+                prev.rocmPackages;
+          }
         ).overrideAttrs (
           finalAttrs: prevAttrs:
           {
@@ -932,7 +948,14 @@ in
             nativeBuildInputs = lib.filter (
               d: lib.getName d != "npm-config-hook"
             ) (prevAttrs.nativeBuildInputs or [ ]);
-            cmakeFlags = (prevAttrs.cmakeFlags or [ ]) ++ [ "-DLLAMA_BUILD_UI=OFF" ];
+            cmakeFlags =
+              (prevAttrs.cmakeFlags or [ ])
+              ++ [
+                "-DLLAMA_BUILD_UI=OFF"
+              ]
+              ++ lib.optionals llamaCppRocm10 [
+                "-DCMAKE_HIP_FLAGS=--rocm-path=${rocm10Pkgs.rocmPackages_10.gfx1151.clr}"
+              ];
 
             # ctestCheckHook builds its --exclude-from-file out of `disabledTests`,
             # so this adds to nixpkgs' own list (the network-bound tests) instead of
