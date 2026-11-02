@@ -143,6 +143,7 @@ in
         lazy-nvim
         luasnip
         blink-cmp
+        diffview-plus-nvim
         jupynvim
       ];
       initLua = ''
