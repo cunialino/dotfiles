@@ -49,7 +49,7 @@ let
   decisionPort = 11436;
 
   gufoModelsDir = "/var/lib/gufo-models";
-  flashNextDir = "${gufoModelsDir}/qwen3.8-flash-next";
+  flashNextDir = "${gufoModelsDir}/qwen3.8-flash-next-v31";
   flashNextShard1 = "${flashNextDir}/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf";
   flashNextMtp = "${flashNextDir}/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf";
   qImageLrDir = "${gufoModelsDir}/qwen-image-2.1-lr";

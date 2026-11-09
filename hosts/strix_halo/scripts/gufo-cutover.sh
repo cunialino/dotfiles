@@ -52,15 +52,15 @@ GENAI_ALIAS=qwen3.6
 IMAGE_ALIAS=Qwen-Image-2.1
 
 MODELS_DIR=/var/lib/gufo-models
-FLASH_DIR=$MODELS_DIR/qwen3.8-flash-next
+FLASH_DIR=$MODELS_DIR/qwen3.8-flash-next-v31
 
 # exact sizes from the pinned HF revisions -- preflight fails loudly if a model is
 # missing or truncated, rather than letting a 10-minute load attempt discover it.
 expect=(
-  "$FLASH_DIR/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf 10946624"
-  "$FLASH_DIR/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00002-of-00004.gguf 49859583136"
-  "$FLASH_DIR/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00003-of-00004.gguf 49376141504"
-  "$FLASH_DIR/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00004-of-00004.gguf 12087983520"
+  "$FLASH_DIR/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf 10946618"
+  "$FLASH_DIR/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00002-of-00004.gguf 49720539552"
+  "$FLASH_DIR/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00003-of-00004.gguf 32803030176"
+  "$FLASH_DIR/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00004-of-00004.gguf 28800138432"
   "$FLASH_DIR/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf 2786568256"
   "$FLASH_DIR/mmproj-BF16.gguf 907542944"
 )
@@ -222,7 +222,7 @@ stage_preflight() {
     # weights are sitting there, say so with the exact fix instead of making
     # someone re-derive where 139 GiB went.
     real_home=$(getent passwd "${SUDO_USER:-$(id -un)}" 2>/dev/null | cut -d: -f6)
-    probe="$real_home/gufo-models/qwen3.8-flash-next/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf"
+    probe="$real_home/gufo-models/qwen3.8-flash-next-v31/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf"
     if [ -f "$probe" ]; then
       say "      weights look complete but are in ${real_home}/gufo-models -- move them:"
       say "        find $real_home/gufo-models -name '*.incomplete' -delete"
