@@ -96,7 +96,7 @@ let
 
   llamacppPerInstance = true;
 
-  llamacppRowTtl = 120;
+  llamacppRowTtl = 300;
 
   llamacppSharedArgs = {
     "n-gpu-layers" = 999;
@@ -244,24 +244,48 @@ let
 
     "${gufoServedName}" = { gib = 96.17; loadSec = 61; };
 
-    "${comfyuiModelId}" = { loadSec = 20; };
+    "${comfyuiModelId}" = { gib = 25.0; loadSec = 20; };
     "qwen-image-2.1" = { loadSec = 20; };
   };
 
   llamacppCoResidentBudgetGiB = 80.0;
 
-  llamacppResidencySets =
+  comfyuiCoResidentBudgetGiB = 100.0;
+
+  comfyuiMaxPeers = 2;
+
+  poolCombinations = { budget, roster, maxMembers ? null }:
     let
       gib = s: builtins.foldl' (t: n: t + llamacppMeasured.${n}.gib) 0.0 s;
-      subsets = builtins.foldl' (acc: n: acc ++ map (s: s ++ [ n ]) acc) [ [ ] ] llamacppPresetNames;
-      fits = builtins.filter (s: s != [ ] && gib s <= llamacppCoResidentBudgetGiB) subsets;
-      maximal = builtins.filter (
-        s: ! builtins.any (o: builtins.length o > builtins.length s
-          && builtins.all (x: builtins.elem x o) s)
-        fits
-      ) fits;
+      subsets = builtins.foldl' (acc: n: acc ++ map (s: s ++ [ n ]) acc) [ [ ] ] roster;
+      fits = builtins.filter (
+        s:
+        s != [ ]
+        && gib s <= budget
+        && (maxMembers == null || builtins.length s <= maxMembers)
+      ) subsets;
     in
-    builtins.sort (a: b: gib a > gib b) maximal;
+    builtins.sort (a: b: gib a > gib b) (
+      builtins.filter (
+        s: ! builtins.any (
+          o:
+          builtins.length o > builtins.length s
+          && builtins.all (x: builtins.elem x o) s
+        ) fits
+      ) fits
+    );
+
+  llamacppResidencySets = poolCombinations {
+    budget = llamacppCoResidentBudgetGiB;
+    roster = llamacppPresetNames;
+  };
+
+  comfyuiResidencySets =
+    builtins.filter (s: builtins.elem comfyuiModelId s) (poolCombinations {
+      budget = comfyuiCoResidentBudgetGiB;
+      roster = [ comfyuiModelId ] ++ llamacppPresetNames;
+      maxMembers = comfyuiMaxPeers + 1;
+    });
 
   llamacppMatrixSets =
     let
@@ -269,17 +293,22 @@ let
       # expression is stable when the roster order changes.
       expr = s: if builtins.length s == 1 then builtins.head s
         else "( ${builtins.concatStringsSep " & " (builtins.sort (a: b: a < b) s)} )";
+      setName = prefix: s: "${prefix}_${builtins.concatStringsSep "_" (builtins.sort (a: b: a < b) s)}";
     in
     assert builtins.length llamacppResidencySets >= 2;
+    assert comfyuiResidencySets != [ ];
     {
       agent = gufoServedName;
-      image = comfyuiModelId;
     }
     // lib.optionalAttrs qwenImageEnabled { image_qwen = "qwen-image-2.1"; }
     // builtins.listToAttrs (map (s: {
-      name = "fits_${builtins.concatStringsSep "_" (builtins.sort (a: b: a < b) s)}";
+      name = setName "fits" s;
       value = expr s;
-    }) llamacppResidencySets);
+    }) llamacppResidencySets)
+    // builtins.listToAttrs (map (s: {
+      name = setName "image" s;
+      value = expr s;
+    }) comfyuiResidencySets);
 
   llamacppMatrixEvictCosts = builtins.listToAttrs (map (n: {
     name = n;
@@ -595,6 +624,7 @@ in
         ports = [ "8188:8188" ];
         volumes = [ "${comfyDataDir}:/data" ];
         extraOptions = [
+          "--stop-timeout=45"
           "--device=/dev/kfd"
           "--device=/dev/dri"
           "--security-opt=seccomp=unconfined"
@@ -621,6 +651,11 @@ in
 
   systemd.services.podman-comfyui.serviceConfig.ExecStartPre = lib.mkAfter [
     "+${comfyuiImageBuild}"
+  ];
+
+  systemd.services.podman-comfyui.serviceConfig.SuccessExitStatus = [
+    "137"
+    "143"
   ];
 
   services.llama-cpp = lib.optionalAttrs (!llamacppPerInstance) {
@@ -733,7 +768,7 @@ in
 
            cmdStop = "systemctl stop podman-comfyui.service";
 
-            unloadTimeout = 60;
+            unloadTimeout = 90;
 
             proxy = "http://127.0.0.1:${toString comfyuiPort}";
             checkEndpoint = "/system_stats";
