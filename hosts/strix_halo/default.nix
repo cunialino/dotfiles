@@ -209,6 +209,20 @@ let
       };
     };
 
+    ws = {
+      displayName = "Ws";
+      port = 11448;
+      args = {
+        model = "${llamaModelsDir}/ws/model-Q8_0.gguf";
+        "ctx-size" = 262144;
+        "batch-size" = 2048;
+        "ubatch-size" = 2048;
+        temp = 1.0;
+        "top-k" = 64;
+        "top-p" = 0.92;
+      };
+    };
+
     "ornith-1.5-35b" = {
       displayName = "Ornith-1.5-35B";
       port = 11446;
@@ -239,6 +253,7 @@ let
     "qwen3.6" = { gib = 29.08; loadSec = 12; };
     "ornith-og" = { gib = 35.12; loadSec = 14; };
     "ornith-1.5-35b" = { gib = 36.45; loadSec = 15; };
+    ws = { gib = 32.62; loadSec = 20; };
     "lk" = { gib = 41.60; loadSec = 13; };
     "tt" = { gib = 37.8; loadSec = 12; };
 
