@@ -8,16 +8,20 @@
 let
   cfg = config.modules.comfy-gen;
 
-  # The canonical ComfyUI workflows live in the ``myai`` repo, where they are
-  # also consumed by Open WebUI (base/openwebui/config-env.yaml -> COMFYUI_*).
-  # We pull those single sources here and bundle the API-format JSON into the
-  # closure, so comfy-gen and Open WebUI never drift apart. Simple user-facing
-  # names (see workflowNames) map to those env keys.
+  # Open WebUI's env ConfigMap in the ``myai`` repo is the canonical home of the
+  # ComfyUI workflows -- the app is deployed from
+  # clusters/homelab/apps/openwebui. builtins.path so a myai layout change fails
+  # at eval time with the path in the message, not as a Python traceback halfway
+  # through a system rebuild.
+  configEnv = builtins.path {
+    path = myai + "/clusters/homelab/apps/openwebui/config-env.yaml";
+    name = "openwebui-config-env.yaml";
+  };
+
   py = pkgs.python3.withPackages (ps: [ ps.pyyaml ]);
 
-  # Simple, user-facing names for the workflows bundled from the myai repo. The
-  # canonical copies live there (base/openwebui/config-env.yaml) and are also
-  # consumed by Open WebUI, so this is the single source of truth.
+  # Simple, user-facing names for the workflows bundled from the myai repo, mapped
+  # to the Open WebUI env keys that carry them.
   workflowNames = {
     "image-gen" = "COMFYUI_WORKFLOW";      # ComfyUI image generation
     "image-edit" = "IMAGES_EDIT_COMFYUI_WORKFLOW";  # ComfyUI image edit
@@ -28,7 +32,7 @@ let
       nativeBuildInputs = [ py ];
     } ''
       mkdir -p $out
-      ${py}/bin/python3 - "${myai}/base/openwebui/config-env.yaml" "$out" <<'PY'
+      ${py}/bin/python3 - "${configEnv}" "$out" <<'PY'
       import sys, json, yaml
       outdir = sys.argv[2]
       data = yaml.safe_load(open(sys.argv[1]))["data"]

@@ -79,7 +79,7 @@
       };
 
       # MCP servers on the cluster reached through their kube-vip addresses
-      # (myai: base/graphiti -> .201, base/ddg-search -> .202) instead of the
+      # (myai: clusters/homelab/apps/graphiti -> .201, ddg-search -> .202) instead of the
       # Tailscale ingresses: plain HTTP on the LAN, no tsnet round trip and no
       # dependency on tailscaled being up. Only reachable from the LAN.
       mcp.servers = {

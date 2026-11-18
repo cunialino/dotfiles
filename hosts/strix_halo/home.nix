@@ -19,7 +19,7 @@
     comfy-gen.enable = true;
 
     # Same cluster MCP servers as elcungem, over their kube-vip addresses
-    # (myai: base/graphiti -> .201, base/ddg-search -> .202). Plain HTTP on the
+    # (myai: clusters/homelab/apps/graphiti -> .201, ddg-search -> .202). Plain HTTP on the
     # LAN, no Tailscale on this box and none needed -- pi here is on the LAN
     # permanently (192.168.0.6).
     mcp = {
